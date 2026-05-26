@@ -1,0 +1,26 @@
+{
+  "name": "workspace",
+  "version": "1.0.0",
+  "description": "All required SQLs",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bharathkte247/SQL-Imp.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Bharathkte247/SQL-Imp/issues"
+  },
+  "homepage": "https://github.com/Bharathkte247/SQL-Imp#readme",
+  "dependencies": {
+    "@clickhouse/client": "^1.18.5",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  }
+}

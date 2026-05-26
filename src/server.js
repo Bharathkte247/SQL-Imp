@@ -4,7 +4,7 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 
-const { clickhouseClient, checkConnection } = require("./clickhouse");
+const { clickhouseClient, checkConnection, getErrorMessage } = require("./clickhouse");
 
 const app = express();
 const PORT = Number(process.env.APP_PORT || 3000);
@@ -57,7 +57,7 @@ app.post("/api/query", async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       error: "ClickHouse query failed.",
-      details: error.message || "Unknown error",
+      details: getErrorMessage(error),
     });
   }
 });

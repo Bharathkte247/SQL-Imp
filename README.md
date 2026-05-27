@@ -1,94 +1,89 @@
-# ClickHouse Local Web App
+# QRA Web Application (Quality Audit Module)
 
-A minimal web application that connects to a local ClickHouse database, lets you run read-only SQL queries, and shows results in the browser.
+This project is a web application inspired by your **Conversation Insights - Quality Audit Module** documentation.
+
+It implements a working MVP of the roadmap areas:
+
+- Data ingestion configuration and manual uploads
+- Interaction listing with search/filter
+- Transcript viewer with AI highlights
+- Dynamic audit form engine with queue-based forms
+- End-to-end audit workflow view
+- Reporting and analytics summary
 
 ## Tech stack
 
-- Node.js + Express backend
-- Official ClickHouse JS client (`@clickhouse/client`)
-- Plain HTML/CSS/JS frontend
-- Docker Compose for local ClickHouse
+- Node.js + Express
+- Plain HTML/CSS/JavaScript frontend
+- In-memory data store (MVP simulation)
+- Optional ClickHouse helper endpoints retained from earlier work:
+  - `GET /api/health`
+  - `POST /api/query`
 
-## Project structure
+## Quick start
 
-```text
-.
-├── public/                 # Browser UI
-├── src/                    # Express API + ClickHouse client
-├── docker/clickhouse/init/ # Seed SQL run when ClickHouse starts
-├── docker-compose.yml
-└── .env.example
-```
-
-## Prerequisites
-
-- Node.js 20+ (or any modern LTS)
-- npm
-- Docker + Docker Compose
-
-## 1) Start local ClickHouse
-
-```bash
-docker compose up -d
-```
-
-This exposes:
-
-- HTTP API: `http://localhost:8123`
-- Native protocol: `localhost:9000`
-
-The startup seed script creates a sample table: `default.events`.
-
-## 2) Configure the app
-
-```bash
-cp .env.example .env
-```
-
-Default values work with the provided Docker Compose setup.
-
-## 3) Install dependencies
+1. Install dependencies:
 
 ```bash
 npm install
 ```
 
-## 4) Run the web app
+2. Start the app:
 
 ```bash
 npm run dev
 ```
 
-Open:
+3. Open in browser:
 
-`http://localhost:3000`
+- Dashboard: `http://localhost:3000`
+- Quality Audit Workspace: `http://localhost:3000/quality-audit.html`
 
-## API endpoints
+## Main screens
 
-- `GET /api/health`  
-  Checks whether the app can reach ClickHouse.
+### Dashboard (`/`)
 
-- `POST /api/query`  
-  Runs a read-only SQL query (`SELECT`, `SHOW`, `DESCRIBE`, `EXPLAIN`).
+- Operational snapshot KPIs
+- Quality Audit module tile (compact tile layout)
+- Product roadmap phases
 
-Example request body:
+### Quality Audit Workspace (`/quality-audit.html`)
 
-```json
-{
-  "query": "SELECT * FROM events ORDER BY event_time DESC LIMIT 10"
-}
-```
+Tabs:
 
-## Example queries to try in the UI
+1. **Ingestion**
+   - Configure ingestion sources (API, DB, cloud, SFTP)
+   - Manual file upload simulation
+   - View configured sources
+2. **Interactions**
+   - Filter/search interactions
+   - Open interaction for review
+3. **Transcript + Audit**
+   - Transcript viewer with timestamps and speakers
+   - AI highlights
+   - Dynamic queue-specific audit form
+   - Submit audit with score calculation (weightage + fatal checks)
+4. **Workflow**
+   - End-to-end audit lifecycle steps
+5. **Reports**
+   - QA summary KPIs
+   - Queue performance table
 
-```sql
-SELECT version();
-```
+## API endpoints (QRA MVP)
 
-```sql
-SELECT * FROM events ORDER BY event_time DESC;
-```
+- `GET /api/qra/dashboard`
+- `GET /api/qra/ingestion/sources`
+- `POST /api/qra/ingestion/sources`
+- `POST /api/qra/ingestion/uploads`
+- `GET /api/qra/interactions`
+- `GET /api/qra/interactions/:interactionId`
+- `GET /api/qra/forms/:queue`
+- `GET /api/qra/workflow`
+- `POST /api/qra/audits`
+- `GET /api/qra/reports`
 
-```sql
-SHOW TABLES;
-```
+## Notes
+
+- Current persistence is in-memory for fast prototyping.
+- On restart, sources, uploads, and audit submissions reset.
+- This structure is ready to connect to real DB/microservices later (Ingestion Service, Audit Service, AI Scoring Service, Reporting Service, RBAC Service).

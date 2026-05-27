@@ -3,18 +3,39 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Application Dashboard</title>
+    <title>QRA Dashboard</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <main class="container">
-      <h1>Application Dashboard</h1>
-      <section class="tile-grid">
-        <a class="tile tile-link" href="/quality-audit.html" aria-label="Open Quality Audit">
-          <h2>Quality Audit</h2>
-          <p>Open import options</p>
-        </a>
+      <header class="page-header">
+        <h1>Conversation Insights - Quality Audit</h1>
+        <p class="page-subtitle">
+          Human QA + Auto QRA workflow for ingestion, scoring, dispute handling, and reporting.
+        </p>
+      </header>
+
+      <section>
+        <h2 class="section-title">Operational Snapshot</h2>
+        <div id="kpiGrid" class="kpi-grid"></div>
+      </section>
+
+      <section>
+        <h2 class="section-title">Modules</h2>
+        <div class="tile-grid">
+          <a class="tile tile-link" href="/quality-audit.html" aria-label="Open Quality Audit workspace">
+            <h3>Quality Audit</h3>
+            <p>Ingestion, interaction review, scoring, workflow and reports</p>
+          </a>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="section-title">Roadmap</h2>
+        <ul id="roadmapList" class="roadmap-list"></ul>
       </section>
     </main>
+
+    <script src="/dashboard.js"></script>
   </body>
 </html>

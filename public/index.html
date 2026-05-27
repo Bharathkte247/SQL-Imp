@@ -3,33 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ClickHouse Local Query App</title>
+    <title>Quality Audit</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <main class="container">
-      <h1>ClickHouse Local Query App</h1>
-      <p class="subtitle">Run read-only SQL against your local ClickHouse database.</p>
-
-      <section class="card">
-        <button id="healthBtn">Check Connection</button>
-        <p id="healthStatus">Connection not checked yet.</p>
-      </section>
-
-      <section class="card">
-        <label for="query">SQL query</label>
-        <textarea id="query" rows="7">SELECT version()</textarea>
-        <button id="runQueryBtn">Run Query</button>
-        <p class="hint">Only SELECT/SHOW/DESCRIBE/EXPLAIN queries are allowed.</p>
-      </section>
-
-      <section class="card">
-        <h2>Results</h2>
-        <p id="resultMeta">No query executed yet.</p>
-        <div id="resultTableWrapper"></div>
+      <h1>Application Dashboard</h1>
+      <section class="tile-grid">
+        <article class="tile">
+          <h2>Quality Audit</h2>
+        </article>
       </section>
     </main>
-
-    <script src="/main.js"></script>
   </body>
 </html>

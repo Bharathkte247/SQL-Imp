@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quality Audit</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <a class="back-link" href="/">&larr; Back to Dashboard</a>
+      <h1>Quality Audit</h1>
+      <p class="page-intro">
+        Import transcripts or media using one of the options below.
+      </p>
+
+      <section class="option-grid">
+        <article class="option-card">
+          <h2>Upload Files</h2>
+          <p>Select transcript or media files from your computer.</p>
+          <label class="input-label" for="transcriptMediaFiles">Files</label>
+          <input
+            id="transcriptMediaFiles"
+            class="input-control"
+            type="file"
+            multiple
+            accept=".txt,.csv,.json,.srt,.vtt,audio/*,video/*"
+          />
+          <button type="button" class="action-btn">Upload files</button>
+        </article>
+
+        <article class="option-card">
+          <h2>Connect Data Source</h2>
+          <p>Connect an external location to pull transcripts or media.</p>
+          <label class="input-label" for="sourceType">Source type</label>
+          <select id="sourceType" class="input-control">
+            <option value="api">API endpoint</option>
+            <option value="s3">Amazon S3</option>
+            <option value="drive">Google Drive</option>
+            <option value="blob">Azure Blob Storage</option>
+          </select>
+
+          <label class="input-label" for="sourceLocation">Source URL or path</label>
+          <input id="sourceLocation" class="input-control" type="text" placeholder="https://... or bucket/path" />
+
+          <label class="input-label" for="sourceToken">Access key / token (optional)</label>
+          <input id="sourceToken" class="input-control" type="password" placeholder="Enter credential" />
+
+          <button type="button" class="action-btn">Connect source</button>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

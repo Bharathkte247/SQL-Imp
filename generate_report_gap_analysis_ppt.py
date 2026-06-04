@@ -429,7 +429,7 @@ def build_deck():
             Inches(0.95),
         )
         set_fill(shape, color)
-        set_text(shape, f"{label} Impact — {desc}", size=14, color=WHITE, bold=True, align=PP_ALIGN.CENTER)
+        set_text(shape, f"{label} Impact - {desc}", size=14, color=WHITE, bold=True, align=PP_ALIGN.CENTER)
     add_bullets(
         slide,
         1.15,
@@ -484,7 +484,7 @@ def build_deck():
         y = 1.45 + (idx // 2) * 1.2
         box = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, Inches(x), Inches(y), Inches(5.45), Inches(0.78))
         set_fill(box, color)
-        set_text(box, f"✓ {item}", size=15, color=WHITE, bold=True)
+        set_text(box, f"[OK] {item}", size=15, color=WHITE, bold=True)
     callout = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, Inches(1.05), Inches(5.35), Inches(11.15), Inches(0.75))
     set_fill(callout, LIGHT_GRAY)
     callout.line.color.rgb = BLUE

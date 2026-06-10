@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Product Manager Training Course</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --color-bg: #ffffff;
+      --color-bg-secondary: #f7f7f5;
+      --color-text-primary: #1a1a18;
+      --color-text-secondary: #6b6b66;
+      --color-border: rgba(0,0,0,0.12);
+      --color-border-hover: rgba(0,0,0,0.25);
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --purple-50: #EEEDFE;
+      --purple-200: #AFA9EC;
+      --purple-600: #534AB7;
+      --purple-800: #3C3489;
+      --purple-900: #26215C;
+      --teal-50: #E1F5EE;
+      --teal-600: #0F6E56;
+      --teal-800: #085041;
+      --coral-50: #FAECE7;
+      --coral-600: #993C1D;
+      --coral-800: #712B13;
+      --blue-50: #E6F1FB;
+      --blue-600: #185FA5;
+      --blue-800: #0C447C;
+      --green-50: #EAF3DE;
+      --green-400: #639922;
+      --green-600: #3B6D11;
+      --green-800: #27500A;
+      --amber-50: #FAEEDA;
+      --amber-600: #854F0B;
+      --amber-800: #633806;
+      --red-50: #FCEBEB;
+      --red-400: #E24B4A;
+      --red-800: #791F1F;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-bg: #1a1a18;
+        --color-bg-secondary: #242420;
+        --color-text-primary: #f0ede8;
+        --color-text-secondary: #9a9990;
+        --color-border: rgba(255,255,255,0.12);
+        --color-border-hover: rgba(255,255,255,0.25);
+        --purple-50: #26215C;
+        --purple-200: #534AB7;
+        --purple-600: #AFA9EC;
+        --purple-800: #CECBF6;
+        --teal-50: #04342C;
+        --teal-600: #5DCAA5;
+        --teal-800: #9FE1CB;
+        --coral-50: #4A1B0C;
+        --coral-600: #F0997B;
+        --coral-800: #F5C4B3;
+        --blue-50: #042C53;
+        --blue-600: #85B7EB;
+        --blue-800: #B5D4F4;
+        --green-50: #173404;
+        --green-400: #97C459;
+        --green-600: #C0DD97;
+        --green-800: #EAF3DE;
+        --amber-50: #412402;
+        --amber-600: #EF9F27;
+        --amber-800: #FAC775;
+        --red-50: #501313;
+        --red-400: #F09595;
+        --red-800: #F7C1C1;
+      }
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--color-bg-secondary);
+      color: var(--color-text-primary);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* ── Layout ── */
+    .app-shell {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    /* ── Header ── */
+    .course-header {
+      background: var(--color-bg);
+      border: 0.5px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+    }
+    .course-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: var(--purple-50);
+      color: var(--purple-800);
+      padding: 3px 10px;
+      border-radius: var(--radius-md);
+      margin-bottom: 10px;
+    }
+    .course-title {
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin-bottom: 6px;
+    }
+    .course-sub {
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      margin-bottom: 1.25rem;
+    }
+    .progress-track {
+      height: 6px;
+      background: var(--color-border);
+      border-radius: 99px;
+      margin-bottom: 6px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--purple-600);
+      border-radius: 99px;
+      transition: width 0.5s ease;
+    }
+    .progress-label {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+    }
+
+    /* ── Main grid ── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    @media (max-width: 720px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Module sidebar ── */
+    .module-sidebar {
+      background: var(--color-bg);
+      border: 0.5px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .sidebar-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--color-text-secondary);
+      padding: 6px 8px 4px;
+    }
+    .module-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      border: 0.5px solid transparent;
+      background: transparent;
+      cursor: pointer;
+      text-align: left;
+      width: 100%;
+      transition: background 0.15s, border-color 0.15s;
+      color: var(--color-text-primary);
+    }
+    .module-btn:hover:not(.active) { background: var(--color-bg-secondary); }
+    .module-btn.active {
+      background: var(--purple-50);
+      border-color: var(--purple-200);
+    }
+    .module-icon {
+      width: 34px; height: 34px;
+      border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .module-info { flex: 1; min-width: 0; }
+    .module-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-text-primary);
+      line-height: 1.3;
+    }
+    .module-meta {
+      font-size: 11px;
+      color: var(--color-text-secondary);
+      margin-top: 2px;
+    }
+
+    /* ── Lesson panel ── */
+    .lesson-panel {
+      background: var(--color-bg);
+      border: 0.5px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .lesson-header {
+      padding: 1.5rem;
+      border-bottom: 0.5px solid var(--color-border);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .lesson-title { font-size: 18px; font-weight: 600; color: var(--color-text-primary); }
+    .lesson-desc { font-size: 13px; color: var(--color-text-secondary); margin-top: 4px; }
+    .level-badge {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: var(--radius-md);
+      white-space: nowrap;
+      flex-shrink: 0;
+      font-weight: 500;
+    }
+
+    /* ── Tabs ── */
+    .lesson-tabs {
+      display: flex;
+      border-bottom: 0.5px solid var(--color-border);
+      background: var(--color-bg-secondary);
+    }
+    .tab-btn {
+      padding: 11px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      border: none;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      transition: color 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tab-btn.active {
+      color: var(--purple-600);
+      border-bottom-color: var(--purple-600);
+      background: var(--color-bg);
+    }
+    .tab-btn:hover:not(.active) { color: var(--color-text-primary); }
+
+    /* ── Lesson body ── */
+    .lesson-body {
+      padding: 1.75rem;
+      min-height: 300px;
+    }
+
+    /* ── Learn tab ── */
+    .concept-block { margin-bottom: 1.75rem; }
+    .concept-block:last-child { margin-bottom: 0; }
+    .concept-heading {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--color-text-secondary);
+      margin-bottom: 8px;
+    }
+    .concept-text {
+      font-size: 14px;
+      color: var(--color-text-primary);
+      line-height: 1.75;
+    }
+    .skills-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .skill-pill {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 12px;
+      background: var(--color-bg-secondary);
+      border-radius: var(--radius-md);
+      border: 0.5px solid var(--color-border);
+      font-size: 13px;
+      color: var(--color-text-primary);
+    }
+
+    /* ── Quiz tab ── */
+    .quiz-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+    .quiz-counter { font-size: 12px; color: var(--color-text-secondary); }
+    .quiz-score { font-size: 12px; font-weight: 600; color: var(--green-600); }
+    .quiz-question {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--color-text-primary);
+      margin-bottom: 1rem;
+      line-height: 1.6;
+    }
+    .quiz-options { display: flex; flex-direction: column; gap: 8px; }
+    .quiz-opt {
+      padding: 12px 16px;
+      border: 0.5px solid var(--color-border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--color-text-primary);
+      background: var(--color-bg);
+      text-align: left;
+      transition: all 0.15s;
+    }
+    .quiz-opt:hover:not(.locked) { border-color: var(--purple-200); background: var(--purple-50); }
+    .quiz-opt.correct { background: var(--green-50); border-color: var(--green-400); color: var(--green-800); }
+    .quiz-opt.wrong { background: var(--red-50); border-color: var(--red-400); color: var(--red-800); }
+    .quiz-feedback {
+      margin-top: 12px;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      line-height: 1.65;
+      display: none;
+    }
+    .quiz-feedback.show { display: block; }
+    .quiz-feedback.fb-correct { background: var(--green-50); color: var(--green-800); border: 0.5px solid var(--green-400); }
+    .quiz-feedback.fb-wrong { background: var(--red-50); color: var(--red-800); border: 0.5px solid var(--red-400); }
+    .quiz-actions { display: flex; justify-content: flex-end; margin-top: 1rem; }
+    .quiz-result {
+      text-align: center;
+      padding: 2rem 1rem;
+    }
+    .quiz-result-score { font-size: 48px; margin-bottom: 12px; }
+    .quiz-result-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+    .quiz-result-sub { font-size: 14px; color: var(--color-text-secondary); margin-bottom: 1.5rem; }
+
+    /* ── Scenario tab ── */
+    .scenario-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--color-text-secondary);
+      margin-bottom: 8px;
+    }
+    .scenario-card {
+      background: var(--color-bg-secondary);
+      border-radius: var(--radius-md);
+      border: 0.5px solid var(--color-border);
+      padding: 1.25rem;
+      font-size: 14px;
+      color: var(--color-text-primary);
+      line-height: 1.75;
+      margin-bottom: 1rem;
+    }
+    .scenario-hint {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      margin-bottom: 1.25rem;
+    }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 16px;
+      background: var(--purple-600);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+      text-decoration: none;
+    }
+    .btn-primary:hover { background: var(--purple-800); }
+    .btn-primary:disabled { background: var(--color-border); color: var(--color-text-secondary); cursor: not-allowed; }
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 16px;
+      background: transparent;
+      color: var(--color-text-primary);
+      border: 0.5px solid var(--color-border-hover);
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-ghost:hover { background: var(--color-bg-secondary); }
+
+    /* ── Lesson footer ── */
+    .lesson-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.5rem;
+      border-top: 0.5px solid var(--color-border);
+      background: var(--color-bg-secondary);
+    }
+    .lesson-footer-info { font-size: 12px; color: var(--color-text-secondary); }
+
+    /* ── AI Coach ── */
+    .ai-coach {
+      background: var(--color-bg);
+      border: 0.5px solid var(--color-border);
+      border-top: none;
+      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+      padding: 1.25rem 1.5rem;
+    }
+    .ai-coach-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--color-text-secondary);
+      margin-bottom: 10px;
+    }
+    .ai-input-row { display: flex; gap: 8px; }
+    .ai-input {
+      flex: 1;
+      padding: 9px 12px;
+      font-size: 13px;
+      border: 0.5px solid var(--color-border-hover);
+      border-radius: var(--radius-md);
+      background: var(--color-bg-secondary);
+      color: var(--color-text-primary);
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .ai-input:focus { border-color: var(--purple-600); }
+    .ai-response {
+      margin-top: 12px;
+      padding: 14px 16px;
+      background: var(--color-bg-secondary);
+      border: 0.5px solid var(--color-border);
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      line-height: 1.75;
+      color: var(--color-text-primary);
+      white-space: pre-wrap;
+      display: none;
+    }
+    .ai-response.show { display: block; }
+    .ai-thinking { color: var(--color-text-secondary); font-style: italic; }
+
+    /* ── Empty state ── */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 280px;
+      gap: 12px;
+      color: var(--color-text-secondary);
+    }
+    .empty-state i { font-size: 36px; opacity: 0.4; }
+    .empty-state p { font-size: 14px; }
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- Course header -->
+  <div class="course-header">
+    <div class="course-tag">Role training</div>
+    <div class="course-title">AI Product Manager</div>
+    <div class="course-sub">6 modules · 24 lessons · AI coach included</div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+    <div class="progress-label" id="progressLabel">0 of 6 modules completed</div>
+  </div>
+
+  <!-- Main grid -->
+  <div class="main-grid">
+
+    <!-- Sidebar -->
+    <div class="module-sidebar">
+      <div class="sidebar-label">Modules</div>
+      <div id="moduleList"></div>
+    </div>
+
+    <!-- Content column -->
+    <div>
+      <div class="lesson-panel" id="lessonPanel">
+
+        <!-- Header -->
+        <div class="lesson-header">
+          <div>
+            <div class="lesson-title" id="lessonTitle">Select a module to begin</div>
+            <div class="lesson-desc" id="lessonDesc">Choose a module from the left to start learning.</div>
+          </div>
+          <div class="level-badge" id="levelBadge"
+               style="background:var(--purple-50); color:var(--purple-800);">
+            Beginner
+          </div>
+        </div>
+
+        <!-- Tabs (hidden until module selected) -->
+        <div class="lesson-tabs" id="tabBar" style="display:none;">
+          <button class="tab-btn active" onclick="switchTab('learn')">
+            <i class="ti ti-book-2"></i> Learn
+          </button>
+          <button class="tab-btn" onclick="switchTab('quiz')">
+            <i class="ti ti-help-circle"></i> Quiz
+          </button>
+          <button class="tab-btn" onclick="switchTab('scenario')">
+            <i class="ti ti-target"></i> Scenario
+          </button>
+        </div>
+
+        <!-- Body -->
+        <div class="lesson-body" id="lessonBody">
+          <div class="empty-state">
+            <i class="ti ti-layout-grid"></i>
+            <p>Pick a module to start your training</p>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="lesson-footer" id="lessonFooter" style="display:none;">
+          <div class="lesson-footer-info" id="footerInfo">Module 1 of 6</div>
+          <button class="btn-primary" id="completeBtn" onclick="completeModule()">
+            <i class="ti ti-check"></i> Mark complete
+          </button>
+        </div>
+
+      </div>
+
+      <!-- AI Coach (shown when module selected) -->
+      <div class="ai-coach" id="aiCoach" style="display:none;">
+        <div class="ai-coach-header">
+          <i class="ti ti-robot" style="font-size:14px;"></i>
+          AI coach — ask anything about this topic
+        </div>
+        <div class="ai-input-row">
+          <input
+            class="ai-input"
+            id="aiInput"
+            type="text"
+            placeholder="e.g. How do I explain model drift to a non-technical stakeholder?"
+            onkeydown="if(event.key==='Enter') askAI()"
+          />
+          <button class="btn-primary" id="askBtn" onclick="askAI()">Ask ↗</button>
+        </div>
+        <div class="ai-response" id="aiResponse"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  /* ─────────────────────────────────────────────
+     COURSE DATA
+  ───────────────────────────────────────────── */
+  const MODULES = [
+    {
+      id: 0,
+      name: "Foundations of AI PM",
+      icon: "ti-brain",
+      bg: "var(--purple-50)", iconColor: "var(--purple-600)",
+      badgeBg: "var(--purple-50)", badgeColor: "var(--purple-800)",
+      level: "Beginner",
+      desc: "Understand what makes AI PM unique vs. traditional PM",
+      learn: {
+        sections: [
+          {
+            heading: "What is an AI PM?",
+            text: "An AI Product Manager guides products that are fundamentally powered by machine learning, LLMs, or intelligent automation. Unlike traditional PMs who define static feature sets, AI PMs must reason about probabilistic outputs, data pipelines, model behavior, and the interplay between user trust and system uncertainty."
+          },
+          {
+            heading: "Core responsibilities",
+            text: "Defining AI use cases with measurable outcomes. Partnering with ML engineers to scope feasibility. Translating model metrics (precision, recall, latency) into user value. Managing feedback loops for continuous model improvement. Communicating uncertainty and limitations to stakeholders."
+          },
+          {
+            heading: "Key differentiator",
+            text: "Traditional PMs ship deterministic features. AI PMs ship probabilistic systems. The product experience itself changes over time as the model learns — making the PM's job more dynamic, but also more complex to test and validate."
+          }
+        ],
+        skills: ["ML intuition", "Data literacy", "Stakeholder alignment", "Uncertainty communication"]
+      },
+      quiz: [
+        {
+          q: "What primarily distinguishes an AI PM from a traditional PM?",
+          opts: ["AI PMs write code", "AI PMs manage probabilistic, evolving systems", "AI PMs focus only on data engineering", "AI PMs skip user research"],
+          correct: 1,
+          exp: "Correct! AI PMs work with systems whose outputs are probabilistic and change over time as models are updated — unlike deterministic feature engineering."
+        },
+        {
+          q: "Which of these is a core AI PM skill?",
+          opts: ["Manual QA testing", "Graphic design", "Communicating model uncertainty to stakeholders", "Writing SQL queries daily"],
+          correct: 2,
+          exp: "AI PMs must translate technical model behavior into terms stakeholders and users understand — including what the system can and cannot reliably do."
+        },
+        {
+          q: "Why are feedback loops especially critical in AI products?",
+          opts: ["They reduce server costs", "Models improve (or degrade) based on new data, requiring monitoring", "They replace user research", "They simplify the roadmap"],
+          correct: 1,
+          exp: "AI systems learn from data over time. A feedback loop ensures the PM tracks how model performance evolves and acts when drift or degradation occurs."
+        }
+      ],
+      scenario: {
+        title: "Stakeholder briefing on hallucination risk",
+        text: "Your LLM-powered support bot has launched. The VP of Customer Success flags that users occasionally receive confidently wrong answers. How do you frame the tradeoff and propose a path forward?",
+        coachPrompt: "You are an expert AI PM coach. The student is practicing: briefing a skeptical VP of Customer Success about LLM hallucination risk in a support bot. Give a concise 3-step framework for this conversation, then explain what to avoid. Be specific and practical. Keep the response under 250 words."
+      }
+    },
+    {
+      id: 1,
+      name: "AI Use Case Discovery",
+      icon: "ti-search",
+      bg: "var(--teal-50)", iconColor: "var(--teal-600)",
+      badgeBg: "var(--teal-50)", badgeColor: "var(--teal-800)",
+      level: "Beginner",
+      desc: "Identify and evaluate which problems AI should solve",
+      learn: {
+        sections: [
+          {
+            heading: "Not everything needs AI",
+            text: "The most important skill in AI use case discovery is knowing when NOT to use AI. A rule-based system, a well-designed form, or a simple search index often solves the problem faster, cheaper, and more reliably than a model. AI earns its place when the task involves pattern recognition across complex inputs, synthesis of unstructured data, or personalization at scale."
+          },
+          {
+            heading: "The opportunity canvas",
+            text: "Evaluate each candidate use case across four axes: Data availability (do you have sufficient quality training signal?), Tolerance for errors (what happens when the model is wrong?), Human-in-the-loop feasibility (can a human review or correct outputs?), and Competitive moat (does AI create a durable differentiation?)."
+          },
+          {
+            heading: "Discovery interviews",
+            text: "When running discovery for AI features, ask: What is the repetitive cognitive task users perform today? Where do users currently make mistakes or give up? What data is generated as a byproduct of normal usage? These questions reveal the highest-leverage candidates for AI augmentation."
+          }
+        ],
+        skills: ["Opportunity sizing", "Problem framing", "Build vs buy analysis", "Data readiness assessment"]
+      },
+      quiz: [
+        {
+          q: "A use case with zero tolerance for error and no human-in-the-loop review is…",
+          opts: ["Ideal for AI", "High-risk and should be reconsidered or heavily guarded", "Better with a larger model", "Solved by fine-tuning"],
+          correct: 1,
+          exp: "When errors are high-stakes and no human can review outputs, deploying AI requires extreme safeguards — or the use case may not be appropriate for AI at all."
+        },
+        {
+          q: "Which question best surfaces AI use case candidates in discovery?",
+          opts: ["What is your NPS?", "What cognitive task do users repeat that generates data as a byproduct?", "Who is your main competitor?", "What is your tech stack?"],
+          correct: 1,
+          exp: "Repetitive cognitive tasks with data byproducts are the richest soil for AI — they offer training signal and clear ROI."
+        },
+        {
+          q: "What is the 'data availability' axis checking for?",
+          opts: ["Whether you have GPUs", "Whether sufficient quality training or grounding data exists", "Whether your team knows Python", "Whether your users want AI"],
+          correct: 1,
+          exp: "Even the best model architecture fails without quality data. Assessing data readiness early prevents costly projects that stall at training time."
+        }
+      ],
+      scenario: {
+        title: "Prioritizing 3 competing AI feature pitches",
+        text: "Your team has proposed: (1) an AI email composer, (2) an AI-powered fraud detection module, and (3) a smart onboarding assistant. You have resources for one. How do you evaluate and choose?",
+        coachPrompt: "You are an AI PM coach. The student needs to prioritize between three AI features: email composer, fraud detection, and smart onboarding assistant. Guide them through an opportunity canvas evaluation, considering error tolerance, data availability, and user value. Be concise, structured, and practical. Under 250 words."
+      }
+    },
+    {
+      id: 2,
+      name: "Working With ML Teams",
+      icon: "ti-users",
+      bg: "var(--coral-50)", iconColor: "var(--coral-600)",
+      badgeBg: "var(--coral-50)", badgeColor: "var(--coral-800)",
+      level: "Intermediate",
+      desc: "Collaborate effectively with data scientists and engineers",
+      learn: {
+        sections: [
+          {
+            heading: "The PM-ML interface",
+            text: "The biggest friction between PMs and ML teams comes from misaligned success metrics. PMs speak in business outcomes (conversion, retention, CSAT). ML engineers speak in model metrics (AUC, F1, perplexity). Your job is to build a shared translation layer — a document that maps model metrics to user-facing KPIs."
+          },
+          {
+            heading: "Scoping feasibility together",
+            text: "Before writing a spec, run a 30-minute feasibility session with your ML lead. Ask: What is the simplest baseline we could ship in 2 weeks? What data do we need that we don't have? What is the worst-case output, and how do we detect it? These questions surface blockers early and set realistic expectations."
+          },
+          {
+            heading: "The experimentation mindset",
+            text: "AI features need experiment-first roadmaps. Define the hypothesis (if we deploy this model, X user behavior changes), the metric, and the guardrail metric (the thing we won't sacrifice). Hold the team to shipping a measurable experiment before a full rollout."
+          }
+        ],
+        skills: ["Metric translation", "Experiment design", "Feasibility scoping", "Technical specification"]
+      },
+      quiz: [
+        {
+          q: "What causes the most friction at the PM-ML team interface?",
+          opts: ["Different laptop preferences", "Misaligned success metrics (business vs model)", "Disagreements about roadmap format", "Different time zones"],
+          correct: 1,
+          exp: "Business KPIs and model metrics often tell different stories. A high-AUC model can still hurt user trust if it optimizes the wrong objective."
+        },
+        {
+          q: "A guardrail metric is:",
+          opts: ["The primary model evaluation metric", "A KPI that must not be degraded even if the target metric improves", "A fallback model used in production", "An SLA for inference latency"],
+          correct: 1,
+          exp: "Guardrail metrics protect against unintended harm — e.g. improving click-rate shouldn't degrade user satisfaction below a threshold."
+        },
+        {
+          q: "What is the goal of a 30-minute feasibility session before speccing an AI feature?",
+          opts: ["To write the PRD together", "To surface data gaps, worst-case outputs, and realistic timelines early", "To demo the feature to the VP", "To select the model architecture"],
+          correct: 1,
+          exp: "Early feasibility sessions prevent weeks of speccing work that hits a data or modeling wall — they're one of the highest-ROI rituals for AI PMs."
+        }
+      ],
+      scenario: {
+        title: "Model performance vs user trust tradeoff",
+        text: "Your ML team ships a 12% improvement in recommendation accuracy. But early user feedback shows the new model feels 'creepy' and over-personalized. How do you navigate this with the ML team?",
+        coachPrompt: "You are an AI PM coach. The student's ML team improved model accuracy by 12% but users find the results 'creepy'. Help the student think through how to frame this tradeoff with the ML team, what experiments to run, and how to define a user trust metric. Be practical and specific. Under 250 words."
+      }
+    },
+    {
+      id: 3,
+      name: "AI Metrics & Evaluation",
+      icon: "ti-chart-bar",
+      bg: "var(--blue-50)", iconColor: "var(--blue-600)",
+      badgeBg: "var(--blue-50)", badgeColor: "var(--blue-800)",
+      level: "Intermediate",
+      desc: "Define, measure, and iterate on AI product performance",
+      learn: {
+        sections: [
+          {
+            heading: "The AI metrics stack",
+            text: "AI products need metrics at three levels. Model metrics (precision, recall, latency, cost per inference) tell you if the system works. Interaction metrics (acceptance rate, correction rate, task completion) tell you if users find it useful. Business metrics (retention, conversion, support deflection) tell you if it creates value. Align all three or you'll optimize the wrong layer."
+          },
+          {
+            heading: "Acceptance rate as a proxy",
+            text: "For generative AI features, the acceptance rate — the fraction of AI suggestions users act on without modification — is a powerful leading indicator. A rate below 30% suggests the model is missing intent. Above 80% may indicate over-reliance. The sweet spot depends on the use case, but tracking trajectory matters more than absolute value."
+          },
+          {
+            heading: "Eval sets and red-teaming",
+            text: "Before shipping, build an eval set: a curated collection of representative inputs with expected outputs. Run red-teaming sessions where teammates adversarially probe the model for failure modes. Document findings in a model card visible to the whole team. Treat eval as a living artifact that grows with production data."
+          }
+        ],
+        skills: ["KPI framework design", "Eval set construction", "A/B test design", "Model card writing"]
+      },
+      quiz: [
+        {
+          q: "An acceptance rate of 15% for an AI writing assistant most likely signals:",
+          opts: ["The model is working perfectly", "Users trust the model too much", "The model's suggestions miss user intent", "The feature needs a UI redesign"],
+          correct: 2,
+          exp: "Low acceptance rates indicate a mismatch between what the model generates and what users actually want — a signal to revisit the training data or prompt strategy."
+        },
+        {
+          q: "Which level of the AI metrics stack directly captures business impact?",
+          opts: ["Model metrics (F1, AUC)", "Interaction metrics (acceptance rate)", "Business metrics (retention, conversion)", "Infrastructure metrics (GPU utilization)"],
+          correct: 2,
+          exp: "Business metrics are the ultimate measure of AI value. Model and interaction metrics are leading indicators, but business metrics determine ROI."
+        },
+        {
+          q: "What is the primary purpose of a model card?",
+          opts: ["Marketing the feature to users", "Documenting model capabilities, limitations, and eval results for the team", "Replacing the PRD", "Tracking sprint velocity"],
+          correct: 1,
+          exp: "Model cards are transparency artifacts. They help the PM, engineering, and stakeholders stay aligned on what the model can and cannot do — and they surface accountability."
+        }
+      ],
+      scenario: {
+        title: "Presenting AI metrics to the board",
+        text: "The board asks: 'Is the AI feature working?' You have strong model metrics but flat business metrics. How do you present this honestly and outline the next steps?",
+        coachPrompt: "You are an AI PM coach. The student must present to a board where model metrics are strong but business metrics are flat. Coach them on how to structure this presentation: what to highlight, how to explain the gap, what hypotheses to share, and what commitment to make. Keep it concise and boardroom-ready. Under 250 words."
+      }
+    },
+    {
+      id: 4,
+      name: "Responsible AI & Ethics",
+      icon: "ti-shield-check",
+      bg: "var(--green-50)", iconColor: "var(--green-600)",
+      badgeBg: "var(--green-50)", badgeColor: "var(--green-800)",
+      level: "Advanced",
+      desc: "Build AI products that are fair, safe, and trustworthy",
+      learn: {
+        sections: [
+          {
+            heading: "Why responsible AI is a PM job",
+            text: "Responsible AI isn't just a legal or ethics team responsibility. The PM owns the product decisions that determine where AI is applied, who it affects, and what safeguards are built in. Bias in a recommendation system, opacity in an automated decision, or a missing appeal mechanism — these are product failures that land on the PM's record."
+          },
+          {
+            heading: "The FATE framework",
+            text: "Evaluate every AI feature against four dimensions: Fairness (does the model perform equitably across demographic groups?), Accountability (is there a clear owner and appeal path for errors?), Transparency (can users understand why they received an output?), and Ethics (are we optimizing for user wellbeing, not just engagement?)."
+          },
+          {
+            heading: "Practical safeguards",
+            text: "Concrete actions: run disparate impact analysis before launch, build an 'explain this' feature for high-stakes outputs, create a feedback mechanism for users to flag errors, and establish a review cadence for model drift. Don't wait for a PR incident — build these in at spec time."
+          }
+        ],
+        skills: ["Bias detection", "Fairness testing", "Transparency design", "AI governance"]
+      },
+      quiz: [
+        {
+          q: "Whose responsibility is it to ensure AI fairness in a product team?",
+          opts: ["Only the ML engineer", "Only the legal team", "The PM, as the owner of product decisions and their consequences", "Only the CEO"],
+          correct: 2,
+          exp: "PMs own the decisions that determine what the AI does and to whom. Fairness must be built into requirements, not patched in after a problem surfaces."
+        },
+        {
+          q: "What does the 'A' in the FATE framework stand for?",
+          opts: ["Autonomy", "Accountability", "Accuracy", "Adoption"],
+          correct: 1,
+          exp: "Accountability means there is a clear owner for errors and an accessible path for users to appeal or correct AI-driven decisions."
+        },
+        {
+          q: "Disparate impact analysis is used to:",
+          opts: ["Improve model accuracy on average", "Check if model performance varies significantly across demographic groups", "Reduce inference costs", "Test latency under load"],
+          correct: 1,
+          exp: "Disparate impact analysis reveals whether a model systematically disadvantages a demographic group — a critical pre-launch check for high-stakes features."
+        }
+      ],
+      scenario: {
+        title: "Bias discovered post-launch",
+        text: "Three months after launch, a user group publishes research showing your AI hiring tool approves candidates from certain zip codes at half the rate of others. You have 48 hours before it goes viral. What do you do?",
+        coachPrompt: "You are an AI PM crisis coach. A bias in an AI hiring tool has been exposed: candidates from certain zip codes are approved at half the rate. The PM has 48 hours before it goes viral. Give a clear response playbook: immediate actions, stakeholder communications, remediation steps, and longer-term process changes. Be direct and practical. Under 300 words."
+      }
+    },
+    {
+      id: 5,
+      name: "AI Roadmap & Strategy",
+      icon: "ti-map",
+      bg: "var(--amber-50)", iconColor: "var(--amber-600)",
+      badgeBg: "var(--amber-50)", badgeColor: "var(--amber-800)",
+      level: "Advanced",
+      desc: "Build and communicate a compelling AI product strategy",
+      learn: {
+        sections: [
+          {
+            heading: "The AI roadmap is different",
+            text: "Traditional roadmaps are feature lists with delivery dates. AI roadmaps must layer in data milestones (when will we have enough signal?), capability thresholds (what model version unlocks what experience?), and trust-building phases (how do we introduce AI to users incrementally?). Think in experiments, not features."
+          },
+          {
+            heading: "Building a data moat strategy",
+            text: "The most defensible AI products compound their advantage through proprietary data. Map your data flywheel: what user actions generate training signal, how does that signal improve the model, and how does a better model drive more engagement? If you can't draw this loop, you may not have a sustainable AI strategy."
+          },
+          {
+            heading: "Communicating strategy to executives",
+            text: "Executives want to know: what's the AI bet, what evidence supports it, how much will it cost, and when will it pay off? Lead with the business outcome, not the technology. Frame AI as the mechanism for a customer outcome, not a technology investment. Use a horizon framework: 0–6 months (foundation), 6–18 months (scale), 18+ months (moat)."
+          }
+        ],
+        skills: ["Data flywheel design", "Horizon planning", "Executive storytelling", "Competitive AI positioning"]
+      },
+      quiz: [
+        {
+          q: "What makes an AI roadmap distinct from a traditional feature roadmap?",
+          opts: ["It's shorter", "It layers data milestones and capability thresholds alongside feature delivery", "It doesn't need user research", "It's owned by the ML team"],
+          correct: 1,
+          exp: "AI roadmaps must account for data readiness and model capability gates — features can't ship without the underlying intelligence meeting a threshold."
+        },
+        {
+          q: "A data flywheel is:",
+          opts: ["A data backup system", "A loop where product usage generates training signal that improves the model, which drives more usage", "A data warehouse architecture", "A dashboarding tool"],
+          correct: 1,
+          exp: "The data flywheel is the core of a compounding AI advantage. More users → more signal → better model → better experience → more users."
+        },
+        {
+          q: "When pitching an AI strategy to executives, you should lead with:",
+          opts: ["Model architecture choices", "GPU infrastructure costs", "The business outcome AI enables, not the technology", "A list of ML papers supporting your approach"],
+          correct: 2,
+          exp: "Executives buy outcomes. Frame AI as the mechanism for achieving a customer or business result — they don't need to understand transformer architecture to fund your roadmap."
+        }
+      ],
+      scenario: {
+        title: "Building a 12-month AI roadmap from scratch",
+        text: "You've just joined a fintech company as their first AI PM. The CEO asks for a 12-month AI roadmap in 2 weeks. Where do you start and what does the roadmap look like?",
+        coachPrompt: "You are an AI PM strategy coach. A new AI PM at a fintech company must build a 12-month AI roadmap in 2 weeks for the CEO. Walk them through: how to run rapid discovery, how to structure the roadmap across 3 horizons, what to put in each horizon for fintech, and how to present it with appropriate uncertainty. Be specific and actionable. Under 300 words."
+      }
+    }
+  ];
+
+  /* ─────────────────────────────────────────────
+     STATE
+  ───────────────────────────────────────────── */
+  let currentModule = null;
+  let currentTab = 'learn';
+  let currentQuizIdx = 0;
+  let quizAnswered = false;
+  let quizSessionScore = 0;
+  const completedModules = new Set();
+
+  /* ─────────────────────────────────────────────
+     RENDER SIDEBAR
+  ───────────────────────────────────────────── */
+  function renderSidebar() {
+    document.getElementById('moduleList').innerHTML = MODULES.map(m => `
+      <button
+        class="module-btn ${currentModule && currentModule.id === m.id ? 'active' : ''}"
+        onclick="selectModule(${m.id})"
+        aria-label="Open module: ${m.name}"
+      >
+        <div class="module-icon" style="background:${m.bg}; color:${m.iconColor};">
+          <i class="ti ${m.icon}" aria-hidden="true"></i>
+        </div>
+        <div class="module-info">
+          <div class="module-name">${m.name}</div>
+          <div class="module-meta">${m.level} · ${m.lessons || 4} lessons</div>
+        </div>
+        ${completedModules.has(m.id)
+          ? `<i class="ti ti-circle-check" style="color:var(--green-400); font-size:16px; flex-shrink:0;" aria-hidden="true"></i>`
+          : ''}
+      </button>
+    `).join('');
+  }
+
+  /* ─────────────────────────────────────────────
+     PROGRESS BAR
+  ───────────────────────────────────────────── */
+  function updateProgress() {
+    const pct = Math.round((completedModules.size / MODULES.length) * 100);
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent =
+      `${completedModules.size} of ${MODULES.length} modules completed`;
+  }
+
+  /* ─────────────────────────────────────────────
+     SELECT MODULE
+  ───────────────────────────────────────────── */
+  function selectModule(id) {
+    currentModule = MODULES[id];
+    currentTab = 'learn';
+    currentQuizIdx = 0;
+    quizAnswered = false;
+    quizSessionScore = 0;
+
+    // Show chrome
+    document.getElementById('tabBar').style.display = 'flex';
+    document.getElementById('lessonFooter').style.display = 'flex';
+    document.getElementById('aiCoach').style.display = 'block';
+
+    // Reset AI coach
+    document.getElementById('aiResponse').className = 'ai-response';
+    document.getElementById('aiInput').value = '';
+
+    // Header
+    document.getElementById('lessonTitle').textContent = currentModule.name;
+    document.getElementById('lessonDesc').textContent = currentModule.desc;
+    const badge = document.getElementById('levelBadge');
+    badge.textContent = currentModule.level;
+    badge.style.background = currentModule.badgeBg;
+    badge.style.color = currentModule.badgeColor;
+
+    // Footer
+    document.getElementById('footerInfo').textContent = `Module ${id + 1} of ${MODULES.length}`;
+    const cb = document.getElementById('completeBtn');
+    if (completedModules.has(id)) {
+      cb.innerHTML = '<i class="ti ti-circle-check"></i> Completed';
+      cb.disabled = true;
+    } else {
+      cb.innerHTML = '<i class="ti ti-check"></i> Mark complete';
+      cb.disabled = false;
+    }
+
+    // Reset tabs
+    document.querySelectorAll('.tab-btn').forEach((t, i) => t.classList.toggle('active', i === 0));
+
+    renderLearnTab();
+    renderSidebar();
+  }
+
+  /* ─────────────────────────────────────────────
+     TAB SWITCHER
+  ───────────────────────────────────────────── */
+  function switchTab(tab) {
+    currentTab = tab;
+    const tabs = ['learn', 'quiz', 'scenario'];
+    document.querySelectorAll('.tab-btn').forEach((t, i) => t.classList.toggle('active', tabs[i] === tab));
+    if (tab === 'learn') renderLearnTab();
+    else if (tab === 'quiz') { quizSessionScore = 0; currentQuizIdx = 0; renderQuizTab(); }
+    else renderScenarioTab();
+  }
+
+  /* ─────────────────────────────────────────────
+     LEARN TAB
+  ───────────────────────────────────────────── */
+  function renderLearnTab() {
+    const m = currentModule;
+    document.getElementById('lessonBody').innerHTML = `
+      ${m.learn.sections.map(s => `
+        <div class="concept-block">
+          <div class="concept-heading">${s.heading}</div>
+          <div class="concept-text">${s.text}</div>
+        </div>
+      `).join('')}
+      <div class="concept-block">
+        <div class="concept-heading">Skills you will build</div>
+        <div class="skills-grid">
+          ${m.learn.skills.map(sk => `
+            <div class="skill-pill">
+              <i class="ti ti-star" style="font-size:14px; color:${m.iconColor}; flex-shrink:0;" aria-hidden="true"></i>
+              ${sk}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  /* ─────────────────────────────────────────────
+     QUIZ TAB
+  ───────────────────────────────────────────── */
+  function renderQuizTab() {
+    renderQuestion();
+  }
+
+  function renderQuestion() {
+    const m = currentModule;
+    const q = m.quiz[currentQuizIdx];
+    document.getElementById('lessonBody').innerHTML = `
+      <div>
+        <div class="quiz-meta">
+          <div class="quiz-counter">Question ${currentQuizIdx + 1} of ${m.quiz.length}</div>
+        </div>
+        <div class="quiz-question">${q.q}</div>
+        <div class="quiz-options">
+          ${q.opts.map((o, i) => `
+            <button class="quiz-opt" id="opt${i}" onclick="answerQuiz(${i})">${o}</button>
+          `).join('')}
+        </div>
+        <div class="quiz-feedback" id="quizFeedback"></div>
+        <div class="quiz-actions" id="quizActions"></div>
+      </div>
+    `;
+    quizAnswered = false;
+  }
+
+  function answerQuiz(idx) {
+    if (quizAnswered) return;
+    quizAnswered = true;
+
+    const q = currentModule.quiz[currentQuizIdx];
+    const isCorrect = idx === q.correct;
+    if (isCorrect) quizSessionScore++;
+
+    // Style options
+    document.querySelectorAll('.quiz-opt').forEach((el, i) => {
+      el.classList.add('locked');
+      if (i === q.correct) el.classList.add('correct');
+      else if (i === idx && !isCorrect) el.classList.add('wrong');
+    });
+
+    // Feedback
+    const fb = document.getElementById('quizFeedback');
+    fb.textContent = q.exp;
+    fb.className = `quiz-feedback show ${isCorrect ? 'fb-correct' : 'fb-wrong'}`;
+
+    // Next button
+    const actions = document.getElementById('quizActions');
+    const isLast = currentQuizIdx >= currentModule.quiz.length - 1;
+    actions.innerHTML = `
+      <button class="btn-primary" onclick="${isLast ? 'showQuizResult()' : 'nextQuestion()'}">
+        ${isLast ? 'See results →' : 'Next question →'}
+      </button>
+    `;
+  }
+
+  function nextQuestion() {
+    currentQuizIdx++;
+    renderQuestion();
+  }
+
+  function showQuizResult() {
+    const total = currentModule.quiz.length;
+    const score = quizSessionScore;
+    const emoji = score === total ? '🎯' : score >= 2 ? '✅' : '📖';
+    const msg = score === total
+      ? 'Perfect score! You have mastered this module.'
+      : score >= 2
+      ? 'Good work. Try the scenario to reinforce your learning.'
+      : 'Review the Learn tab and try the quiz again.';
+    document.getElementById('lessonBody').innerHTML = `
+      <div class="quiz-result">
+        <div class="quiz-result-score">${emoji}</div>
+        <div class="quiz-result-title">${score} / ${total} correct</div>
+        <div class="quiz-result-sub">${msg}</div>
+        <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+          <button class="btn-ghost" onclick="switchTab('learn')">← Back to lesson</button>
+          <button class="btn-primary" onclick="switchTab('scenario')">Try the scenario →</button>
+        </div>
+      </div>
+    `;
+  }
+
+  /* ─────────────────────────────────────────────
+     SCENARIO TAB
+  ───────────────────────────────────────────── */
+  function renderScenarioTab() {
+    const m = currentModule;
+    document.getElementById('lessonBody').innerHTML = `
+      <div>
+        <div class="scenario-label">Practice scenario — ${m.scenario.title}</div>
+        <div class="scenario-card">${m.scenario.text}</div>
+        <div class="scenario-hint">
+          Use the AI coach below to get a coaching framework for this scenario.
+          Then draft your own response in the coach input to practice your thinking.
+        </div>
+        <button class="btn-primary" onclick="loadScenarioCoach()">
+          <i class="ti ti-robot"></i> Get AI coaching on this ↗
+        </button>
+      </div>
+    `;
+  }
+
+  function loadScenarioCoach() {
+    callAI(currentModule.scenario.coachPrompt);
+  }
+
+  /* ─────────────────────────────────────────────
+     COMPLETE MODULE
+  ───────────────────────────────────────────── */
+  function completeModule() {
+    if (!currentModule) return;
+    completedModules.add(currentModule.id);
+    const cb = document.getElementById('completeBtn');
+    cb.innerHTML = '<i class="ti ti-circle-check"></i> Completed';
+    cb.disabled = true;
+    updateProgress();
+    renderSidebar();
+  }
+
+  /* ─────────────────────────────────────────────
+     AI COACH
+  ───────────────────────────────────────────── */
+  async function askAI() {
+    const input = document.getElementById('aiInput');
+    const q = input.value.trim();
+    if (!q || !currentModule) return;
+    const prompt = `You are an expert AI Product Manager coach. The student is studying the module: "${currentModule.name}". Answer their question concisely and practically in 3-5 sentences. Be specific, not generic. Question: ${q}`;
+    input.value = '';
+    await callAI(prompt);
+  }
+
+  async function callAI(prompt) {
+    const btn = document.getElementById('askBtn');
+    const resp = document.getElementById('aiResponse');
+    btn.disabled = true;
+    resp.className = 'ai-response show';
+    resp.innerHTML = '<span class="ai-thinking">Thinking…</span>';
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+      const data = await res.json();
+      const text = data.content?.map(b => b.text || '').join('') || 'Sorry, no response received.';
+      resp.textContent = text;
+    } catch (err) {
+      resp.textContent = 'Something went wrong. Check your API connection and try again.';
+    }
+
+    btn.disabled = false;
+  }
+
+  /* ─────────────────────────────────────────────
+     INIT
+  ───────────────────────────────────────────── */
+  renderSidebar();
+  updateProgress();
+</script>
+
+</body>
+</html>

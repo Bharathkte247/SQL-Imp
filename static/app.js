@@ -15,6 +15,7 @@ const ratingsTableBody = document.querySelector("#ratingsTableBody");
 const copyJsonButton = document.querySelector("#copyJsonButton");
 const downloadJsonButton = document.querySelector("#downloadJsonButton");
 const promptViewer = document.querySelector("#promptViewer");
+const modeNotice = document.querySelector("#modeNotice");
 
 let latestResult = null;
 
@@ -48,16 +49,18 @@ form.addEventListener("submit", async (event) => {
 loadExampleButton.addEventListener("click", () => {
   interactionIdInput.value = "INT-DEMO-001";
   transcriptInput.value = `[00:00] Agent: Thank you for calling BJ's Member Care, this is Taylor. How can I help?
-[00:05] Member: My order is late and nobody has called me back. I'm really frustrated.
-[00:11] Agent: I am sorry for the delay, and I can help review the order today.
-[00:18] Member: I need to know when it will arrive.
-[00:22] Agent: Please hold while I check the order status.
-[00:48] Agent: Thank you for holding. The carrier scan shows delivery by tomorrow evening.
-[00:56] Member: Can someone follow up if it does not arrive?
-[01:01] Agent: Yes, I documented that request and set the follow-up for three business days if it is not delivered.
-[01:11] Agent: Is there anything else I can help with today?
-[01:15] Member: No, thank you.
-[01:17] Agent: Thank you for calling BJ's. Please stay on the line for a brief survey.`;
+[00:04] Agent: Before I access the account, can you verify your full name, ZIP code, and email address?
+[00:10] Member: My name is Jordan Lee, ZIP code 02110, and email is jordan@example.com.
+[00:18] Member: My order is late and nobody has called me back. I'm really frustrated.
+[00:24] Agent: I am sorry for the delay, and I can help review the order today.
+[00:31] Member: I need to know when it will arrive.
+[00:36] Agent: I can check the order status to confirm when it will arrive. Please hold while I review the carrier scan.
+[00:58] Agent: Thank you for holding. The carrier scan shows delivery by tomorrow evening.
+[01:06] Member: Can someone follow up if it does not arrive?
+[01:11] Agent: Yes, I documented that request and set the follow-up for three business days if it is not delivered.
+[01:21] Agent: Is there anything else I can help with today?
+[01:25] Member: No, thank you.
+[01:27] Agent: Thank you for calling BJ's. Please stay on the line for a brief survey.`;
 });
 
 copyJsonButton.addEventListener("click", async () => {
@@ -89,8 +92,20 @@ async function loadRubric() {
     const response = await fetch("/api/rubric");
     const payload = await response.json();
     promptViewer.textContent = payload.prompt_template || "Prompt unavailable";
+    if (payload.llm_configured) {
+      modeNotice.textContent =
+        "LLM evaluation is configured. Results use the full rubric prompt and model judgment.";
+      modeNotice.classList.add("ready");
+      engineBadge.textContent = "LLM ready";
+    } else {
+      modeNotice.textContent =
+        "Local rules mode is active because no QA_LLM_API_KEY or OPENAI_API_KEY is configured. The app now checks common QA defects, but use LLM mode for nuanced production scoring.";
+      modeNotice.classList.remove("ready");
+      engineBadge.textContent = "Local rules mode";
+    }
   } catch (error) {
     promptViewer.textContent = `Unable to load prompt: ${error.message}`;
+    modeNotice.textContent = "Unable to determine evaluation mode.";
   }
 }
 
@@ -101,11 +116,11 @@ function renderResult(result) {
   }`;
   scoreValue.textContent = `${result.score}%`;
   engineBadge.textContent =
-    result.engine === "llm" ? "LLM evaluation" : "Local heuristic fallback";
+    result.engine === "llm" ? "LLM evaluation" : "Local rules evaluation";
   engineBadge.title =
     result.engine === "llm"
       ? "Configured LLM provider returned this evaluation."
-      : "Set QA_LLM_API_KEY or OPENAI_API_KEY for full rubric evaluation.";
+      : "Rules-based local evaluation. Set QA_LLM_API_KEY or OPENAI_API_KEY for full model evaluation.";
 
   renderList(strengthsList, result.summary?.strengths);
   renderList(opportunitiesList, result.summary?.opportunities);

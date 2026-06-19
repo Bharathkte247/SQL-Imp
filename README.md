@@ -18,7 +18,7 @@ defects.
   - Professional Conduct auto-fail items
 - Tunable LLM prompt at `prompts/qa_monitoring_prompt.md`.
 - OpenAI-compatible LLM integration when configured.
-- Conservative local heuristic fallback when no LLM key is configured.
+- Rules-based local evaluator when no LLM key is configured.
 
 ## Rating semantics
 
@@ -61,9 +61,12 @@ export QA_LLM_TIMEOUT_SECONDS="60"
 
 `QA_LLM_API_KEY` is preferred. `OPENAI_API_KEY` is also supported.
 
-Without an API key, the app still runs in `local_heuristic` mode. That fallback
-only flags high-confidence text patterns, such as profanity, full credit card
-numbers, and explicit unwillingness to help. Use LLM mode for production QA.
+Without an API key, the app still runs in `local_heuristic` mode. The local
+rules evaluator checks common QA defects, including missed apology/empathy,
+unclear willingness to assist, repeated questions, hold handling, greeting,
+authentication indicators, follow-up handling, documentation flags, profanity,
+PII, unauthorized tools, and full credit card numbers. Use LLM mode for nuanced
+production QA, policy interpretation, and transcript-specific judgment.
 
 ## API usage
 

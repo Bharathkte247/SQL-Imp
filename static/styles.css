@@ -112,6 +112,23 @@ h1 {
   font-weight: 700;
 }
 
+.mode-notice {
+  margin-bottom: 18px;
+  border: 1px solid #facc15;
+  border-radius: 16px;
+  background: var(--warning-bg);
+  color: #713f12;
+  font-weight: 700;
+  line-height: 1.45;
+  padding: 14px 16px;
+}
+
+.mode-notice.ready {
+  border-color: #86efac;
+  background: var(--success-bg);
+  color: var(--success);
+}
+
 .hidden {
   display: none;
 }

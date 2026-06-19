@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote
 
-from evaluator import RUBRIC, evaluate_interaction, get_prompt_template
+from evaluator import RUBRIC, evaluate_interaction, get_llm_config, get_prompt_template
 
 
 ROOT = Path(__file__).parent
@@ -30,6 +30,7 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
                     "rubric": RUBRIC,
                     "prompt_template": get_prompt_template(),
                     "prompt_version": "qa-monitoring-v1",
+                    "llm_configured": get_llm_config() is not None,
                 }
             )
             return

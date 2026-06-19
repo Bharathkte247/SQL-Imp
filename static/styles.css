@@ -281,13 +281,13 @@ th {
 }
 
 .rating.yes {
-  background: var(--success-bg);
-  color: var(--success);
+  background: var(--danger-bg);
+  color: var(--danger);
 }
 
 .rating.no {
-  background: var(--danger-bg);
-  color: var(--danger);
+  background: var(--success-bg);
+  color: var(--success);
 }
 
 tr.defect {

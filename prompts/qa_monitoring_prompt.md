@@ -27,11 +27,10 @@ Rubric definitions:
 
 Rate every rubric item as exactly one of:
 
-- `Yes`: the agent complied with the expectation, or there is no transcript
-  evidence of the defect.
-- `No`: the agent failed the expectation or the defect occurred.
+- `Yes`: the defect/subattribute occurred and should be counted as a QA miss.
+- `No`: the defect/subattribute was not observed in the transcript.
 
-When rating `No`, you must provide:
+When rating `Yes`, you must provide:
 
 1. a concise rationale;
 2. the timestamp of the agent message that supports the rating;
@@ -47,12 +46,12 @@ transcript contains supporting evidence.
 
 - Evaluate only agent behavior, not member behavior.
 - Be strict about Professional Conduct auto-fail items. If any auto-fail item is
-  rated `No`, set `auto_fail` to `true` and `overall_result` to `Fail`.
+  rated `Yes`, set `auto_fail` to `true` and `overall_result` to `Fail`.
 - Avoid double dipping:
   - If the member asks for a callback/follow-up and the agent does not establish
     it, rate `Completing the Call > Does not establish follow-up when required
-    or member requested` as `No`. Do not also rate `Communication Skills >
-    Courtesy: Ignores a member request` as `No` for the same missed follow-up.
+    or member requested` as `Yes`. Do not also rate `Communication Skills >
+    Courtesy: Ignores a member request` as `Yes` for the same missed follow-up.
   - Use `Communication Skills > Courtesy: Ignores a member request` for other
     direct member questions or requests that were ignored.
 - For apology and empathy:
@@ -61,10 +60,12 @@ transcript contains supporting evidence.
     inconvenience, dissatisfaction, or when company error is evident.
   - Do not mark excessive apologies unless apologies are repeated without value
     or interrupt progress.
-- For hold usage:
-  - Mark `No` for unexplained holds, more than 6 seconds of dead air in voice
-    transcripts, unnecessary holds, or holds over 2 minutes without a check-in.
-  - If the transcript has no silence or hold metadata, do not infer dead air.
+- For misunderstanding:
+  - Mark `Yes` when the agent misunderstands the member's request or the member
+    is left confused by the agent's explanation.
+- For grammar/spelling:
+  - Mark `Yes` when the agent uses slang, unprofessional grammar, spelling, or
+    encoding artifacts that reduce professionalism or clarity.
 - For authentication:
   - If IVR/account information is shown as already received, only one additional
     authentication item is required.
@@ -74,7 +75,7 @@ transcript contains supporting evidence.
     authentication has already completed.
 - For inaccurate information, use only transcript evidence. If policy truth
   cannot be determined from the transcript, do not guess.
-- For KB usage, mark `No` only if the transcript indicates the agent should have
+- For KB usage, mark `Yes` only if the transcript indicates the agent should have
   used the KB and did not, searched longer than 1 minute, or contacted help desk
   before checking KB.
 - For documentation items, rate based on documentation/ticket notes included in
@@ -101,10 +102,10 @@ Schema:
       "attribute": "string",
       "sub_attribute": "string",
       "rating": "Yes or No",
-      "rationale": "string; required when rating is No, empty when Yes",
-      "timestamp": "string; required when rating is No, empty when Yes",
-      "agent_quote": "string; required when rating is No, empty when Yes",
-      "coaching": "string; required when rating is No, empty when Yes"
+      "rationale": "string; required when rating is Yes, empty when No",
+      "timestamp": "string; required when rating is Yes, empty when No",
+      "agent_quote": "string; required when rating is Yes, empty when No",
+      "coaching": "string; required when rating is Yes, empty when No"
     }
   ],
   "summary": {
@@ -116,6 +117,6 @@ Schema:
 ```
 
 Include one `attributes` item for every rubric definition exactly as provided.
-Calculate `score` as the percentage of rubric items rated `Yes`, rounded to the
-nearest whole number. Set `overall_result` to `Fail` when any item is rated `No`
+Calculate `score` as the percentage of rubric items rated `No`, rounded to the
+nearest whole number. Set `overall_result` to `Fail` when any item is rated `Yes`
 or when `auto_fail` is true; otherwise set it to `Pass`.

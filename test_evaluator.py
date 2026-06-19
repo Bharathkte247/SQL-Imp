@@ -37,7 +37,7 @@ class EvaluatorTests(unittest.TestCase):
             if item["sub_attribute"]
             == "Entered a full credit card number anywhere in the ticket or notes"
         )
-        self.assertEqual(card_item["rating"], "No")
+        self.assertEqual(card_item["rating"], "Yes")
         self.assertTrue(result["auto_fail"])
         self.assertEqual(result["overall_result"], "Fail")
 
@@ -59,7 +59,7 @@ class EvaluatorTests(unittest.TestCase):
             for item in result["attributes"]
             if item["sub_attribute"] == "Fails to/misses apology due to error or inconvenience"
         )
-        self.assertEqual(apology_item["rating"], "No")
+        self.assertEqual(apology_item["rating"], "Yes")
         self.assertEqual(apology_item["timestamp"], "00:10")
 
     @patch.dict("os.environ", {}, clear=True)
@@ -81,7 +81,7 @@ class EvaluatorTests(unittest.TestCase):
             for item in result["attributes"]
             if item["sub_attribute"] == "Unnecessarily repeats questions or information"
         )
-        self.assertEqual(repeat_item["rating"], "No")
+        self.assertEqual(repeat_item["rating"], "Yes")
         self.assertEqual(repeat_item["timestamp"], "00:15")
 
     @patch.dict("os.environ", {}, clear=True)
@@ -102,8 +102,59 @@ class EvaluatorTests(unittest.TestCase):
             for item in result["attributes"]
             if item["sub_attribute"] == "Does not establish follow-up when required or member requested"
         )
-        self.assertEqual(follow_item["rating"], "No")
+        self.assertEqual(follow_item["rating"], "Yes")
         self.assertEqual(follow_item["timestamp"], "00:12")
+
+    @patch.dict("os.environ", {}, clear=True)
+    def test_local_heuristic_matches_human_scored_bjs_sample(self):
+        transcript = "\n".join(
+            [
+                "BJ's virtual assistant: Hi! I'm the BJ's Virtual Assistant!",
+                "Visitor: Renewal Charge",
+                "BJ's virtual assistant: BJ's Easy Renewal automatically renews your membership.",
+                "Visitor: I want to cancel my membership fee",
+                "BJ's virtual assistant: There are three ways to cancel your membership.",
+                "Visitor: Chat with agent now please",
+                "BJ's virtual assistant: Ok.",
+                "Visitor: Speak to a team member",
+                "BJ's virtual assistant: I'm finding a team member who can help.",
+                "Sammy(10:09:43):Thank you for contacting BJ's Wholesale Club. My name is Sammy. Could you please confirm your first and last name and membership number?",
+                "Visitor-901476009-26298(10:10:14):Christopher Guerra XXXX-XXXX-630",
+                "Sammy(10:11:37):Thank you, Christopher.",
+                "Sammy(10:11:39):I am sorry to hear that you are looking to cancel your membership.",
+                "Sammy(10:12:33):Good morning! May I know the reason for the cancellation?",
+                "Visitor-901476009-26298(10:13:53):I'm handicap and am unable to travel the distance, I used my membership once ans it was a hardship to travel to",
+                "Sammy(10:15:53):I understand, and I'm sorry for the inconvenience. I will help you cancel your membership and process a refund for the renewal fee.",
+                "Visitor-901476009-26298(10:16:37):Thank you",
+                "Sammy(10:17:26):You're welcome!",
+                "Sammy(10:18:25):I have issued a refund for the renewal charges and your membership will be cancelled. The refund of $64.80 will be credited to the original mode of payment within 2-3 days.",
+                "Sammy(10:18:30):Mastercard",
+                "Sammy(10:18:48):Here is your refund confirmation#11518278.",
+                "Sammy(10:19:25):It was a pleasure chatting with you. Is there anything else I can assist you with?",
+                "Sammy(10:19:28):I hope I was able to assist you.",
+                "Sammy(10:21:34):Are we still connected?",
+                "Sammy(10:23:23):Since I haven't heard from you, I would be closing this chat. Please do not hesitate to reach out to us if you need further assistance.",
+                "Sammy(10:23:25):You were so polite and kind. Thank you for contacting BJ's Wholesale Club, please stay on the line to provide a rating of our chat today. Have a nice day and take care.",
+            ]
+        )
+
+        result = evaluate_interaction("HUMAN-SAMPLE", transcript)
+        yes_items = {
+            item["sub_attribute"]
+            for item in result["attributes"]
+            if item["rating"] == "Yes"
+        }
+
+        self.assertEqual(
+            yes_items,
+            {
+                "Unnecessarily repeats questions or information",
+                "Agent or member misunderstands info/statement",
+                "Uses slang or inappropriate grammar/spelling",
+                "Fails to understand or acknowledge the call reason/issue immediately",
+            },
+        )
+        self.assertEqual(result["score"], 86)
 
 
 if __name__ == "__main__":

@@ -142,7 +142,7 @@ function renderTable(attributes) {
   ratingsTableBody.innerHTML = "";
   for (const item of attributes) {
     const row = document.createElement("tr");
-    if (item.rating === "No") {
+    if (item.rating === "Yes") {
       row.classList.add("defect");
     }
 
@@ -175,7 +175,7 @@ function ratingCell(rating) {
 function rationaleCell(item) {
   const cell = document.createElement("td");
   const rationale = document.createElement("div");
-  rationale.textContent = item.rationale || "No defect observed.";
+  rationale.textContent = item.rationale || "Defect not observed.";
   cell.appendChild(rationale);
 
   if (item.coaching) {

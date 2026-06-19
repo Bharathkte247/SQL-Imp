@@ -78,21 +78,19 @@ RUBRIC: list[dict[str, str]] = [
     },
     {
         "attribute": "Communication Skills",
-        "sub_attribute": "Does not appropriately utilize hold",
+        "sub_attribute": "Agent or member misunderstands info/statement",
         "definition": (
-            "The agent misuses the hold function or fails to manage silence "
-            "effectively. This includes using mute or mumbling while working to avoid "
-            "silence, placing the member on hold unnecessarily or without explanation, "
-            "allowing more than 6 seconds of silence (dead air), or failing to check "
-            "in with the member every 2 minutes during a hold."
+            "The agent misunderstands the member's statement or provides a response "
+            "that shows confusion about the member's request, or the member is left "
+            "confused because the agent's explanation is unclear."
         ),
     },
     {
         "attribute": "Communication Skills",
-        "sub_attribute": "Courtesy: Interrupts or talks over the member",
+        "sub_attribute": "Uses slang or inappropriate grammar/spelling",
         "definition": (
-            "The agent does not allow the member to finish speaking, interrupts "
-            "mid-sentence, or talks over the member's explanation."
+            "The agent uses slang, unprofessional wording, or inappropriate grammar "
+            "or spelling in a way that reduces professionalism or clarity."
         ),
     },
     {
@@ -115,7 +113,7 @@ RUBRIC: list[dict[str, str]] = [
     {
         "attribute": "Call Handling Basics",
         "sub_attribute": (
-            "Uses incorrect/excessive authentication and/or incorrect call greeting/ending"
+            "Uses excessive authentication and/or incorrect greeting/ending"
         ),
         "definition": (
             "The agent fails to follow authentication and greeting/ending protocols "
@@ -389,19 +387,21 @@ def _evaluate_with_local_heuristics(interaction_id: str, transcript: str) -> dic
     lines = _parse_transcript_lines(transcript)
     agent_lines = [line for line in lines if line.speaker == "agent"]
     member_lines = [line for line in lines if line.speaker == "member"]
+    first_agent_index = agent_lines[0].index if agent_lines else -1
+    audited_member_lines = [line for line in member_lines if line.index > first_agent_index]
     lower_transcript = transcript.lower()
     findings: dict[str, dict[str, str]] = {}
 
-    _evaluate_soft_skills(findings, lines, agent_lines, member_lines)
+    _evaluate_soft_skills(findings, lines, agent_lines, audited_member_lines)
     _evaluate_communication(findings, lines, agent_lines, member_lines)
     _evaluate_call_handling(findings, lines, agent_lines, member_lines, lower_transcript)
-    _evaluate_completion(findings, lines, agent_lines, member_lines)
+    _evaluate_completion(findings, lines, agent_lines, audited_member_lines)
     _evaluate_professional_conduct(findings, agent_lines, lower_transcript)
 
     attributes = []
     for item in RUBRIC:
         finding = findings.get(item["sub_attribute"])
-        rating = "No" if finding else "Yes"
+        rating = "Yes" if finding else "No"
         attributes.append(
             {
                 "attribute": item["attribute"],
@@ -414,21 +414,21 @@ def _evaluate_with_local_heuristics(interaction_id: str, transcript: str) -> dic
             }
         )
 
-    no_items = [attribute for attribute in attributes if attribute["rating"] == "No"]
+    defect_items = [attribute for attribute in attributes if attribute["rating"] == "Yes"]
     return {
         "interaction_id": interaction_id,
-        "overall_result": "Fail" if no_items else "Pass",
+        "overall_result": "Fail" if defect_items else "Pass",
         "auto_fail": any(
-            attribute["rating"] == "No"
+            attribute["rating"] == "Yes"
             and attribute["attribute"] == "Professional Conduct (Auto Fail)"
             for attribute in attributes
         ),
-        "score": round(((len(attributes) - len(no_items)) / len(attributes)) * 100),
+        "score": round(((len(attributes) - len(defect_items)) / len(attributes)) * 100),
         "attributes": attributes,
         "summary": {
-            "strengths": _local_strengths(agent_lines, no_items),
+            "strengths": _local_strengths(agent_lines, defect_items),
             "opportunities": [
-                f"{item['sub_attribute']}: {item['rationale']}" for item in no_items[:5]
+                f"{item['sub_attribute']}: {item['rationale']}" for item in defect_items[:5]
             ]
             or ["No rules-based defects detected."],
             "next_steps": [
@@ -536,6 +536,9 @@ def _evaluate_communication(
     agent_lines: list[TranscriptLine],
     member_lines: list[TranscriptLine],
 ) -> None:
+    first_agent_index = agent_lines[0].index if agent_lines else -1
+    audited_member_lines = [line for line in member_lines if line.index > first_agent_index]
+
     repeated = _find_repeated_agent_message(agent_lines)
     if repeated:
         _set_finding(
@@ -546,28 +549,28 @@ def _evaluate_communication(
             "Use the member's prior answer and move to the next resolution step.",
         )
 
-    hold_issue = _find_hold_issue(lines, agent_lines)
-    if hold_issue:
-        line, rationale = hold_issue
+    misunderstanding = _find_misunderstanding(lines, agent_lines, member_lines)
+    if misunderstanding:
+        line, rationale = misunderstanding
         _set_finding(
             findings,
-            "Does not appropriately utilize hold",
+            "Agent or member misunderstands info/statement",
             line,
             rationale,
-            "Explain why hold is needed, avoid dead air, and check in at least every 2 minutes.",
+            "Confirm the member's intent and restate the issue before taking action.",
         )
 
-    interrupt = _first_agent_line(
+    grammar = _first_agent_line(
         agent_lines,
-        r"\b(interrupting|let me stop you|hold on,? you|talk over|cut you off)\b|\[(overlap|talking over|interrupt)",
+        r"\b(i would be closing|kindly|u\b|ur\b|pls\b|ans\b|okies|gonna|wanna|lemme)\b|[a-z]+â",
     )
-    if interrupt:
+    if grammar:
         _set_finding(
             findings,
-            "Courtesy: Interrupts or talks over the member",
-            interrupt,
-            "Transcript indicates the agent interrupted or talked over the member.",
-            "Allow the member to finish before responding.",
+            "Uses slang or inappropriate grammar/spelling",
+            grammar,
+            "Agent used slang, encoding artifacts, or awkward/inappropriate grammar that reduces professionalism.",
+            "Use clear, professional grammar and proofread chat messages before sending.",
         )
 
     argument = _first_agent_line(
@@ -584,7 +587,7 @@ def _evaluate_communication(
             "Acknowledge the member's perspective and clarify policy without arguing.",
         )
 
-    ignored = _find_ignored_member_request(lines, member_lines)
+    ignored = _find_ignored_member_request(lines, audited_member_lines)
     if ignored:
         _set_finding(
             findings,
@@ -606,7 +609,7 @@ def _evaluate_call_handling(
     if first_agent and not re.search(r"\b(thank you|thanks|welcome|bj'?s|member care|my name is|this is)\b", first_agent.message, re.IGNORECASE):
         _set_finding(
             findings,
-            "Uses incorrect/excessive authentication and/or incorrect call greeting/ending",
+            "Uses excessive authentication and/or incorrect greeting/ending",
             first_agent,
             "Opening agent message does not include an appropriate greeting or identification.",
             "Open with the approved greeting and identify BJ's/member care where required.",
@@ -615,7 +618,7 @@ def _evaluate_call_handling(
     if agent_lines and not _has_authentication(agent_lines, lower_transcript):
         _set_finding(
             findings,
-            "Uses incorrect/excessive authentication and/or incorrect call greeting/ending",
+            "Uses excessive authentication and/or incorrect greeting/ending",
             agent_lines[min(1, len(agent_lines) - 1)],
             "Transcript does not show authentication using the required 1/3 rule or a clear indication that authentication was already completed.",
             "Follow the authentication rule: one additional item after IVR account info, otherwise three required items.",
@@ -626,7 +629,7 @@ def _evaluate_call_handling(
         if not re.search(r"\b(anything else|survey|thank you|thanks|goodbye|bye|have a (great|good)|stay on the line)\b", last_agent.message, re.IGNORECASE):
             _set_finding(
                 findings,
-                "Uses incorrect/excessive authentication and/or incorrect call greeting/ending",
+                "Uses excessive authentication and/or incorrect greeting/ending",
                 last_agent,
                 "Closing does not show an appropriate ending or survey offer.",
                 "Close professionally and offer the survey when required.",
@@ -865,8 +868,14 @@ def _parse_transcript_lines(transcript: str) -> list[TranscriptLine]:
         r"(?P<message>.*)$",
         re.IGNORECASE,
     )
+    named_speaker_pattern = re.compile(
+        r"^\s*(?P<speaker>[A-Za-z][A-Za-z0-9' ._-]*?)"
+        r"(?:\((?P<paren_ts>\d{1,2}:\d{2}(?::\d{2})?)\))?\s*:\s*"
+        r"(?P<message>.*)$",
+        re.IGNORECASE,
+    )
 
-    for index, raw_line in enumerate(transcript.splitlines()):
+    for index, raw_line in enumerate(_split_transcript_records(transcript)):
         if not raw_line.strip():
             continue
         match = speaker_pattern.match(raw_line)
@@ -876,9 +885,15 @@ def _parse_transcript_lines(transcript: str) -> list[TranscriptLine]:
             timestamp = match.group("bracket_ts") or match.group("prefix_ts") or _extract_timestamp(raw_line)
             message = match.group("message").strip()
         else:
-            speaker = "agent" if _is_agent_line(raw_line) else "member" if _is_member_line(raw_line) else "unknown"
-            timestamp = _extract_timestamp(raw_line)
-            message = _strip_timestamp(raw_line)
+            named_match = named_speaker_pattern.match(raw_line)
+            if named_match:
+                speaker = _classify_named_speaker(named_match.group("speaker"))
+                timestamp = named_match.group("paren_ts") or _extract_timestamp(raw_line)
+                message = named_match.group("message").strip()
+            else:
+                speaker = "agent" if _is_agent_line(raw_line) else "member" if _is_member_line(raw_line) else "unknown"
+                timestamp = _extract_timestamp(raw_line)
+                message = _strip_timestamp(raw_line)
 
         parsed.append(
             TranscriptLine(
@@ -891,6 +906,35 @@ def _parse_transcript_lines(transcript: str) -> list[TranscriptLine]:
             )
         )
     return parsed
+
+
+def _split_transcript_records(transcript: str) -> list[str]:
+    normalized = transcript.replace("\r\n", "\n").replace("\r", "\n")
+    # Chat exports often concatenate messages. Insert record boundaries before
+    # known chat speaker labels while preserving their timestamp tokens.
+    boundary = re.compile(
+        r"(?<!^)(?=\s*(?:"
+        r"BJ'?s virtual assistant\s*:"
+        r"|Visitor(?:-[A-Za-z0-9-]+)?(?:\(\d{1,2}:\d{2}(?::\d{2})?\))?\s*:"
+        r"|[A-Z][A-Za-z' ._-]{1,40}\(\d{1,2}:\d{2}(?::\d{2})?\)\s*:"
+        r"))",
+        re.MULTILINE,
+    )
+    normalized = boundary.sub("\n", normalized)
+    return [line.strip() for line in normalized.splitlines() if line.strip()]
+
+
+def _classify_named_speaker(label: str) -> str:
+    normalized = label.lower().strip()
+    if re.search(r"\b(visitor|member|customer|caller|client)\b", normalized):
+        return "member"
+    if "virtual assistant" in normalized or normalized == "info":
+        return "bot"
+    if re.search(r"\b(agent|representative|rep|associate)\b", normalized):
+        return "agent"
+    # In BJ's chat exports, named timestamped speakers such as "Sammy(10:09)"
+    # are the human agent after the virtual assistant handoff.
+    return "agent"
 
 
 def _set_finding(
@@ -988,13 +1032,54 @@ def _has_diffusion(message: str) -> bool:
 def _find_repeated_agent_message(agent_lines: list[TranscriptLine]) -> TranscriptLine | None:
     seen: dict[str, TranscriptLine] = {}
     for line in agent_lines:
-        normalized = re.sub(r"[^a-z0-9? ]", "", line.message.lower())
+        if re.search(r"\b(anything else|assist|help|thank you|thanks|connected)\b", line.message, re.IGNORECASE):
+            normalized = re.sub(r"[^a-z0-9? ]", "", line.message.lower())
+        else:
+            normalized = re.sub(r"[^a-z0-9? ]", "", line.message.lower())
         normalized = re.sub(r"\s+", " ", normalized).strip()
         if len(normalized) < 12:
             continue
+        if re.search(r"\b(assist|help)\b", normalized) and len(seen) >= 1:
+            prior_assist = next(
+                (
+                    prior
+                    for key, prior in seen.items()
+                    if re.search(r"\b(assist|help)\b", key)
+                ),
+                None,
+            )
+            if prior_assist:
+                return line
         if normalized in seen:
             return line
         seen[normalized] = line
+    return None
+
+
+def _find_misunderstanding(
+    lines: list[TranscriptLine],
+    agent_lines: list[TranscriptLine],
+    member_lines: list[TranscriptLine],
+) -> tuple[TranscriptLine, str] | None:
+    explicit = _first_line(
+        lines,
+        r"\b(misunderstood|not what i asked|that'?s not what i said|i didn'?t ask|confused|what do you mean)\b",
+    )
+    if explicit:
+        return explicit, "Transcript contains explicit misunderstanding or confusion language."
+
+    for member_line in member_lines:
+        if re.search(r"\bcancel\b.{0,30}\b(membership fee|renewal fee|charge)\b", member_line.message, re.IGNORECASE):
+            next_agent_text = " ".join(
+                line.message for line in agent_lines if line.index > member_line.index
+            )
+            if re.search(r"\bcancel\b.{0,30}\bmembership\b", next_agent_text, re.IGNORECASE):
+                next_agent = _next_agent_after(lines, member_line.index)
+                if next_agent:
+                    return (
+                        next_agent,
+                        "Member asked about canceling the membership/renewal fee, but the agent framed the action as canceling the membership.",
+                    )
     return None
 
 
@@ -1105,6 +1190,13 @@ def _has_authentication(agent_lines: list[TranscriptLine], lower_transcript: str
         if re.search(pattern, auth_text):
             auth_items += 1
 
+    chat_name_and_membership = bool(
+        re.search(r"\b(first and last name|full name)\b", auth_text)
+        and re.search(r"\b(member(ship)? number|member id)\b", auth_text)
+    )
+    if chat_name_and_membership:
+        return True
+
     if has_ivr:
         return auth_items >= 1
     return auth_items >= 3
@@ -1160,6 +1252,7 @@ def _is_agent_line(line: str) -> bool:
 def _extract_timestamp(line: str) -> str:
     patterns = [
         r"\[(?P<ts>\d{1,2}:\d{2}(?::\d{2})?)\]",
+        r"\((?P<ts>\d{1,2}:\d{2}(?::\d{2})?)\)",
         r"^(?P<ts>\d{1,2}:\d{2}(?::\d{2})?)\s+",
         r"^(?P<ts>\d{4}-\d{2}-\d{2}[ T]\d{1,2}:\d{2}(?::\d{2})?)\s+",
     ]
@@ -1204,9 +1297,9 @@ def _normalize_result(result: dict[str, Any], interaction_id: str, engine: str) 
             (rubric_item["attribute"], rubric_item["sub_attribute"]),
             {},
         )
-        rating = str(raw.get("rating", "Yes")).strip().title()
+        rating = str(raw.get("rating", "No")).strip().title()
         if rating not in {"Yes", "No"}:
-            rating = "No" if rating in {"Fail", "Failed", "Defect"} else "Yes"
+            rating = "Yes" if rating in {"Fail", "Failed", "Defect"} else "No"
 
         normalized_attributes.append(
             {
@@ -1220,9 +1313,9 @@ def _normalize_result(result: dict[str, Any], interaction_id: str, engine: str) 
             }
         )
 
-    no_count = sum(1 for attribute in normalized_attributes if attribute["rating"] == "No")
+    defect_count = sum(1 for attribute in normalized_attributes if attribute["rating"] == "Yes")
     auto_fail = any(
-        attribute["rating"] == "No"
+        attribute["rating"] == "Yes"
         and attribute["attribute"] == "Professional Conduct (Auto Fail)"
         for attribute in normalized_attributes
     )
@@ -1232,9 +1325,9 @@ def _normalize_result(result: dict[str, Any], interaction_id: str, engine: str) 
 
     return {
         "interaction_id": str(result.get("interaction_id") or interaction_id),
-        "overall_result": "Fail" if auto_fail or no_count else "Pass",
+        "overall_result": "Fail" if auto_fail or defect_count else "Pass",
         "auto_fail": auto_fail,
-        "score": round(((len(normalized_attributes) - no_count) / len(normalized_attributes)) * 100),
+        "score": round(((len(normalized_attributes) - defect_count) / len(normalized_attributes)) * 100),
         "engine": engine,
         "prompt_version": "qa-monitoring-v1",
         "attributes": normalized_attributes,

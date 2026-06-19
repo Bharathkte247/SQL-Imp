@@ -24,11 +24,10 @@ defects.
 
 Each subattribute is rated:
 
-- `Yes`: the agent complied with the expectation, or no transcript evidence of
-  the defect exists.
-- `No`: the agent failed the expectation or the defect occurred.
+- `Yes`: the defect/subattribute was observed and should be counted as a QA miss.
+- `No`: the defect/subattribute was not observed in the transcript.
 
-For every `No`, the output includes a rationale, timestamp, agent quote, and
+For every `Yes`, the output includes a rationale, timestamp, agent quote, and
 coaching. If the transcript has no timestamp, the app/prompt uses
 `No timestamp present` rather than inventing one.
 
@@ -63,10 +62,11 @@ export QA_LLM_TIMEOUT_SECONDS="60"
 
 Without an API key, the app still runs in `local_heuristic` mode. The local
 rules evaluator checks common QA defects, including missed apology/empathy,
-unclear willingness to assist, repeated questions, hold handling, greeting,
-authentication indicators, follow-up handling, documentation flags, profanity,
-PII, unauthorized tools, and full credit card numbers. Use LLM mode for nuanced
-production QA, policy interpretation, and transcript-specific judgment.
+unclear willingness to assist, repeated questions, misunderstanding, grammar or
+spelling issues, greeting/authentication/closing indicators, follow-up handling,
+documentation flags, profanity, PII, unauthorized tools, and full credit card
+numbers. Use LLM mode for nuanced production QA, policy interpretation, and
+transcript-specific judgment.
 
 ## API usage
 
@@ -94,8 +94,8 @@ The prompt is in `prompts/qa_monitoring_prompt.md`. It includes:
 - rating semantics;
 - double-dip prevention rules;
 - timestamp requirements;
-- special handling for authentication, hold usage, KB usage, documentation, PII,
-  and credit card auto-fail checks;
+- special handling for authentication, misunderstanding, grammar/spelling, KB
+  usage, documentation, PII, and credit card auto-fail checks;
 - the required JSON output schema.
 
 To tune behavior, update this file and restart the app. Good tuning candidates

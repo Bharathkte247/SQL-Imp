@@ -14,13 +14,19 @@ FROM (
 LEFT JOIN (
     SELECT
         toStartOfHour(`date`) AS hour_start,
-        sum(login_time_in_seconds) AS login_seconds,
-        sum(busy_time__in_seconds) AS busy_seconds,
-        sum(break_time_in_seconds) AS break_seconds,
-        sum(total_chats) AS total_chats,
-        sum(engage_time__in_seconds) AS engaged_seconds,
-        sum(engage_time__in_seconds) / 3600 AS engaged_time_in_hours,
-        sum(login_time_in_seconds - (busy_time__in_seconds + break_time_in_seconds)) / 3600 AS actual_login_hrs,
+        sum(toFloat64OrZero(toString(login_time_in_seconds))) AS login_seconds,
+        sum(toFloat64OrZero(toString(busy_time__in_seconds))) AS busy_seconds,
+        sum(toFloat64OrZero(toString(break_time_in_seconds))) AS break_seconds,
+        sum(toFloat64OrZero(toString(total_chats))) AS total_chats,
+        sum(toFloat64OrZero(toString(engage_time__in_seconds))) AS engaged_seconds,
+        sum(toFloat64OrZero(toString(engage_time__in_seconds))) / 3600 AS engaged_time_in_hours,
+        sum(
+            toFloat64OrZero(toString(login_time_in_seconds))
+            - (
+                toFloat64OrZero(toString(busy_time__in_seconds))
+                + toFloat64OrZero(toString(break_time_in_seconds))
+            )
+        ) / 3600 AS actual_login_hrs,
         count(DISTINCT agent_name) AS agent_count
     FROM columbia.bq_agent_utilization
     GROUP BY toStartOfHour(`date`)

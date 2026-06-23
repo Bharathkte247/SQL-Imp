@@ -5,9 +5,7 @@ FROM (
         toStartOfHour(chat_start_date_time) AS hour_chat_start,
         count(DISTINCT aiva_interaction_id) AS bot_int_count,
         count(DISTINCT chat_interaction_id) AS chat_id_count,
-        count(DISTINCT chat_conversation_id) AS conv_id,
-        sum(handle_time_in_seconds) AS handle_time,
-        sum(agent_first_response_time_in_seconds) AS firstresponsetime
+        count(DISTINCT chat_conversation_id) AS conv_id
     FROM columbia.bq_digital_interaction
     GROUP BY
         toStartOfHour(session_start_time),

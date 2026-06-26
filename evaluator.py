@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -268,6 +269,9 @@ class LlmConfig:
     api_url: str
     model: str
     timeout_seconds: int
+    temperature: float
+    max_retries: int
+    retry_delay: float
 
 
 @dataclass(frozen=True)
@@ -294,28 +298,67 @@ def get_rendered_prompt(interaction_id: str, transcript: str) -> str:
     )
 
 
-def get_llm_config() -> LlmConfig | None:
-    api_key = os.getenv("QA_LLM_API_KEY") or os.getenv("OPENAI_API_KEY")
+def get_llm_config(request_config: dict[str, Any] | None = None) -> LlmConfig | None:
+    request_config = request_config or {}
+    api_key = (
+        _clean_config_value(request_config.get("api_key"))
+        or os.getenv("QA_LLM_API_KEY")
+        or os.getenv("OPENAI_API_KEY")
+    )
     if not api_key:
         return None
 
-    timeout_raw = os.getenv("QA_LLM_TIMEOUT_SECONDS", "60")
-    try:
-        timeout_seconds = max(10, int(timeout_raw))
-    except ValueError:
-        timeout_seconds = 60
+    timeout_seconds = _int_config_value(
+        request_config.get("timeout_seconds"),
+        os.getenv("QA_LLM_TIMEOUT_SECONDS", "60"),
+        default=60,
+        minimum=10,
+    )
+    max_retries = _int_config_value(
+        request_config.get("max_retries"),
+        os.getenv("QA_LLM_MAX_RETRIES", "3"),
+        default=3,
+        minimum=0,
+    )
+    retry_delay = _float_config_value(
+        request_config.get("retry_delay"),
+        os.getenv("QA_LLM_RETRY_DELAY", "1"),
+        default=1,
+        minimum=0,
+    )
+    temperature = _float_config_value(
+        request_config.get("temperature"),
+        os.getenv("QA_LLM_TEMPERATURE", "0.2"),
+        default=0.2,
+        minimum=0,
+    )
+    raw_url = (
+        _clean_config_value(request_config.get("api_url"))
+        or _clean_config_value(request_config.get("base_url"))
+        or os.getenv("QA_LLM_API_URL")
+        or os.getenv("QA_LLM_BASE_URL")
+        or "https://api.openai.com/v1/chat/completions"
+    )
 
     return LlmConfig(
         api_key=api_key,
-        api_url=os.getenv("QA_LLM_API_URL", "https://api.openai.com/v1/chat/completions"),
-        model=os.getenv("QA_LLM_MODEL", "gpt-4o-mini"),
+        api_url=_chat_completions_url(raw_url),
+        model=_clean_config_value(request_config.get("model"))
+        or os.getenv("QA_LLM_MODEL", "gpt-4o-mini"),
         timeout_seconds=timeout_seconds,
+        temperature=temperature,
+        max_retries=max_retries,
+        retry_delay=retry_delay,
     )
 
 
-def evaluate_interaction(interaction_id: str, transcript: str) -> dict[str, Any]:
+def evaluate_interaction(
+    interaction_id: str,
+    transcript: str,
+    llm_config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Evaluate a transcript and return the normalized QA result."""
-    config = get_llm_config()
+    config = get_llm_config(llm_config)
     if config:
         result = _evaluate_with_llm(config, interaction_id, transcript)
         return _normalize_result(result, interaction_id, engine="llm")
@@ -324,11 +367,42 @@ def evaluate_interaction(interaction_id: str, transcript: str) -> dict[str, Any]
     return _normalize_result(result, interaction_id, engine="local_heuristic")
 
 
+def _clean_config_value(value: Any) -> str:
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
+def _int_config_value(value: Any, fallback: Any, default: int, minimum: int) -> int:
+    raw_value = _clean_config_value(value) or _clean_config_value(fallback)
+    try:
+        return max(minimum, int(raw_value))
+    except (TypeError, ValueError):
+        return default
+
+
+def _float_config_value(value: Any, fallback: Any, default: float, minimum: float) -> float:
+    raw_value = _clean_config_value(value) or _clean_config_value(fallback)
+    try:
+        return max(minimum, float(raw_value))
+    except (TypeError, ValueError):
+        return default
+
+
+def _chat_completions_url(raw_url: str) -> str:
+    url = raw_url.rstrip("/")
+    if url.endswith("/chat/completions"):
+        return url
+    if url.endswith("/v1"):
+        return f"{url}/chat/completions"
+    return f"{url}/v1/chat/completions"
+
+
 def _evaluate_with_llm(config: LlmConfig, interaction_id: str, transcript: str) -> dict[str, Any]:
     prompt = get_rendered_prompt(interaction_id, transcript)
     payload = {
         "model": config.model,
-        "temperature": 0.1,
+        "temperature": config.temperature,
         "response_format": {"type": "json_object"},
         "messages": [
             {
@@ -341,24 +415,7 @@ def _evaluate_with_llm(config: LlmConfig, interaction_id: str, transcript: str) 
             {"role": "user", "content": prompt},
         ],
     }
-    request = urllib.request.Request(
-        config.api_url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {config.api_key}",
-            "Content-Type": "application/json",
-        },
-        method="POST",
-    )
-
-    try:
-        with urllib.request.urlopen(request, timeout=config.timeout_seconds) as response:
-            raw_response = response.read().decode("utf-8")
-    except urllib.error.HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"LLM provider returned HTTP {exc.code}: {body}") from exc
-    except urllib.error.URLError as exc:
-        raise RuntimeError(f"Unable to reach LLM provider: {exc.reason}") from exc
+    raw_response = _post_llm_request(config, payload)
 
     response_payload = json.loads(raw_response)
     try:
@@ -367,6 +424,40 @@ def _evaluate_with_llm(config: LlmConfig, interaction_id: str, transcript: str) 
         raise RuntimeError("LLM response did not include choices[0].message.content") from exc
 
     return _parse_json_object(content)
+
+
+def _post_llm_request(config: LlmConfig, payload: dict[str, Any]) -> str:
+    data = json.dumps(payload).encode("utf-8")
+    attempts = config.max_retries + 1
+    last_error: RuntimeError | None = None
+
+    for attempt in range(attempts):
+        request = urllib.request.Request(
+            config.api_url,
+            data=data,
+            headers={
+                "Authorization": f"Bearer {config.api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=config.timeout_seconds) as response:
+                return response.read().decode("utf-8")
+        except urllib.error.HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="replace")
+            last_error = RuntimeError(f"LLM provider returned HTTP {exc.code}: {body}")
+            if exc.code < 500 or attempt == attempts - 1:
+                raise last_error from exc
+        except urllib.error.URLError as exc:
+            last_error = RuntimeError(f"Unable to reach LLM provider: {exc.reason}")
+            if attempt == attempts - 1:
+                raise last_error from exc
+
+        if config.retry_delay:
+            time.sleep(config.retry_delay)
+
+    raise last_error or RuntimeError("LLM request failed")
 
 
 def _parse_json_object(content: str) -> dict[str, Any]:

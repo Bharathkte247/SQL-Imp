@@ -48,6 +48,13 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
             payload = self._read_json_body()
             interaction_id = str(payload.get("interaction_id", "")).strip()
             transcript = str(payload.get("transcript", "")).strip()
+            llm_config = payload.get("llm_config")
+            if llm_config is not None and not isinstance(llm_config, dict):
+                self._send_json(
+                    {"error": "llm_config must be an object when provided"},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
             if not interaction_id:
                 self._send_json(
                     {"error": "interaction_id is required"},
@@ -61,7 +68,7 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
                 )
                 return
 
-            result = evaluate_interaction(interaction_id, transcript)
+            result = evaluate_interaction(interaction_id, transcript, llm_config=llm_config)
             self._send_json(result)
         except json.JSONDecodeError:
             self._send_json({"error": "Request body must be valid JSON"}, status=HTTPStatus.BAD_REQUEST)

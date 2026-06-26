@@ -43,10 +43,33 @@ Open `http://localhost:8000`.
 
 ## Configure LLM evaluation
 
+### Option 1: Paste the key in the browser
+
+Run the app:
+
+```bash
+python3 app.py
+```
+
+Open `http://localhost:8000`, expand **LLM Configuration**, and enter:
+
+- LiteLLM / OpenAI base URL: `https://litellm-stg.cloud.247-inc.net`
+- Model: `gpt-41-mini`
+- API key: your LiteLLM API key
+- Temperature: `0.2`
+
+The key is sent only with the evaluation request and is not committed to the
+repository.
+
+### Option 2: Set environment variables
+
 Set an API key before starting the app:
 
 ```bash
 export QA_LLM_API_KEY="your-api-key"
+export QA_LLM_BASE_URL="https://litellm-stg.cloud.247-inc.net"
+export QA_LLM_MODEL="gpt-41-mini"
+export QA_LLM_TEMPERATURE="0.2"
 python3 app.py
 ```
 
@@ -54,11 +77,17 @@ Optional environment variables:
 
 ```bash
 export QA_LLM_API_URL="https://api.openai.com/v1/chat/completions"
-export QA_LLM_MODEL="gpt-4o-mini"
+export QA_LLM_BASE_URL="https://litellm-stg.cloud.247-inc.net"
+export QA_LLM_MODEL="gpt-41-mini"
 export QA_LLM_TIMEOUT_SECONDS="60"
+export QA_LLM_MAX_RETRIES="3"
+export QA_LLM_RETRY_DELAY="1"
+export QA_LLM_TEMPERATURE="0.2"
 ```
 
 `QA_LLM_API_KEY` is preferred. `OPENAI_API_KEY` is also supported.
+When `QA_LLM_BASE_URL` is provided, the app automatically calls
+`/v1/chat/completions`.
 
 Without an API key, the app still runs in `local_heuristic` mode. The local
 rules evaluator checks common QA defects, including missed apology/empathy,

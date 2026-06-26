@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from evaluator import RUBRIC, evaluate_interaction, get_rendered_prompt
+from evaluator import RUBRIC, evaluate_interaction, get_llm_config, get_rendered_prompt
 
 
 class EvaluatorTests(unittest.TestCase):
@@ -11,6 +11,25 @@ class EvaluatorTests(unittest.TestCase):
         self.assertIn("INT-42", prompt)
         self.assertIn("[00:00] Agent: Hello", prompt)
         self.assertIn("Fails to/misses apology due to error or inconvenience", prompt)
+
+    @patch.dict("os.environ", {}, clear=True)
+    def test_request_llm_config_normalizes_litellm_base_url(self):
+        config = get_llm_config(
+            {
+                "api_key": "test-key",
+                "base_url": "https://litellm-stg.cloud.247-inc.net",
+                "model": "gpt-41-mini",
+                "temperature": "0.2",
+            }
+        )
+
+        self.assertIsNotNone(config)
+        self.assertEqual(
+            config.api_url,
+            "https://litellm-stg.cloud.247-inc.net/v1/chat/completions",
+        )
+        self.assertEqual(config.model, "gpt-41-mini")
+        self.assertEqual(config.temperature, 0.2)
 
     @patch.dict("os.environ", {}, clear=True)
     def test_local_heuristic_returns_all_rubric_items(self):

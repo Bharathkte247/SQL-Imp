@@ -1,6 +1,10 @@
 const form = document.querySelector("#evaluationForm");
 const interactionIdInput = document.querySelector("#interactionId");
 const transcriptInput = document.querySelector("#transcript");
+const llmBaseUrlInput = document.querySelector("#llmBaseUrl");
+const llmModelInput = document.querySelector("#llmModel");
+const llmApiKeyInput = document.querySelector("#llmApiKey");
+const llmTemperatureInput = document.querySelector("#llmTemperature");
 const evaluateButton = document.querySelector("#evaluateButton");
 const loadExampleButton = document.querySelector("#loadExampleButton");
 const errorPanel = document.querySelector("#errorPanel");
@@ -31,6 +35,7 @@ form.addEventListener("submit", async (event) => {
       body: JSON.stringify({
         interaction_id: interactionIdInput.value,
         transcript: transcriptInput.value,
+        llm_config: getLlmConfig(),
       }),
     });
     const payload = await response.json();
@@ -99,7 +104,7 @@ async function loadRubric() {
       engineBadge.textContent = "LLM ready";
     } else {
       modeNotice.textContent =
-        "Local rules mode is active because no QA_LLM_API_KEY or OPENAI_API_KEY is configured. The app now checks common QA defects, but use LLM mode for nuanced production scoring.";
+        "Paste an API key in LLM Configuration to use model scoring. If left blank, the app uses local rules mode.";
       modeNotice.classList.remove("ready");
       engineBadge.textContent = "Local rules mode";
     }
@@ -107,6 +112,23 @@ async function loadRubric() {
     promptViewer.textContent = `Unable to load prompt: ${error.message}`;
     modeNotice.textContent = "Unable to determine evaluation mode.";
   }
+}
+
+function getLlmConfig() {
+  const apiKey = llmApiKeyInput.value.trim();
+  if (!apiKey) {
+    return null;
+  }
+
+  return {
+    api_key: apiKey,
+    base_url: llmBaseUrlInput.value.trim(),
+    model: llmModelInput.value.trim(),
+    temperature: llmTemperatureInput.value,
+    max_retries: 3,
+    retry_delay: 1,
+    timeout_seconds: 60,
+  };
 }
 
 function renderResult(result) {

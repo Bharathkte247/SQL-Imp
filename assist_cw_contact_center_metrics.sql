@@ -1,7 +1,8 @@
--- Real-time assist-cw contact center snapshot from columbia.all_events.
+-- Hourly assist-cw contact center metrics from columbia.all_events.
 -- Inner query: one row per InteractionId with status and timing fields.
--- Outer query: rolls up all conversations into a single dashboard row.
+-- Outer query: aggregates conversations into hourly buckets by conversation start time.
 SELECT
+    toStartOfHour(agent_conv_start_time) AS hour_start,
     countIf(effective_status = 'completed') AS completed_calls,
     countIf(effective_status = 'assigned') AS live_calls,
     0 AS total_conversations_on_hold,
@@ -46,4 +47,7 @@ FROM (
       AND EventName IN ('CONVERSATION_CREATED', 'AGENT_ASSIGNED', 'CONVERSATION_ENDED')
       AND EventGroup IN ('assist-cw')
     GROUP BY InteractionId
-);
+    HAVING agent_conv_start_time IS NOT NULL
+)
+GROUP BY hour_start
+ORDER BY hour_start;

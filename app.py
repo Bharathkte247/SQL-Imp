@@ -10,7 +10,13 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote
 
-from evaluator import RUBRIC, evaluate_interaction, get_llm_config, get_prompt_template
+from evaluator import (
+    RUBRIC,
+    check_llm_connectivity,
+    evaluate_interaction,
+    get_llm_config,
+    get_prompt_template,
+)
 
 
 ROOT = Path(__file__).parent
@@ -40,6 +46,9 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
         self._send_json({"error": "Not found"}, status=HTTPStatus.NOT_FOUND)
 
     def do_POST(self) -> None:  # noqa: N802 - stdlib hook name
+        if self.path == "/api/llm/connectivity":
+            self._handle_llm_connectivity()
+            return
         if self.path != "/api/evaluate":
             self._send_json({"error": "Not found"}, status=HTTPStatus.NOT_FOUND)
             return
@@ -74,6 +83,23 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
             self._send_json({"error": "Request body must be valid JSON"}, status=HTTPStatus.BAD_REQUEST)
         except RuntimeError as exc:
             self._send_json({"error": str(exc)}, status=HTTPStatus.BAD_GATEWAY)
+        except Exception as exc:  # pragma: no cover - defensive HTTP boundary
+            self._send_json({"error": f"Unexpected server error: {exc}"}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    def _handle_llm_connectivity(self) -> None:
+        try:
+            payload = self._read_json_body()
+            llm_config = payload.get("llm_config")
+            if llm_config is not None and not isinstance(llm_config, dict):
+                self._send_json(
+                    {"error": "llm_config must be an object when provided"},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            result = check_llm_connectivity(llm_config)
+            self._send_json(result, status=HTTPStatus.OK if result.get("ok") else HTTPStatus.BAD_GATEWAY)
+        except json.JSONDecodeError:
+            self._send_json({"error": "Request body must be valid JSON"}, status=HTTPStatus.BAD_REQUEST)
         except Exception as exc:  # pragma: no cover - defensive HTTP boundary
             self._send_json({"error": f"Unexpected server error: {exc}"}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
 

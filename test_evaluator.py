@@ -1,7 +1,13 @@
 import unittest
 from unittest.mock import patch
 
-from evaluator import RUBRIC, evaluate_interaction, get_llm_config, get_rendered_prompt
+from evaluator import (
+    RUBRIC,
+    evaluate_interaction,
+    get_llm_config,
+    get_llm_endpoint,
+    get_rendered_prompt,
+)
 
 
 class EvaluatorTests(unittest.TestCase):
@@ -30,6 +36,19 @@ class EvaluatorTests(unittest.TestCase):
         )
         self.assertEqual(config.model, "gpt-41-mini")
         self.assertEqual(config.temperature, 0.2)
+
+    @patch.dict("os.environ", {}, clear=True)
+    def test_llm_endpoint_can_be_derived_without_api_key(self):
+        endpoint = get_llm_endpoint(
+            {
+                "base_url": "https://litellm-stg.cloud.247-inc.net",
+            }
+        )
+
+        self.assertEqual(
+            endpoint,
+            "https://litellm-stg.cloud.247-inc.net/v1/chat/completions",
+        )
 
     @patch.dict("os.environ", {}, clear=True)
     def test_local_heuristic_returns_all_rubric_items(self):

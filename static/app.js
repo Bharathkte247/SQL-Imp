@@ -5,6 +5,8 @@ const llmBaseUrlInput = document.querySelector("#llmBaseUrl");
 const llmModelInput = document.querySelector("#llmModel");
 const llmApiKeyInput = document.querySelector("#llmApiKey");
 const llmTemperatureInput = document.querySelector("#llmTemperature");
+const testLlmConnectionButton = document.querySelector("#testLlmConnectionButton");
+const llmConnectionResult = document.querySelector("#llmConnectionResult");
 const evaluateButton = document.querySelector("#evaluateButton");
 const loadExampleButton = document.querySelector("#loadExampleButton");
 const errorPanel = document.querySelector("#errorPanel");
@@ -90,6 +92,29 @@ downloadJsonButton.addEventListener("click", () => {
   URL.revokeObjectURL(url);
 });
 
+testLlmConnectionButton.addEventListener("click", async () => {
+  hideConnectionResult();
+  testLlmConnectionButton.disabled = true;
+  testLlmConnectionButton.textContent = "Testing...";
+
+  try {
+    const response = await fetch("/api/llm/connectivity", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        llm_config: getLlmConnectivityConfig(),
+      }),
+    });
+    const payload = await response.json();
+    renderConnectionResult(payload, response.ok);
+  } catch (error) {
+    renderConnectionResult({ error: error.message }, false);
+  } finally {
+    testLlmConnectionButton.disabled = false;
+    testLlmConnectionButton.textContent = "Test LLM connection";
+  }
+});
+
 loadRubric();
 
 async function loadRubric() {
@@ -129,6 +154,27 @@ function getLlmConfig() {
     retry_delay: 1,
     timeout_seconds: 60,
   };
+}
+
+function getLlmConnectivityConfig() {
+  return {
+    base_url: llmBaseUrlInput.value.trim(),
+    connect_timeout_seconds: 10,
+  };
+}
+
+function renderConnectionResult(payload, isOk) {
+  const endpoint = payload.endpoint ? ` Endpoint: ${payload.endpoint}.` : "";
+  const host = payload.host && payload.port ? ` Host: ${payload.host}:${payload.port}.` : "";
+  const message = payload.message || payload.error || "Connection test failed.";
+  const error = payload.error ? ` Error: ${payload.error}.` : "";
+  llmConnectionResult.textContent = `${message}${endpoint}${host}${error}`;
+  llmConnectionResult.className = `connection-result ${isOk ? "success" : "failure"}`;
+}
+
+function hideConnectionResult() {
+  llmConnectionResult.className = "connection-result hidden";
+  llmConnectionResult.textContent = "";
 }
 
 function renderResult(result) {

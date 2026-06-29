@@ -157,6 +157,31 @@ h1 {
   margin-top: 0;
 }
 
+.config-actions {
+  justify-content: flex-start;
+  margin-top: 14px;
+}
+
+.connection-result {
+  margin-top: 14px;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.connection-result.success {
+  border: 1px solid #86efac;
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.connection-result.failure {
+  border: 1px solid #fecaca;
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
 .hidden {
   display: none;
 }

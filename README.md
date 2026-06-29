@@ -61,6 +61,10 @@ Open `http://localhost:8000`, expand **LLM Configuration**, and enter:
 The key is sent only with the evaluation request and is not committed to the
 repository.
 
+Click **Test LLM connection** before evaluating. This checks whether the machine
+running `python3 app.py` can open a TCP connection to the LiteLLM host. It does
+not call the model or spend tokens.
+
 ### Option 2: Set environment variables
 
 Set an API key before starting the app:
@@ -88,6 +92,40 @@ export QA_LLM_TEMPERATURE="0.2"
 `QA_LLM_API_KEY` is preferred. `OPENAI_API_KEY` is also supported.
 When `QA_LLM_BASE_URL` is provided, the app automatically calls
 `/v1/chat/completions`.
+
+### Troubleshooting LLM network errors
+
+If you see an error like:
+
+```text
+Unable to reach LLM provider: [WinError 10060] A connection attempt failed...
+```
+
+the Python server could not connect to the LiteLLM host. Common causes:
+
+- VPN or corporate network is not connected.
+- Firewall/proxy blocks outbound access to `litellm-stg.cloud.247-inc.net:443`.
+- The app is running in an environment that cannot reach internal staging
+  services, such as a cloud VM outside the corporate network.
+- The base URL is incorrect.
+
+From the same machine running `python3 app.py`, verify connectivity:
+
+Windows PowerShell:
+
+```powershell
+Test-NetConnection litellm-stg.cloud.247-inc.net -Port 443
+```
+
+Python:
+
+```bash
+python -c "import socket; socket.create_connection(('litellm-stg.cloud.247-inc.net', 443), timeout=10); print('connected')"
+```
+
+If these fail, connect to the required VPN/network or configure the required
+proxy/firewall allowlist. The app will continue to work in local rules mode when
+the API key is blank.
 
 Without an API key, the app still runs in `local_heuristic` mode. The local
 rules evaluator checks common QA defects, including missed apology/empathy,

@@ -10,8 +10,10 @@ from __future__ import annotations
 import json
 import os
 import re
+import socket
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
@@ -332,17 +334,10 @@ def get_llm_config(request_config: dict[str, Any] | None = None) -> LlmConfig | 
         default=0.2,
         minimum=0,
     )
-    raw_url = (
-        _clean_config_value(request_config.get("api_url"))
-        or _clean_config_value(request_config.get("base_url"))
-        or os.getenv("QA_LLM_API_URL")
-        or os.getenv("QA_LLM_BASE_URL")
-        or "https://api.openai.com/v1/chat/completions"
-    )
 
     return LlmConfig(
         api_key=api_key,
-        api_url=_chat_completions_url(raw_url),
+        api_url=get_llm_endpoint(request_config),
         model=_clean_config_value(request_config.get("model"))
         or os.getenv("QA_LLM_MODEL", "gpt-4o-mini"),
         timeout_seconds=timeout_seconds,
@@ -396,6 +391,63 @@ def _chat_completions_url(raw_url: str) -> str:
     if url.endswith("/v1"):
         return f"{url}/chat/completions"
     return f"{url}/v1/chat/completions"
+
+
+def get_llm_endpoint(request_config: dict[str, Any] | None = None) -> str:
+    request_config = request_config or {}
+    raw_url = (
+        _clean_config_value(request_config.get("api_url"))
+        or _clean_config_value(request_config.get("base_url"))
+        or os.getenv("QA_LLM_API_URL")
+        or os.getenv("QA_LLM_BASE_URL")
+        or "https://api.openai.com/v1/chat/completions"
+    )
+    return _chat_completions_url(raw_url)
+
+
+def check_llm_connectivity(request_config: dict[str, Any] | None = None) -> dict[str, Any]:
+    endpoint = get_llm_endpoint(request_config)
+    parsed = urllib.parse.urlparse(endpoint)
+    host = parsed.hostname
+    if not host:
+        return {
+            "ok": False,
+            "endpoint": endpoint,
+            "error": "LLM base URL is invalid or missing a host.",
+        }
+
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    timeout = _int_config_value(
+        (request_config or {}).get("connect_timeout_seconds"),
+        "10",
+        default=10,
+        minimum=1,
+    )
+    try:
+        resolved_addresses = sorted({item[4][0] for item in socket.getaddrinfo(host, port)})
+        with socket.create_connection((host, port), timeout=timeout):
+            pass
+    except OSError as exc:
+        return {
+            "ok": False,
+            "endpoint": endpoint,
+            "host": host,
+            "port": port,
+            "error": str(exc),
+            "message": (
+                "The server running this app cannot connect to the LLM host. "
+                "Check VPN/corporate network access, firewall/proxy settings, and the base URL."
+            ),
+        }
+
+    return {
+        "ok": True,
+        "endpoint": endpoint,
+        "host": host,
+        "port": port,
+        "resolved_addresses": resolved_addresses,
+        "message": "TCP connectivity to the LLM host succeeded.",
+    }
 
 
 def _evaluate_with_llm(config: LlmConfig, interaction_id: str, transcript: str) -> dict[str, Any]:

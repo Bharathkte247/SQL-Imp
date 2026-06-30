@@ -1,6 +1,9 @@
+import csv
+import io
 import unittest
 from unittest.mock import patch
 
+from app import build_bulk_evaluation_csv
 from evaluator import (
     RUBRIC,
     evaluate_interaction,
@@ -193,6 +196,37 @@ class EvaluatorTests(unittest.TestCase):
             },
         )
         self.assertEqual(result["score"], 86)
+
+    @patch.dict("os.environ", {}, clear=True)
+    def test_bulk_evaluation_csv_outputs_rating_and_feedback_columns(self):
+        input_buffer = io.StringIO()
+        writer = csv.DictWriter(
+            input_buffer,
+            fieldnames=["Interaction ID", "Transcript"],
+            lineterminator="\n",
+        )
+        writer.writeheader()
+        writer.writerow(
+            {
+                "Interaction ID": "BULK-001",
+                "Transcript": (
+                    "[00:00] Agent: Thank you for calling BJ's Member Care.\n"
+                    "[00:05] Member: My order is late and I am frustrated.\n"
+                    "[00:10] Agent: What is your order number?"
+                ),
+            }
+        )
+
+        output_csv = build_bulk_evaluation_csv(input_buffer.getvalue())
+        rows = list(csv.DictReader(io.StringIO(output_csv)))
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["Interaction ID"], "BULK-001")
+        self.assertEqual(len(rows[0]), 1 + len(RUBRIC) * 2)
+
+        rating_column = "1 Fails to/misses apology due to error or inconvenience - Rating"
+        self.assertEqual(rows[0][rating_column], "Yes")
+        self.assertIn("What is your order number?", rows[0]["Feedback 1"])
 
 
 if __name__ == "__main__":

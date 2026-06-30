@@ -154,6 +154,41 @@ Fetch the rubric and prompt template:
 curl http://localhost:8000/api/rubric
 ```
 
+## Bulk CSV evaluation
+
+Use the **Bulk evaluation** section in the browser to upload a CSV with exactly
+these required headers:
+
+```csv
+Interaction ID,Transcript
+INT-1001,"[00:00] Agent: Thank you for calling..."
+```
+
+The app evaluates one interaction per input row. If an API key is entered in
+**LLM Configuration**, each interaction is sent to the LLM one at a time. If the
+API key is blank, the same bulk flow runs in local rules mode, which is useful
+while the external LiteLLM endpoint is unreachable.
+
+The downloaded output CSV is wide:
+
+```text
+Interaction ID,
+1 Fails to/misses apology due to error or inconvenience - Rating,
+Feedback 1,
+2 Uses excessive apologies - Rating,
+Feedback 2,
+...
+```
+
+Ratings follow the calibrated scorecard convention:
+
+- `Yes` = the defect/subattribute was observed.
+- `No` = the defect/subattribute was not observed.
+
+Feedback is populated only when the rating is `Yes`, because that is the case
+where the subattribute/expectation was not met. Feedback includes timestamp,
+rationale, agent quote, and coaching when available.
+
 ## Prompt tuning
 
 The prompt is in `prompts/qa_monitoring_prompt.md`. It includes:

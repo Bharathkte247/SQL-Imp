@@ -110,6 +110,31 @@
 
       <section id="errorPanel" class="alert hidden" role="alert"></section>
 
+      <section class="card">
+        <div class="table-toolbar">
+          <div>
+            <p class="eyebrow">Bulk evaluation</p>
+            <h2>Upload transcripts CSV</h2>
+            <p class="config-help">
+              Upload a CSV with headers <code>Interaction ID</code> and
+              <code>Transcript</code>. Each row is evaluated one interaction at
+              a time. Leave the API key blank to test with local rules mode.
+            </p>
+          </div>
+          <button id="downloadSampleCsvButton" type="button" class="secondary">
+            Download sample CSV
+          </button>
+        </div>
+        <form id="bulkForm" class="bulk-form">
+          <label for="bulkCsvFile">CSV file</label>
+          <input id="bulkCsvFile" name="bulk_csv_file" type="file" accept=".csv,text/csv" required />
+          <div class="actions">
+            <button id="bulkEvaluateButton" type="submit">Evaluate bulk CSV</button>
+          </div>
+        </form>
+        <div id="bulkStatus" class="connection-result hidden"></div>
+      </section>
+
       <section id="resultPanel" class="card hidden">
         <div class="result-header">
           <div>

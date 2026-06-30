@@ -1,6 +1,8 @@
 const form = document.querySelector("#evaluationForm");
+const bulkForm = document.querySelector("#bulkForm");
 const interactionIdInput = document.querySelector("#interactionId");
 const transcriptInput = document.querySelector("#transcript");
+const bulkCsvFileInput = document.querySelector("#bulkCsvFile");
 const llmBaseUrlInput = document.querySelector("#llmBaseUrl");
 const llmModelInput = document.querySelector("#llmModel");
 const llmApiKeyInput = document.querySelector("#llmApiKey");
@@ -8,8 +10,11 @@ const llmTemperatureInput = document.querySelector("#llmTemperature");
 const testLlmConnectionButton = document.querySelector("#testLlmConnectionButton");
 const llmConnectionResult = document.querySelector("#llmConnectionResult");
 const evaluateButton = document.querySelector("#evaluateButton");
+const bulkEvaluateButton = document.querySelector("#bulkEvaluateButton");
 const loadExampleButton = document.querySelector("#loadExampleButton");
+const downloadSampleCsvButton = document.querySelector("#downloadSampleCsvButton");
 const errorPanel = document.querySelector("#errorPanel");
+const bulkStatus = document.querySelector("#bulkStatus");
 const resultPanel = document.querySelector("#resultPanel");
 const resultTitle = document.querySelector("#resultTitle");
 const scoreValue = document.querySelector("#scoreValue");
@@ -53,6 +58,45 @@ form.addEventListener("submit", async (event) => {
   }
 });
 
+bulkForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  hideError();
+  hideBulkStatus();
+
+  const file = bulkCsvFileInput.files?.[0];
+  if (!file) {
+    showBulkStatus("Please choose a CSV file first.", false);
+    return;
+  }
+
+  setBulkLoading(true);
+  try {
+    const csvText = await file.text();
+    const response = await fetch("/api/evaluate-bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        csv_text: csvText,
+        llm_config: getLlmConfig(),
+      }),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json();
+      throw new Error(payload.error || "Bulk evaluation failed");
+    }
+
+    const outputCsv = await response.text();
+    const outputName = outputFileName(file.name);
+    downloadTextFile(outputCsv, outputName, "text/csv");
+    showBulkStatus(`Bulk evaluation complete. Downloaded ${outputName}.`, true);
+  } catch (error) {
+    showBulkStatus(error.message, false);
+  } finally {
+    setBulkLoading(false);
+  }
+});
+
 loadExampleButton.addEventListener("click", () => {
   interactionIdInput.value = "INT-DEMO-001";
   transcriptInput.value = `[00:00] Agent: Thank you for calling BJ's Member Care, this is Taylor. How can I help?
@@ -68,6 +112,23 @@ loadExampleButton.addEventListener("click", () => {
 [01:21] Agent: Is there anything else I can help with today?
 [01:25] Member: No, thank you.
 [01:27] Agent: Thank you for calling BJ's. Please stay on the line for a brief survey.`;
+});
+
+downloadSampleCsvButton.addEventListener("click", () => {
+  const sampleCsv = [
+    ["Interaction ID", "Transcript"],
+    [
+      "INT-BULK-001",
+      "[00:00] Agent: Thank you for calling BJ's Member Care.\\n[00:05] Member: My order is late and I am frustrated.\\n[00:10] Agent: What is your order number?",
+    ],
+    [
+      "INT-BULK-002",
+      "Sammy(10:09:43):Thank you for contacting BJ's Wholesale Club. My name is Sammy. Could you please confirm your first and last name and membership number?\\nVisitor(10:10:14):Christopher Guerra XXXX-XXXX-630",
+    ],
+  ]
+    .map((row) => row.map(csvEscape).join(","))
+    .join("\n");
+  downloadTextFile(sampleCsv, "qa_bulk_input_sample.csv", "text/csv");
 });
 
 copyJsonButton.addEventListener("click", async () => {
@@ -175,6 +236,44 @@ function renderConnectionResult(payload, isOk) {
 function hideConnectionResult() {
   llmConnectionResult.className = "connection-result hidden";
   llmConnectionResult.textContent = "";
+}
+
+function showBulkStatus(message, isOk) {
+  bulkStatus.textContent = message;
+  bulkStatus.className = `connection-result ${isOk ? "success" : "failure"}`;
+}
+
+function hideBulkStatus() {
+  bulkStatus.className = "connection-result hidden";
+  bulkStatus.textContent = "";
+}
+
+function setBulkLoading(isLoading) {
+  bulkEvaluateButton.disabled = isLoading;
+  bulkEvaluateButton.textContent = isLoading ? "Evaluating CSV..." : "Evaluate bulk CSV";
+}
+
+function downloadTextFile(text, filename, mimeType) {
+  const blob = new Blob([text], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function outputFileName(inputName) {
+  const baseName = inputName.replace(/\.csv$/i, "") || "qa_bulk";
+  return `${baseName}_evaluated.csv`;
+}
+
+function csvEscape(value) {
+  const text = String(value);
+  if (/[",\n\r]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return text;
 }
 
 function renderResult(result) {

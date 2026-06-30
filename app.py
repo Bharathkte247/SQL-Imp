@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import mimetypes
 from http import HTTPStatus
@@ -49,6 +51,9 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
         if self.path == "/api/llm/connectivity":
             self._handle_llm_connectivity()
             return
+        if self.path == "/api/evaluate-bulk":
+            self._handle_bulk_evaluation()
+            return
         if self.path != "/api/evaluate":
             self._send_json({"error": "Not found"}, status=HTTPStatus.NOT_FOUND)
             return
@@ -81,6 +86,37 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
             self._send_json(result)
         except json.JSONDecodeError:
             self._send_json({"error": "Request body must be valid JSON"}, status=HTTPStatus.BAD_REQUEST)
+        except RuntimeError as exc:
+            self._send_json({"error": str(exc)}, status=HTTPStatus.BAD_GATEWAY)
+        except Exception as exc:  # pragma: no cover - defensive HTTP boundary
+            self._send_json({"error": f"Unexpected server error: {exc}"}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    def _handle_bulk_evaluation(self) -> None:
+        try:
+            payload = self._read_json_body()
+            csv_text = str(payload.get("csv_text", "")).strip()
+            llm_config = payload.get("llm_config")
+            if llm_config is not None and not isinstance(llm_config, dict):
+                self._send_json(
+                    {"error": "llm_config must be an object when provided"},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            if not csv_text:
+                self._send_json(
+                    {"error": "csv_text is required"},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            output_csv = build_bulk_evaluation_csv(csv_text, llm_config)
+            self._send_csv(output_csv, filename="qa_bulk_evaluation_output.csv")
+        except json.JSONDecodeError:
+            self._send_json({"error": "Request body must be valid JSON"}, status=HTTPStatus.BAD_REQUEST)
+        except csv.Error as exc:
+            self._send_json({"error": f"Invalid CSV: {exc}"}, status=HTTPStatus.BAD_REQUEST)
+        except ValueError as exc:
+            self._send_json({"error": str(exc)}, status=HTTPStatus.BAD_REQUEST)
         except RuntimeError as exc:
             self._send_json({"error": str(exc)}, status=HTTPStatus.BAD_GATEWAY)
         except Exception as exc:  # pragma: no cover - defensive HTTP boundary
@@ -141,6 +177,95 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(content)))
         self.end_headers()
         self.wfile.write(content)
+
+    def _send_csv(self, content: str, filename: str) -> None:
+        encoded = content.encode("utf-8-sig")
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", "text/csv; charset=utf-8")
+        self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+        self.send_header("Content-Length", str(len(encoded)))
+        self.end_headers()
+        self.wfile.write(encoded)
+
+
+def build_bulk_evaluation_csv(csv_text: str, llm_config: dict[str, Any] | None = None) -> str:
+    input_buffer = io.StringIO(csv_text)
+    reader = csv.DictReader(input_buffer)
+    if not reader.fieldnames:
+        raise ValueError("CSV must include headers: Interaction ID, Transcript")
+
+    interaction_field = _find_csv_field(reader.fieldnames, "Interaction ID")
+    transcript_field = _find_csv_field(reader.fieldnames, "Transcript")
+    if not interaction_field or not transcript_field:
+        raise ValueError("CSV must include columns named Interaction ID and Transcript")
+
+    output_buffer = io.StringIO()
+    fieldnames = _bulk_output_fieldnames()
+    writer = csv.DictWriter(output_buffer, fieldnames=fieldnames, lineterminator="\n")
+    writer.writeheader()
+
+    for row_number, input_row in enumerate(reader, start=2):
+        interaction_id = str(input_row.get(interaction_field, "")).strip()
+        transcript = str(input_row.get(transcript_field, "")).strip()
+        if not interaction_id and not transcript:
+            continue
+        if not interaction_id:
+            raise ValueError(f"Row {row_number} is missing Interaction ID")
+        if not transcript:
+            raise ValueError(f"Row {row_number} is missing Transcript")
+
+        result = evaluate_interaction(interaction_id, transcript, llm_config=llm_config)
+        writer.writerow(_bulk_result_row(result))
+
+    return output_buffer.getvalue()
+
+
+def _bulk_output_fieldnames() -> list[str]:
+    fieldnames = ["Interaction ID"]
+    for index, item in enumerate(RUBRIC, start=1):
+        fieldnames.append(f"{index} {item['sub_attribute']} - Rating")
+        fieldnames.append(f"Feedback {index}")
+    return fieldnames
+
+
+def _bulk_result_row(result: dict[str, Any]) -> dict[str, str]:
+    output_row: dict[str, str] = {"Interaction ID": str(result.get("interaction_id", ""))}
+    attributes = result.get("attributes", [])
+    attributes_by_sub_attribute = {
+        str(item.get("sub_attribute", "")): item
+        for item in attributes
+        if isinstance(item, dict)
+    }
+
+    for index, rubric_item in enumerate(RUBRIC, start=1):
+        sub_attribute = rubric_item["sub_attribute"]
+        attribute_result = attributes_by_sub_attribute.get(sub_attribute, {})
+        rating = str(attribute_result.get("rating", "No"))
+        feedback = ""
+        if rating == "Yes":
+            feedback_parts = [
+                str(attribute_result.get("timestamp", "")).strip(),
+                str(attribute_result.get("rationale", "")).strip(),
+                str(attribute_result.get("agent_quote", "")).strip(),
+                str(attribute_result.get("coaching", "")).strip(),
+            ]
+            feedback = " | ".join(part for part in feedback_parts if part)
+
+        output_row[f"{index} {sub_attribute} - Rating"] = rating
+        output_row[f"Feedback {index}"] = feedback
+    return output_row
+
+
+def _find_csv_field(fieldnames: list[str], expected_name: str) -> str | None:
+    expected = _normalize_csv_field(expected_name)
+    for fieldname in fieldnames:
+        if _normalize_csv_field(fieldname) == expected:
+            return fieldname
+    return None
+
+
+def _normalize_csv_field(fieldname: str) -> str:
+    return "".join(char for char in fieldname.lower().strip("\ufeff ") if char.isalnum())
 
 
 def run() -> None:

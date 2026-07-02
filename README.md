@@ -169,6 +169,10 @@ The app evaluates one interaction per input row. If an API key is entered in
 API key is blank, the same bulk flow runs in local rules mode, which is useful
 while the external LiteLLM endpoint is unreachable.
 
+The browser uploads the file as `multipart/form-data`. The `/api/evaluate-bulk`
+endpoint also accepts JSON bodies with `csv_text` and raw `text/csv` bodies for
+API clients.
+
 The downloaded output CSV is wide:
 
 ```text

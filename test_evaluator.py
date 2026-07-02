@@ -3,7 +3,7 @@ import io
 import unittest
 from unittest.mock import patch
 
-from app import build_bulk_evaluation_csv
+from app import _parse_multipart_bulk_body, build_bulk_evaluation_csv
 from evaluator import (
     RUBRIC,
     evaluate_interaction,
@@ -227,6 +227,31 @@ class EvaluatorTests(unittest.TestCase):
         rating_column = "1 Fails to/misses apology due to error or inconvenience - Rating"
         self.assertEqual(rows[0][rating_column], "Yes")
         self.assertIn("What is your order number?", rows[0]["Feedback 1"])
+
+    def test_bulk_multipart_parser_reads_uploaded_csv_and_llm_config(self):
+        boundary = "----test-boundary"
+        csv_text = (
+            "Interaction ID,Transcript\n"
+            "BULK-002,\"[00:00] Agent: Thank you for calling.\"\n"
+        )
+        body = (
+            f"--{boundary}\r\n"
+            'Content-Disposition: form-data; name="csv_file"; filename="input.csv"\r\n'
+            "Content-Type: text/csv\r\n\r\n"
+            f"{csv_text}\r\n"
+            f"--{boundary}\r\n"
+            'Content-Disposition: form-data; name="llm_config"\r\n\r\n'
+            '{"api_key":"test-key","base_url":"https://example.test","model":"model"}\r\n'
+            f"--{boundary}--\r\n"
+        ).encode("utf-8")
+
+        payload = _parse_multipart_bulk_body(
+            body,
+            f"multipart/form-data; boundary={boundary}",
+        )
+
+        self.assertEqual(payload["csv_text"], csv_text)
+        self.assertEqual(payload["llm_config"], '{"api_key":"test-key","base_url":"https://example.test","model":"model"}')
 
 
 if __name__ == "__main__":

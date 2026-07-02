@@ -71,14 +71,16 @@ bulkForm.addEventListener("submit", async (event) => {
 
   setBulkLoading(true);
   try {
-    const csvText = await file.text();
+    const formData = new FormData();
+    formData.append("csv_file", file, file.name);
+    const llmConfig = getLlmConfig();
+    if (llmConfig) {
+      formData.append("llm_config", JSON.stringify(llmConfig));
+    }
+
     const response = await fetch("/api/evaluate-bulk", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        csv_text: csvText,
-        llm_config: getLlmConfig(),
-      }),
+      body: formData,
     });
 
     if (!response.ok) {

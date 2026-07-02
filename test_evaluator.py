@@ -3,7 +3,7 @@ import io
 import unittest
 from unittest.mock import patch
 
-from app import _parse_multipart_bulk_body, build_bulk_evaluation_csv
+from app import _looks_like_csv, _parse_multipart_bulk_body, build_bulk_evaluation_csv
 from evaluator import (
     RUBRIC,
     evaluate_interaction,
@@ -252,6 +252,10 @@ class EvaluatorTests(unittest.TestCase):
 
         self.assertEqual(payload["csv_text"], csv_text)
         self.assertEqual(payload["llm_config"], '{"api_key":"test-key","base_url":"https://example.test","model":"model"}')
+
+    def test_bulk_csv_detection_identifies_header_line(self):
+        self.assertTrue(_looks_like_csv("Interaction ID,Transcript\nA,B\n"))
+        self.assertFalse(_looks_like_csv('{"csv_text": "missing end quote}'))
 
 
 if __name__ == "__main__":

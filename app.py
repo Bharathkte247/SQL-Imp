@@ -12,7 +12,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, unquote
+from urllib.parse import parse_qs, unquote, urlparse
 
 from evaluator import (
     RUBRIC,
@@ -25,16 +25,18 @@ from evaluator import (
 
 ROOT = Path(__file__).parent
 STATIC_DIR = ROOT / "static"
+APP_ASSET_VERSION = "20260702-bulk-upload-v2"
 
 
 class QaMonitoringHandler(BaseHTTPRequestHandler):
     server_version = "QaMonitoringHTTP/1.0"
 
     def do_GET(self) -> None:  # noqa: N802 - stdlib hook name
-        if self.path in {"/", "/index.html"}:
+        request_path = urlparse(self.path).path
+        if request_path in {"/", "/index.html"}:
             self._serve_static("index.html")
             return
-        if self.path == "/api/rubric":
+        if request_path == "/api/rubric":
             self._send_json(
                 {
                     "rubric": RUBRIC,
@@ -44,8 +46,8 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
                 }
             )
             return
-        if self.path.startswith("/static/"):
-            self._serve_static(unquote(self.path.removeprefix("/static/")))
+        if request_path.startswith("/static/"):
+            self._serve_static(unquote(request_path.removeprefix("/static/")))
             return
         self._send_json({"error": "Not found"}, status=HTTPStatus.NOT_FOUND)
 
@@ -87,7 +89,15 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
             result = evaluate_interaction(interaction_id, transcript, llm_config=llm_config)
             self._send_json(result)
         except json.JSONDecodeError:
-            self._send_json({"error": "Request body must be valid JSON"}, status=HTTPStatus.BAD_REQUEST)
+            self._send_json(
+                {
+                    "error": (
+                        "Bulk upload could not be parsed. Refresh the page and upload a CSV file, "
+                        "or send valid JSON with a csv_text field."
+                    )
+                },
+                status=HTTPStatus.BAD_REQUEST,
+            )
         except RuntimeError as exc:
             self._send_json({"error": str(exc)}, status=HTTPStatus.BAD_GATEWAY)
         except Exception as exc:  # pragma: no cover - defensive HTTP boundary
@@ -152,7 +162,15 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
 
         if normalized_content_type == "application/json":
             raw_text = _decode_request_bytes(raw_body)
-            body = json.loads(raw_text or "{}")
+            try:
+                body = json.loads(raw_text or "{}")
+            except json.JSONDecodeError as exc:
+                if _looks_like_csv(raw_text):
+                    return {"csv_text": raw_text}
+                raise ValueError(
+                    "Bulk upload was sent as application/json but could not be parsed. "
+                    "Refresh the page to load the latest upload script, then upload the CSV again."
+                ) from exc
             if not isinstance(body, dict):
                 raise json.JSONDecodeError("Expected JSON object", raw_text, 0)
             return body
@@ -187,6 +205,8 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
         content = path.read_bytes()
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", content_type)
+        self.send_header("Cache-Control", "no-store, max-age=0")
+        self.send_header("Pragma", "no-cache")
         self.send_header("Content-Length", str(len(content)))
         self.end_headers()
         self.wfile.write(content)
@@ -286,6 +306,12 @@ def _parse_multipart_bulk_body(raw_body: bytes, content_type: str) -> dict[str, 
 
 def _decode_request_bytes(raw_body: bytes) -> str:
     return raw_body.decode("utf-8-sig", errors="replace")
+
+
+def _looks_like_csv(text: str) -> bool:
+    first_line = text.lstrip("\ufeff\r\n ").splitlines()[0] if text.strip() else ""
+    normalized = _normalize_csv_field(first_line)
+    return "interactionid" in normalized and "transcript" in normalized
 
 
 def _coerce_llm_config(value: Any) -> dict[str, Any] | None:

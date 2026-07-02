@@ -198,7 +198,7 @@ class EvaluatorTests(unittest.TestCase):
                 "Unnecessarily repeats questions or information",
                 "Agent or member misunderstands info/statement",
                 "Uses slang or inappropriate grammar/spelling",
-                "Fails to understand or acknowledge the call reason/issue immediately",
+                "Fails to understand or acknowledge the contact reason/issue immediately",
             },
         )
         self.assertEqual(result["score"], 86)

@@ -83,17 +83,18 @@ RUBRIC: list[dict[str, str]] = [
         "attribute": "Communication Skills",
         "sub_attribute": "Agent or member misunderstands info/statement",
         "definition": (
-            "The agent misunderstands the member's statement or provides a response "
-            "that shows confusion about the member's request, or the member is left "
-            "confused because the agent's explanation is unclear."
+            "The agent or team member has incorrectly interpreted, misread, or "
+            "misunderstood the information or statement provided, leading to an "
+            "inaccurate response, action, or assumption."
         ),
     },
     {
         "attribute": "Communication Skills",
         "sub_attribute": "Uses slang or inappropriate grammar/spelling",
         "definition": (
-            "The agent uses slang, unprofessional wording, or inappropriate grammar "
-            "or spelling in a way that reduces professionalism or clarity."
+            "The agent or member uses informal slang, incorrect grammar, or "
+            "misspelled words in communication, which may reduce clarity, "
+            "professionalism, or adherence to language standards."
         ),
     },
     {
@@ -129,7 +130,7 @@ RUBRIC: list[dict[str, str]] = [
     },
     {
         "attribute": "Call Handling Basics",
-        "sub_attribute": "Fails to understand or acknowledge the call reason/issue immediately",
+        "sub_attribute": "Fails to understand or acknowledge the contact reason/issue immediately",
         "definition": (
             "The agent does not demonstrate understanding of the member's reason for "
             "calling or fails to use reassuring statements to confirm comprehension."
@@ -153,7 +154,7 @@ RUBRIC: list[dict[str, str]] = [
     },
     {
         "attribute": "Call Handling Basics",
-        "sub_attribute": "Fails to comply with BJ's terminology guidelines",
+        "sub_attribute": "Fails to comply with client terminology guidelines",
         "definition": "The agent uses incorrect terminology that does not align with BJ's standards.",
     },
     {
@@ -783,7 +784,7 @@ def _evaluate_call_handling(
     if next_agent and not _has_acknowledgment(next_agent.message):
         _set_finding(
             findings,
-            "Fails to understand or acknowledge the call reason/issue immediately",
+            "Fails to understand or acknowledge the contact reason/issue immediately",
             next_agent,
             "Agent did not immediately show understanding of the member's reason for contact.",
             "Restate or acknowledge the issue before proceeding.",
@@ -806,7 +807,7 @@ def _evaluate_call_handling(
     if terminology:
         _set_finding(
             findings,
-            "Fails to comply with BJ's terminology guidelines",
+            "Fails to comply with client terminology guidelines",
             terminology,
             "Agent used 'customer' instead of BJ's member terminology.",
             "Use BJ's approved terminology, such as 'member'.",
@@ -1472,7 +1473,7 @@ def _normalize_result(result: dict[str, Any], interaction_id: str, engine: str) 
         "auto_fail": auto_fail,
         "score": round(((len(normalized_attributes) - defect_count) / len(normalized_attributes)) * 100),
         "engine": engine,
-        "prompt_version": "qa-monitoring-v1",
+        "prompt_version": "qa-monitoring-v2",
         "attributes": normalized_attributes,
         "summary": {
             "strengths": _string_list(summary.get("strengths")),

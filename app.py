@@ -44,7 +44,7 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
                 {
                     "rubric": RUBRIC,
                     "prompt_template": get_prompt_template(),
-                    "prompt_version": "qa-monitoring-v1",
+                    "prompt_version": "qa-monitoring-v2",
                     "llm_configured": get_llm_config() is not None,
                 }
             )

@@ -91,6 +91,13 @@ h1 {
   white-space: nowrap;
 }
 
+.app-version {
+  margin: -10px 0 20px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
 .card,
 .alert {
   margin-bottom: 20px;

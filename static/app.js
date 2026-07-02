@@ -27,8 +27,10 @@ const copyJsonButton = document.querySelector("#copyJsonButton");
 const downloadJsonButton = document.querySelector("#downloadJsonButton");
 const promptViewer = document.querySelector("#promptViewer");
 const modeNotice = document.querySelector("#modeNotice");
+const appVersion = document.querySelector("#appVersion");
 
 let latestResult = null;
+let currentAppVersion = "unknown";
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -91,7 +93,10 @@ bulkForm.addEventListener("submit", async (event) => {
     const outputCsv = await response.text();
     const outputName = outputFileName(file.name);
     downloadTextFile(outputCsv, outputName, "text/csv");
-    showBulkStatus(`Bulk evaluation complete. Downloaded ${outputName}.`, true);
+    showBulkStatus(
+      `Bulk evaluation complete. Downloaded ${outputName}. App version: ${currentAppVersion}.`,
+      true,
+    );
   } catch (error) {
     showBulkStatus(error.message, false);
   } finally {
@@ -178,7 +183,19 @@ testLlmConnectionButton.addEventListener("click", async () => {
   }
 });
 
+loadVersion();
 loadRubric();
+
+async function loadVersion() {
+  try {
+    const response = await fetch("/api/version", { cache: "no-store" });
+    const payload = await response.json();
+    currentAppVersion = payload.version || "unknown";
+    appVersion.textContent = `Version: ${currentAppVersion}`;
+  } catch (error) {
+    appVersion.textContent = "Version: unavailable";
+  }
+}
 
 async function loadRubric() {
   try {

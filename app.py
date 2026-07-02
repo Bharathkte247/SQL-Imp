@@ -25,7 +25,7 @@ from evaluator import (
 
 ROOT = Path(__file__).parent
 STATIC_DIR = ROOT / "static"
-APP_ASSET_VERSION = "20260702-bulk-upload-v2"
+APP_ASSET_VERSION = "20260702-bulk-upload-v3"
 
 
 class QaMonitoringHandler(BaseHTTPRequestHandler):
@@ -35,6 +35,9 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
         request_path = urlparse(self.path).path
         if request_path in {"/", "/index.html"}:
             self._serve_static("index.html")
+            return
+        if request_path == "/api/version":
+            self._send_json({"version": APP_ASSET_VERSION})
             return
         if request_path == "/api/rubric":
             self._send_json(
@@ -52,14 +55,19 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
         self._send_json({"error": "Not found"}, status=HTTPStatus.NOT_FOUND)
 
     def do_POST(self) -> None:  # noqa: N802 - stdlib hook name
-        if self.path == "/api/llm/connectivity":
+        request_path = urlparse(self.path).path
+        if request_path == "/api/llm/connectivity":
             self._handle_llm_connectivity()
             return
-        if self.path == "/api/evaluate-bulk":
+        if request_path == "/api/evaluate-bulk":
             self._handle_bulk_evaluation()
             return
-        if self.path != "/api/evaluate":
+        if request_path != "/api/evaluate":
             self._send_json({"error": "Not found"}, status=HTTPStatus.NOT_FOUND)
+            return
+
+        if _content_type_is_bulk_upload(self.headers.get("Content-Type", "")):
+            self._handle_bulk_evaluation()
             return
 
         try:
@@ -92,8 +100,8 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
             self._send_json(
                 {
                     "error": (
-                        "Bulk upload could not be parsed. Refresh the page and upload a CSV file, "
-                        "or send valid JSON with a csv_text field."
+                        "Single interaction evaluation expects JSON with interaction_id and transcript. "
+                        "For CSV uploads, use the Bulk evaluation section and refresh the page if needed."
                     )
                 },
                 status=HTTPStatus.BAD_REQUEST,
@@ -118,7 +126,15 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
             output_csv = build_bulk_evaluation_csv(csv_text, llm_config)
             self._send_csv(output_csv, filename="qa_bulk_evaluation_output.csv")
         except json.JSONDecodeError:
-            self._send_json({"error": "Request body must be valid JSON"}, status=HTTPStatus.BAD_REQUEST)
+            self._send_json(
+                {
+                    "error": (
+                        "Bulk upload could not be parsed. Refresh the page to load the latest upload script, "
+                        "then upload a CSV file with Interaction ID and Transcript headers."
+                    )
+                },
+                status=HTTPStatus.BAD_REQUEST,
+            )
         except csv.Error as exc:
             self._send_json({"error": f"Invalid CSV: {exc}"}, status=HTTPStatus.BAD_REQUEST)
         except ValueError as exc:
@@ -141,7 +157,10 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
             result = check_llm_connectivity(llm_config)
             self._send_json(result, status=HTTPStatus.OK if result.get("ok") else HTTPStatus.BAD_GATEWAY)
         except json.JSONDecodeError:
-            self._send_json({"error": "Request body must be valid JSON"}, status=HTTPStatus.BAD_REQUEST)
+            self._send_json(
+                {"error": "LLM connectivity check expects a JSON request body."},
+                status=HTTPStatus.BAD_REQUEST,
+            )
         except Exception as exc:  # pragma: no cover - defensive HTTP boundary
             self._send_json({"error": f"Unexpected server error: {exc}"}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
@@ -312,6 +331,17 @@ def _looks_like_csv(text: str) -> bool:
     first_line = text.lstrip("\ufeff\r\n ").splitlines()[0] if text.strip() else ""
     normalized = _normalize_csv_field(first_line)
     return "interactionid" in normalized and "transcript" in normalized
+
+
+def _content_type_is_bulk_upload(content_type: str) -> bool:
+    normalized_content_type = content_type.split(";", 1)[0].strip().lower()
+    return normalized_content_type in {
+        "multipart/form-data",
+        "text/csv",
+        "application/csv",
+        "application/vnd.ms-excel",
+        "application/x-www-form-urlencoded",
+    }
 
 
 def _coerce_llm_config(value: Any) -> dict[str, Any] | None:

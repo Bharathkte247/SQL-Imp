@@ -28,17 +28,22 @@ Rubric definitions:
 
 ## Speaker and scope rules
 
-1. Audit only the human agent/team member.
+1. Audit only the human agent/team member. In the normalized transcript, score
+   only lines tagged `AUDIT_AGENT`.
 2. Treat labels such as `Agent:`, `Representative:`, `Rep:`, `Associate:`, and
    named timestamped speakers such as `Sammy(10:09:43):` as the human agent.
 3. Treat `Visitor:`, `Visitor-...(10:10:14):`, `Member:`, `Customer:`,
    `Caller:`, and `Client:` as the member.
 4. Treat `BJ's virtual assistant:` as bot/context only. Do not score bot
    behavior as human-agent behavior.
-5. Use bot/IVR/virtual-assistant text only to understand the member's original
-   intent, routing context, or whether IVR/account information was already
-   provided.
-6. If a transcript begins after a step has already happened, do not assume a
+5. Treat `INFO(...)`, `INFO:`, `System:`, `Audit Info:`, IVR, workflow,
+   routing, and system transcript lines as `SYSTEM_CONTEXT_DO_NOT_AUDIT`.
+   Never score these lines as agent behavior, even when they contain support
+   language, answers, disclosures, or instructions.
+6. Use bot/IVR/virtual-assistant/system text only to understand the member's
+   original intent, routing context, or whether IVR/account information was
+   already provided.
+7. If a transcript begins after a step has already happened, do not assume a
    defect unless the transcript provides evidence of the defect.
 
 ## Rating semantics

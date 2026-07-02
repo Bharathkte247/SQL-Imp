@@ -297,7 +297,7 @@ def get_rendered_prompt(interaction_id: str, transcript: str) -> str:
         get_prompt_template()
         .replace("{{RUBRIC_JSON}}", rubric_json)
         .replace("{{INTERACTION_ID}}", interaction_id)
-        .replace("{{TRANSCRIPT}}", transcript)
+        .replace("{{TRANSCRIPT}}", _format_transcript_for_prompt(transcript))
     )
 
 
@@ -462,6 +462,8 @@ def _evaluate_with_llm(config: LlmConfig, interaction_id: str, transcript: str) 
                 "role": "system",
                 "content": (
                     "You are a meticulous quality analyst for BJ's member support. "
+                    "Audit only transcript lines tagged AUDIT_AGENT. "
+                    "Never score SYSTEM_CONTEXT_DO_NOT_AUDIT, INFO, system, bot, IVR, or virtual assistant lines as agent behavior. "
                     "Return only valid JSON that matches the requested schema."
                 ),
             },
@@ -525,6 +527,28 @@ def _parse_json_object(content: str) -> dict[str, Any]:
     if not isinstance(parsed, dict):
         raise ValueError("Expected LLM output to be a JSON object")
     return parsed
+
+
+def _format_transcript_for_prompt(transcript: str) -> str:
+    lines = _parse_transcript_lines(transcript)
+    if not lines:
+        return transcript
+
+    formatted_lines = [
+        "Normalized transcript for audit:",
+        "- Score only lines tagged AUDIT_AGENT.",
+        "- Use MEMBER and SYSTEM_CONTEXT_DO_NOT_AUDIT lines only for context.",
+        "",
+    ]
+    for line in lines:
+        if line.speaker == "agent":
+            role = "AUDIT_AGENT"
+        elif line.speaker == "member":
+            role = "MEMBER"
+        else:
+            role = "SYSTEM_CONTEXT_DO_NOT_AUDIT"
+        formatted_lines.append(f"{role} | {line.raw}")
+    return "\n".join(formatted_lines)
 
 
 def _evaluate_with_local_heuristics(interaction_id: str, transcript: str) -> dict[str, Any]:
@@ -1063,8 +1087,11 @@ def _split_transcript_records(transcript: str) -> list[str]:
     # Chat exports often concatenate messages. Insert record boundaries before
     # known chat speaker labels while preserving their timestamp tokens.
     boundary = re.compile(
-        r"(?<!^)(?=\s*(?:"
+        r"(?<!^)(?<![A-Za-z0-9_-])(?=\s*(?:"
         r"BJ'?s virtual assistant\s*:"
+        r"|INFO(?:\(\d{1,2}:\d{2}(?::\d{2})?\))?\s*:"
+        r"|System(?:\(\d{1,2}:\d{2}(?::\d{2})?\))?\s*:"
+        r"|Audit(?:\s+Info)?(?:\(\d{1,2}:\d{2}(?::\d{2})?\))?\s*:"
         r"|Visitor(?:-[A-Za-z0-9-]+)?(?:\(\d{1,2}:\d{2}(?::\d{2})?\))?\s*:"
         r"|[A-Z][A-Za-z' ._-]{1,40}\(\d{1,2}:\d{2}(?::\d{2})?\)\s*:"
         r"))",
@@ -1078,7 +1105,12 @@ def _classify_named_speaker(label: str) -> str:
     normalized = label.lower().strip()
     if re.search(r"\b(visitor|member|customer|caller|client)\b", normalized):
         return "member"
-    if "virtual assistant" in normalized or normalized == "info":
+    if (
+        "virtual assistant" in normalized
+        or normalized in {"info", "system", "audit", "audit info"}
+        or normalized.startswith("system ")
+        or normalized.startswith("audit ")
+    ):
         return "bot"
     if re.search(r"\b(agent|representative|rep|associate)\b", normalized):
         return "agent"

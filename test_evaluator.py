@@ -27,6 +27,28 @@ class EvaluatorTests(unittest.TestCase):
         self.assertIn("[00:00] Agent: Hello", prompt)
         self.assertIn("Fails to/misses apology due to error or inconvenience", prompt)
 
+    def test_rendered_prompt_marks_info_and_system_lines_as_non_auditable(self):
+        prompt = get_rendered_prompt(
+            "INT-SYSTEM",
+            "\n".join(
+                [
+                    "INFO(10:09:23):BJ's virtual assistant: I can help with that.",
+                    "System: Transcript started after authentication.",
+                    "Sammy(10:09:43):Thank you for contacting BJ's Wholesale Club.",
+                    "Visitor(10:10:14):Hi.",
+                ]
+            ),
+        )
+
+        self.assertIn(
+            "SYSTEM_CONTEXT_DO_NOT_AUDIT | INFO(10:09:23):",
+            prompt,
+        )
+        self.assertIn("SYSTEM_CONTEXT_DO_NOT_AUDIT | BJ's virtual assistant", prompt)
+        self.assertIn("SYSTEM_CONTEXT_DO_NOT_AUDIT | System: Transcript started", prompt)
+        self.assertIn("AUDIT_AGENT | Sammy(10:09:43):Thank you", prompt)
+        self.assertIn("MEMBER | Visitor(10:10:14):Hi.", prompt)
+
     @patch.dict("os.environ", {}, clear=True)
     def test_request_llm_config_normalizes_litellm_base_url(self):
         config = get_llm_config(

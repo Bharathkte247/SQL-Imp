@@ -117,8 +117,8 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
             csv_text = str(payload.get("csv_text", "")).strip()
             llm_config = _coerce_llm_config(payload.get("llm_config"))
             if not csv_text:
-                self._send_json(
-                    {"error": "CSV upload is required. Provide csv_text, csv_file, or a raw text/csv body."},
+                self._send_bulk_error(
+                    "CSV upload is required. Provide csv_text, csv_file, or a raw text/csv body.",
                     status=HTTPStatus.BAD_REQUEST,
                 )
                 return
@@ -126,20 +126,16 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
             output_csv = build_bulk_evaluation_csv(csv_text, llm_config)
             self._send_csv(output_csv, filename="qa_bulk_evaluation_output.csv")
         except json.JSONDecodeError:
-            self._send_json(
-                {
-                    "error": (
-                        "Bulk upload parsing failed. Upload a CSV file with Interaction ID and Transcript headers."
-                    )
-                },
+            self._send_bulk_error(
+                "Bulk upload JSON parsing failed. Upload the CSV file again or send raw text/csv.",
                 status=HTTPStatus.BAD_REQUEST,
             )
         except csv.Error as exc:
-            self._send_json({"error": f"Invalid CSV: {exc}"}, status=HTTPStatus.BAD_REQUEST)
+            self._send_bulk_error(f"Invalid CSV: {exc}", status=HTTPStatus.BAD_REQUEST)
         except ValueError as exc:
-            self._send_json({"error": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+            self._send_bulk_error(str(exc), status=HTTPStatus.BAD_REQUEST)
         except RuntimeError as exc:
-            self._send_json({"error": str(exc)}, status=HTTPStatus.BAD_GATEWAY)
+            self._send_bulk_error(str(exc), status=HTTPStatus.BAD_GATEWAY)
         except Exception as exc:  # pragma: no cover - defensive HTTP boundary
             self._send_json({"error": f"Unexpected server error: {exc}"}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
@@ -234,6 +230,16 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(encoded)))
         self.end_headers()
         self.wfile.write(encoded)
+
+    def _send_bulk_error(self, message: str, status: HTTPStatus) -> None:
+        self._send_json(
+            {
+                "error": message,
+                "version": APP_ASSET_VERSION,
+                "content_type": self.headers.get("Content-Type", ""),
+            },
+            status=status,
+        )
 
 
 def build_bulk_evaluation_csv(csv_text: str, llm_config: dict[str, Any] | None = None) -> str:

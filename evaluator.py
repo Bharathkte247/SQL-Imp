@@ -621,16 +621,14 @@ def _evaluate_soft_skills(
                 "Confirm the concern before asking additional questions or moving to research.",
             )
 
-    apology_lines = [
-        line for line in agent_lines if re.search(r"\b(sorry|apologize|apologies)\b", line.message, re.IGNORECASE)
-    ]
-    if len(apology_lines) >= 4:
+    excessive_apology = _find_excessive_apology(agent_lines, member_lines)
+    if excessive_apology:
         _set_finding(
             findings,
             "Uses excessive apologies",
-            apology_lines[3],
-            "Agent apologized repeatedly, which may sound redundant instead of moving the conversation forward.",
-            "Use one sincere apology, then focus on ownership, action, and expectations.",
+            excessive_apology,
+            "Agent apologized repeatedly when additional apologies did not add value or move the interaction forward.",
+            "Use one sincere apology for the issue, then focus on ownership, action, expectations, and resolution.",
         )
 
     inability = _first_agent_line(
@@ -704,17 +702,14 @@ def _evaluate_communication(
             "Confirm the member's intent and restate the issue before taking action.",
         )
 
-    grammar = _first_agent_line(
-        agent_lines,
-        r"\b(i would be closing|kindly|u\b|ur\b|pls\b|ans\b|okies|gonna|wanna|lemme)\b|[a-z]+â",
-    )
+    grammar = _find_agent_language_quality_issue(agent_lines)
     if grammar:
         _set_finding(
             findings,
             "Uses slang or inappropriate grammar/spelling",
             grammar,
-            "Agent used slang, encoding artifacts, or awkward/inappropriate grammar that reduces professionalism.",
-            "Use clear, professional grammar and proofread chat messages before sending.",
+            "Agent message contains slang, spacing, grammar, spelling, punctuation, or encoding issues that reduce professionalism or clarity.",
+            "Use clear professional grammar, correct spacing/punctuation, and proofread chat messages before sending.",
         )
 
     argument = _first_agent_line(
@@ -1197,6 +1192,57 @@ def _find_repeated_agent_message(agent_lines: list[TranscriptLine]) -> Transcrip
         if normalized in seen:
             return line
         seen[normalized] = line
+    return None
+
+
+def _find_excessive_apology(
+    agent_lines: list[TranscriptLine],
+    member_lines: list[TranscriptLine],
+) -> TranscriptLine | None:
+    apology_lines = [
+        line
+        for line in agent_lines
+        if re.search(r"\b(sorry|apologize|apologies|apologetic)\b", line.message, re.IGNORECASE)
+    ]
+    if len(apology_lines) >= 3:
+        return apology_lines[2]
+
+    if len(apology_lines) < 2:
+        return None
+
+    concern_lines = [
+        line
+        for line in member_lines
+        if re.search(
+            r"\b(frustrated|upset|angry|mad|annoyed|unacceptable|ridiculous|late|delay|"
+            r"delayed|wrong|error|mistake|complaint|inconvenien|hardship|charged|overcharged)\b",
+            line.message,
+            re.IGNORECASE,
+        )
+    ]
+    first_apology = apology_lines[0]
+    second_apology = apology_lines[1]
+    new_concern_between = any(
+        first_apology.index < concern.index < second_apology.index
+        for concern in concern_lines
+    )
+    return None if new_concern_between else second_apology
+
+
+def _find_agent_language_quality_issue(agent_lines: list[TranscriptLine]) -> TranscriptLine | None:
+    patterns = [
+        (r"\b(i would be closing|kindly|okies|gonna|wanna|lemme)\b", re.IGNORECASE),
+        (r"\b(u|ur|pls|plz|thx|ans|recieve|seperate|definately|teh|adress)\b", re.IGNORECASE),
+        (r"(?<![A-Za-z])i(?![A-Za-z])", 0),
+        (r"\s{2,}", 0),
+        (r"\s+[,.!?;:]", 0),
+        (r"[,.!?;:](?=[A-Za-z])", 0),
+        (r"â|Â|�", 0),
+    ]
+    for line in agent_lines:
+        for pattern, flags in patterns:
+            if re.search(pattern, line.message, flags):
+                return line
     return None
 
 

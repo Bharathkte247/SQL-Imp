@@ -113,10 +113,15 @@ quotes, policies, KB content, silence, notes, or system actions.
   - Mark `No` for neutral information requests.
 
 - `Uses excessive apologies`
-  - Mark `Yes` only when apologies are repeated unnecessarily, do not add value,
-    sound insincere, or slow progress.
-  - Multiple apologies can be acceptable when there are multiple separate
-    inconveniences.
+  - Mark `Yes` when the agent apologizes repeatedly for the same issue and the
+    additional apologies are not required, do not add value, sound insincere, or
+    slow progress.
+  - Two apologies can be excessive when they address the same concern without a
+    new member concern or new company error between them.
+  - Three or more apologies in one interaction are usually excessive unless each
+    apology is tied to a distinct new inconvenience.
+  - Do not count empathy statements as apologies unless they contain apology
+    wording such as "sorry", "apologize", or "apologies".
 
 - `Misses or uses inappropriate empathy or rapport`
   - Mark `Yes` when there is a clear emotional cue or hardship and the agent
@@ -152,7 +157,12 @@ quotes, policies, KB content, silence, notes, or system actions.
 
 - `Uses slang or inappropriate grammar/spelling`
   - Mark `Yes` for agent slang, unprofessional phrasing, poor grammar, spelling
-    errors, or encoding artifacts that reduce clarity/professionalism.
+    errors, spacing problems, punctuation spacing issues, missing spaces after
+    punctuation, lowercase standalone "i", repeated spaces, awkward grammar, or
+    encoding artifacts that reduce clarity/professionalism.
+  - Examples that should be considered: "i would be closing", "pls", "ur",
+    "ans", "I can help.You", "Thank you ,", doubled spaces inside a sentence,
+    mojibake such as "â" or "Â", and obvious misspellings in agent text.
   - Do not mark member typos as agent defects.
 
 - `Courtesy: Argues with the member`

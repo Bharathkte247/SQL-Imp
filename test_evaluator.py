@@ -110,6 +110,49 @@ class EvaluatorTests(unittest.TestCase):
         self.assertEqual(apology_item["timestamp"], "00:10")
 
     @patch.dict("os.environ", {}, clear=True)
+    def test_local_heuristic_flags_excessive_repeated_apologies(self):
+        result = evaluate_interaction(
+            "INT-EXCESSIVE-APOLOGY",
+            "\n".join(
+                [
+                    "[00:00] Agent: Thank you for calling BJ's Member Care.",
+                    "[00:05] Member: My order is late and I am frustrated.",
+                    "[00:10] Agent: I am sorry for the delay. I can check the order.",
+                    "[00:18] Agent: I apologize again for the delay while I check this.",
+                ]
+            ),
+        )
+
+        apology_item = next(
+            item
+            for item in result["attributes"]
+            if item["sub_attribute"] == "Uses excessive apologies"
+        )
+        self.assertEqual(apology_item["rating"], "Yes")
+        self.assertEqual(apology_item["timestamp"], "00:18")
+
+    @patch.dict("os.environ", {}, clear=True)
+    def test_local_heuristic_flags_agent_spacing_and_grammar_issue(self):
+        result = evaluate_interaction(
+            "INT-GRAMMAR",
+            "\n".join(
+                [
+                    "[00:00] Agent: Thank you for calling BJ's Member Care.",
+                    "[00:05] Member: Can you help with my order?",
+                    "[00:10] Agent: I can help.You will recieve an update soon.",
+                ]
+            ),
+        )
+
+        grammar_item = next(
+            item
+            for item in result["attributes"]
+            if item["sub_attribute"] == "Uses slang or inappropriate grammar/spelling"
+        )
+        self.assertEqual(grammar_item["rating"], "Yes")
+        self.assertEqual(grammar_item["timestamp"], "00:10")
+
+    @patch.dict("os.environ", {}, clear=True)
     def test_local_heuristic_flags_repeated_agent_question(self):
         result = evaluate_interaction(
             "INT-REPEAT",

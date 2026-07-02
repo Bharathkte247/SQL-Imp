@@ -1,9 +1,15 @@
 import csv
 import io
+import json
 import unittest
 from unittest.mock import patch
 
-from app import _looks_like_csv, _parse_multipart_bulk_body, build_bulk_evaluation_csv
+from app import (
+    _looks_like_csv,
+    _parse_json_or_csv_bulk_body,
+    _parse_multipart_bulk_body,
+    build_bulk_evaluation_csv,
+)
 from evaluator import (
     RUBRIC,
     evaluate_interaction,
@@ -256,6 +262,20 @@ class EvaluatorTests(unittest.TestCase):
     def test_bulk_csv_detection_identifies_header_line(self):
         self.assertTrue(_looks_like_csv("Interaction ID,Transcript\nA,B\n"))
         self.assertFalse(_looks_like_csv('{"csv_text": "missing end quote}'))
+
+    def test_bulk_json_string_is_treated_as_csv_text(self):
+        csv_text = "Interaction ID,Transcript\nBULK-003,Hello\n"
+
+        payload = _parse_json_or_csv_bulk_body(json.dumps(csv_text))
+
+        self.assertEqual(payload["csv_text"], csv_text)
+
+    def test_bulk_malformed_json_falls_back_to_csv_validation(self):
+        raw_text = '{"not valid json"'
+
+        payload = _parse_json_or_csv_bulk_body(raw_text)
+
+        self.assertEqual(payload["csv_text"], raw_text)
 
 
 if __name__ == "__main__":

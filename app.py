@@ -25,7 +25,7 @@ from evaluator import (
 
 ROOT = Path(__file__).parent
 STATIC_DIR = ROOT / "static"
-APP_ASSET_VERSION = "20260702-bulk-upload-v3"
+APP_ASSET_VERSION = "20260702-bulk-upload-v4"
 
 
 class QaMonitoringHandler(BaseHTTPRequestHandler):
@@ -129,8 +129,7 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
             self._send_json(
                 {
                     "error": (
-                        "Bulk upload could not be parsed. Refresh the page to load the latest upload script, "
-                        "then upload a CSV file with Interaction ID and Transcript headers."
+                        "Bulk upload parsing failed. Upload a CSV file with Interaction ID and Transcript headers."
                     )
                 },
                 status=HTTPStatus.BAD_REQUEST,
@@ -181,18 +180,7 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
 
         if normalized_content_type == "application/json":
             raw_text = _decode_request_bytes(raw_body)
-            try:
-                body = json.loads(raw_text or "{}")
-            except json.JSONDecodeError as exc:
-                if _looks_like_csv(raw_text):
-                    return {"csv_text": raw_text}
-                raise ValueError(
-                    "Bulk upload was sent as application/json but could not be parsed. "
-                    "Refresh the page to load the latest upload script, then upload the CSV again."
-                ) from exc
-            if not isinstance(body, dict):
-                raise json.JSONDecodeError("Expected JSON object", raw_text, 0)
-            return body
+            return _parse_json_or_csv_bulk_body(raw_text)
 
         if normalized_content_type == "multipart/form-data":
             return _parse_multipart_bulk_body(raw_body, content_type)
@@ -325,6 +313,24 @@ def _parse_multipart_bulk_body(raw_body: bytes, content_type: str) -> dict[str, 
 
 def _decode_request_bytes(raw_body: bytes) -> str:
     return raw_body.decode("utf-8-sig", errors="replace")
+
+
+def _parse_json_or_csv_bulk_body(raw_text: str) -> dict[str, Any]:
+    stripped = raw_text.strip()
+    if not stripped:
+        return {}
+    try:
+        body = json.loads(stripped)
+    except json.JSONDecodeError:
+        return {"csv_text": raw_text}
+
+    if isinstance(body, dict):
+        return body
+    if isinstance(body, str):
+        return {"csv_text": body}
+    raise ValueError(
+        "Bulk JSON must be an object with csv_text, or a JSON string containing CSV text."
+    )
 
 
 def _looks_like_csv(text: str) -> bool:

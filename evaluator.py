@@ -785,6 +785,17 @@ def _evaluate_call_handling(
             "Restate or acknowledge the issue before proceeding.",
         )
 
+    hold_concern = _find_hold_procedure_issue(lines, agent_lines)
+    if hold_concern:
+        line, rationale = hold_concern
+        _set_finding(
+            findings,
+            "Fails to or delays in acknowledging member concerns",
+            line,
+            rationale,
+            "Return to the member within 2 minutes during holds and request additional time before continuing.",
+        )
+
     uncertain = _first_agent_line(
         agent_lines,
         r"\b(i think|maybe|probably|i guess|not sure|should be fine|i assume|whatever)\b",
@@ -1273,34 +1284,34 @@ def _find_misunderstanding(
     return None
 
 
-def _find_hold_issue(
+def _find_hold_procedure_issue(
     lines: list[TranscriptLine],
     agent_lines: list[TranscriptLine],
 ) -> tuple[TranscriptLine, str] | None:
-    silence = _first_line(
-        lines,
-        r"\b(dead air|silence|mute|mumbling)\b.*\b([7-9]|[1-9]\d+)\s*(seconds?|secs?)\b",
-    )
-    if silence:
-        return silence, "Transcript indicates more than 6 seconds of silence, dead air, mute, or mumbling."
-
     for line in agent_lines:
         if not re.search(r"\b(hold|one moment|bear with me)\b", line.message, re.IGNORECASE):
             continue
-        explained = re.search(
-            r"\b(while|so i can|to check|to review|look into|pull up|research|verify|check)\b",
-            line.message,
-            re.IGNORECASE,
-        )
-        if not explained:
-            return line, "Agent placed or implied a hold without explaining why it was needed."
-
         next_agent = _next_agent_after(lines, line.index)
         if line.seconds is not None and next_agent and next_agent.seconds is not None:
             gap = next_agent.seconds - line.seconds
-            if gap > 120 and not re.search(r"\b(thank you for holding|thanks for holding|still checking|update)\b", next_agent.message, re.IGNORECASE):
-                return line, "Hold appears to exceed 2 minutes without a clear check-in."
+            if gap > 120 and not _requests_extra_hold_time(next_agent.message):
+                return (
+                    line,
+                    "Agent placed the member on hold and did not return within 2 minutes to request extra time before continuing.",
+                )
     return None
+
+
+def _requests_extra_hold_time(message: str) -> bool:
+    return bool(
+        re.search(
+            r"\b(thank you for holding|thanks for holding|still checking|still working|"
+            r"need (a little )?more time|additional time|another moment|few more minutes|"
+            r"continue to hold|may i have.*more time|bear with me.*longer|update)\b",
+            message,
+            re.IGNORECASE,
+        )
+    )
 
 
 def _find_ignored_member_request(

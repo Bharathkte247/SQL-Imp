@@ -194,6 +194,13 @@ quotes, policies, KB content, silence, notes, or system actions.
 - `Fails to or delays in acknowledging member concerns`
   - Mark `Yes` when the member raises a concern and the agent delays,
     overlooks, or fails to acknowledge it promptly.
+  - This also applies to hold procedure compliance:
+    - The agent must follow the appropriate hold procedure and respond to the
+      member within 2 minutes.
+    - If the hold is going to exceed 2 minutes, the agent must proactively
+      return to the member and request extra time before continuing.
+    - Failure to respond within 2 minutes, or failure to request extra time when
+      needed, should be marked `Yes`.
 
 - `Provides inaccurate or incomplete information to member`
   - Mark `Yes` when the transcript shows flawed, misleading, incomplete, or

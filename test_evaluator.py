@@ -196,6 +196,49 @@ class EvaluatorTests(unittest.TestCase):
         self.assertEqual(follow_item["timestamp"], "00:12")
 
     @patch.dict("os.environ", {}, clear=True)
+    def test_local_heuristic_flags_hold_over_two_minutes_without_extra_time_request(self):
+        result = evaluate_interaction(
+            "INT-HOLD",
+            "\n".join(
+                [
+                    "[00:00] Agent: Thank you for calling BJ's Member Care.",
+                    "[00:05] Member: Can you check my order?",
+                    "[00:10] Agent: Please hold while I review the order.",
+                    "[02:31] Agent: The order is still processing.",
+                ]
+            ),
+        )
+
+        concern_item = next(
+            item
+            for item in result["attributes"]
+            if item["sub_attribute"] == "Fails to or delays in acknowledging member concerns"
+        )
+        self.assertEqual(concern_item["rating"], "Yes")
+        self.assertEqual(concern_item["timestamp"], "00:10")
+
+    @patch.dict("os.environ", {}, clear=True)
+    def test_local_heuristic_allows_hold_over_two_minutes_with_extra_time_request(self):
+        result = evaluate_interaction(
+            "INT-HOLD-OK",
+            "\n".join(
+                [
+                    "[00:00] Agent: Thank you for calling BJ's Member Care.",
+                    "[00:05] Member: Can you check my order?",
+                    "[00:10] Agent: Please hold while I review the order.",
+                    "[02:11] Agent: Thank you for holding. I need a little more time to finish reviewing this.",
+                ]
+            ),
+        )
+
+        concern_item = next(
+            item
+            for item in result["attributes"]
+            if item["sub_attribute"] == "Fails to or delays in acknowledging member concerns"
+        )
+        self.assertEqual(concern_item["rating"], "No")
+
+    @patch.dict("os.environ", {}, clear=True)
     def test_local_heuristic_matches_human_scored_bjs_sample(self):
         transcript = "\n".join(
             [

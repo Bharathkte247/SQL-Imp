@@ -354,13 +354,15 @@ def evaluate_interaction(
     llm_config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Evaluate a transcript and return the normalized QA result."""
+    local_result = _evaluate_with_local_heuristics(interaction_id, transcript)
     config = get_llm_config(llm_config)
     if config:
         result = _evaluate_with_llm(config, interaction_id, transcript)
-        return _normalize_result(result, interaction_id, engine="llm")
+        llm_result = _normalize_result(result, interaction_id, engine="llm")
+        local_normalized = _normalize_result(local_result, interaction_id, engine="local_heuristic")
+        return _merge_local_rule_defects(llm_result, local_normalized)
 
-    result = _evaluate_with_local_heuristics(interaction_id, transcript)
-    return _normalize_result(result, interaction_id, engine="local_heuristic")
+    return _normalize_result(local_result, interaction_id, engine="local_heuristic")
 
 
 def _clean_config_value(value: Any) -> str:
@@ -1570,6 +1572,64 @@ def _normalize_result(result: dict[str, Any], interaction_id: str, engine: str) 
             "next_steps": _string_list(summary.get("next_steps")),
         },
     }
+
+
+def _merge_local_rule_defects(
+    llm_result: dict[str, Any],
+    local_result: dict[str, Any],
+) -> dict[str, Any]:
+    local_defects = {
+        item["sub_attribute"]: item
+        for item in local_result.get("attributes", [])
+        if isinstance(item, dict) and item.get("rating") == "Yes"
+    }
+    guardrail_count = 0
+
+    for attribute in llm_result.get("attributes", []):
+        if not isinstance(attribute, dict):
+            continue
+        local_defect = local_defects.get(attribute.get("sub_attribute"))
+        if not local_defect:
+            continue
+
+        if attribute.get("rating") != "Yes":
+            guardrail_count += 1
+        attribute["rating"] = "Yes"
+        for field in ("rationale", "timestamp", "agent_quote", "coaching"):
+            if local_defect.get(field):
+                attribute[field] = local_defect[field]
+
+    defect_count = sum(
+        1
+        for attribute in llm_result.get("attributes", [])
+        if isinstance(attribute, dict) and attribute.get("rating") == "Yes"
+    )
+    auto_fail = any(
+        isinstance(attribute, dict)
+        and attribute.get("rating") == "Yes"
+        and attribute.get("attribute") == "Professional Conduct (Auto Fail)"
+        for attribute in llm_result.get("attributes", [])
+    )
+    attribute_count = len(llm_result.get("attributes", [])) or len(RUBRIC)
+    llm_result["engine"] = "llm_with_local_rules"
+    llm_result["auto_fail"] = auto_fail
+    llm_result["overall_result"] = "Fail" if auto_fail or defect_count else "Pass"
+    llm_result["score"] = round(((attribute_count - defect_count) / attribute_count) * 100)
+
+    summary = llm_result.setdefault("summary", {})
+    if not isinstance(summary, dict):
+        summary = {}
+        llm_result["summary"] = summary
+    next_steps = summary.setdefault("next_steps", [])
+    if not isinstance(next_steps, list):
+        next_steps = []
+        summary["next_steps"] = next_steps
+    if guardrail_count:
+        next_steps.append(
+            f"Local rules guardrail added {guardrail_count} defect(s) missed by the LLM."
+        )
+
+    return llm_result
 
 
 def _string_list(value: Any) -> list[str]:

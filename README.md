@@ -65,6 +65,10 @@ Click **Test LLM connection** before evaluating. This checks whether the machine
 running `python3 app.py` can open a TCP connection to the LiteLLM host. It does
 not call the model or spend tokens.
 
+When LLM evaluation is enabled, the app uses a hybrid result: the LLM can add
+nuanced defects, and calibrated local-rule defects are enforced as guardrails so
+the API result does not clear issues the local evaluator detects.
+
 ### Option 2: Set environment variables
 
 Set an API key before starting the app:

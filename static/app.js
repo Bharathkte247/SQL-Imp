@@ -301,17 +301,33 @@ function renderResult(result) {
     result.auto_fail ? " (Auto Fail)" : ""
   }`;
   scoreValue.textContent = `${result.score}%`;
-  engineBadge.textContent =
-    result.engine === "llm" ? "LLM evaluation" : "Local rules evaluation";
-  engineBadge.title =
-    result.engine === "llm"
-      ? "Configured LLM provider returned this evaluation."
-      : "Rules-based local evaluation. Set QA_LLM_API_KEY or OPENAI_API_KEY for full model evaluation.";
+  const engineLabel = engineDisplay(result.engine);
+  engineBadge.textContent = engineLabel.text;
+  engineBadge.title = engineLabel.title;
 
   renderList(strengthsList, result.summary?.strengths);
   renderList(opportunitiesList, result.summary?.opportunities);
   renderList(nextStepsList, result.summary?.next_steps);
   renderTable(result.attributes || []);
+}
+
+function engineDisplay(engine) {
+  if (engine === "llm_with_local_rules") {
+    return {
+      text: "LLM + local rules",
+      title: "LLM evaluation with calibrated local-rule defects enforced as guardrails.",
+    };
+  }
+  if (engine === "llm") {
+    return {
+      text: "LLM evaluation",
+      title: "Configured LLM provider returned this evaluation.",
+    };
+  }
+  return {
+    text: "Local rules evaluation",
+    title: "Rules-based local evaluation. Set QA_LLM_API_KEY or OPENAI_API_KEY for full model evaluation.",
+  };
 }
 
 function renderList(target, items) {

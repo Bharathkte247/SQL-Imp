@@ -174,6 +174,47 @@ class EvaluatorTests(unittest.TestCase):
         self.assertEqual(grammar_item["rating"], "Yes")
         self.assertEqual(grammar_item["timestamp"], "00:10")
 
+    @patch.dict("os.environ", {"QA_LLM_API_KEY": "test-key"}, clear=True)
+    @patch("evaluator._evaluate_with_llm")
+    def test_llm_result_keeps_local_rule_defects_as_guardrail(self, mock_llm):
+        mock_llm.return_value = {
+            "interaction_id": "INT-HYBRID",
+            "attributes": [
+                {
+                    "attribute": item["attribute"],
+                    "sub_attribute": item["sub_attribute"],
+                    "rating": "No",
+                    "rationale": "",
+                    "timestamp": "",
+                    "agent_quote": "",
+                    "coaching": "",
+                }
+                for item in RUBRIC
+            ],
+            "summary": {"strengths": [], "opportunities": [], "next_steps": []},
+        }
+
+        result = evaluate_interaction(
+            "INT-HYBRID",
+            "\n".join(
+                [
+                    "[00:00] Agent: Thank you for calling BJ's Member Care.",
+                    "[00:05] Member: Can you help with my order?",
+                    "[00:10] Agent: I can help.You will recieve an update soon.",
+                ]
+            ),
+        )
+
+        grammar_item = next(
+            item
+            for item in result["attributes"]
+            if item["sub_attribute"] == "Uses slang or inappropriate grammar/spelling"
+        )
+        self.assertEqual(result["engine"], "llm_with_local_rules")
+        self.assertEqual(grammar_item["rating"], "Yes")
+        self.assertEqual(grammar_item["timestamp"], "00:10")
+        self.assertIn("Local rules guardrail added", result["summary"]["next_steps"][0])
+
     @patch.dict("os.environ", {}, clear=True)
     def test_local_heuristic_flags_repeated_agent_question(self):
         result = evaluate_interaction(

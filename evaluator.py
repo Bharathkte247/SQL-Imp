@@ -357,7 +357,10 @@ def evaluate_interaction(
     local_result = _evaluate_with_local_heuristics(interaction_id, transcript)
     config = get_llm_config(llm_config)
     if config:
-        result = _evaluate_with_llm(config, interaction_id, transcript)
+        try:
+            result = _evaluate_with_llm(config, interaction_id, transcript)
+        except (json.JSONDecodeError, ValueError) as exc:
+            return _local_fallback_after_llm_parse_error(local_result, interaction_id, exc)
         llm_result = _normalize_result(result, interaction_id, engine="llm")
         local_normalized = _normalize_result(local_result, interaction_id, engine="local_heuristic")
         return _merge_local_rule_defects(llm_result, local_normalized)
@@ -1630,6 +1633,27 @@ def _merge_local_rule_defects(
         )
 
     return llm_result
+
+
+def _local_fallback_after_llm_parse_error(
+    local_result: dict[str, Any],
+    interaction_id: str,
+    error: Exception,
+) -> dict[str, Any]:
+    fallback = _normalize_result(
+        local_result,
+        interaction_id,
+        engine="local_rules_after_llm_parse_error",
+    )
+    summary = fallback.setdefault("summary", {})
+    next_steps = summary.setdefault("next_steps", [])
+    if isinstance(next_steps, list):
+        next_steps.insert(
+            0,
+            "LLM response was not valid JSON, so calibrated local rules were used for this interaction."
+        )
+        next_steps.insert(1, f"LLM parse error: {error}")
+    return fallback
 
 
 def _string_list(value: Any) -> list[str]:

@@ -318,6 +318,12 @@ function engineDisplay(engine) {
       title: "LLM evaluation with calibrated local-rule defects enforced as guardrails.",
     };
   }
+  if (engine === "local_rules_after_llm_parse_error") {
+    return {
+      text: "Local rules fallback",
+      title: "The LLM response was not valid JSON, so calibrated local rules were used.",
+    };
+  }
   if (engine === "llm") {
     return {
       text: "LLM evaluation",

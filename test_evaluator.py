@@ -215,6 +215,31 @@ class EvaluatorTests(unittest.TestCase):
         self.assertEqual(grammar_item["timestamp"], "00:10")
         self.assertIn("Local rules guardrail added", result["summary"]["next_steps"][0])
 
+    @patch.dict("os.environ", {"QA_LLM_API_KEY": "test-key"}, clear=True)
+    @patch("evaluator._evaluate_with_llm")
+    def test_llm_parse_error_falls_back_to_local_rules(self, mock_llm):
+        mock_llm.side_effect = json.JSONDecodeError("Expecting value", "", 0)
+
+        result = evaluate_interaction(
+            "INT-LLM-PARSE",
+            "\n".join(
+                [
+                    "[00:00] Agent: Thank you for calling BJ's Member Care.",
+                    "[00:05] Member: Can you help with my order?",
+                    "[00:10] Agent: I can help.You will recieve an update soon.",
+                ]
+            ),
+        )
+
+        grammar_item = next(
+            item
+            for item in result["attributes"]
+            if item["sub_attribute"] == "Uses slang or inappropriate grammar/spelling"
+        )
+        self.assertEqual(result["engine"], "local_rules_after_llm_parse_error")
+        self.assertEqual(grammar_item["rating"], "Yes")
+        self.assertIn("LLM response was not valid JSON", result["summary"]["next_steps"][0])
+
     @patch.dict("os.environ", {}, clear=True)
     def test_local_heuristic_flags_repeated_agent_question(self):
         result = evaluate_interaction(

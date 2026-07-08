@@ -25,7 +25,7 @@ from evaluator import (
 
 ROOT = Path(__file__).parent
 STATIC_DIR = ROOT / "static"
-APP_ASSET_VERSION = "20260702-bulk-upload-v4"
+APP_ASSET_VERSION = "20260708-bulk-upload-v5"
 
 
 class QaMonitoringHandler(BaseHTTPRequestHandler):
@@ -125,11 +125,6 @@ class QaMonitoringHandler(BaseHTTPRequestHandler):
 
             output_csv = build_bulk_evaluation_csv(csv_text, llm_config)
             self._send_csv(output_csv, filename="qa_bulk_evaluation_output.csv")
-        except json.JSONDecodeError:
-            self._send_bulk_error(
-                "Bulk upload JSON parsing failed. Upload the CSV file again or send raw text/csv.",
-                status=HTTPStatus.BAD_REQUEST,
-            )
         except csv.Error as exc:
             self._send_bulk_error(f"Invalid CSV: {exc}", status=HTTPStatus.BAD_REQUEST)
         except ValueError as exc:

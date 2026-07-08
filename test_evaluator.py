@@ -426,6 +426,9 @@ class EvaluatorTests(unittest.TestCase):
 
         self.assertEqual(payload["csv_text"], raw_text)
 
+        with self.assertRaisesRegex(ValueError, "Interaction ID and Transcript"):
+            build_bulk_evaluation_csv(payload["csv_text"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BJ's QA Monitoring Evaluator</title>
+    <link rel="stylesheet" href="/static/styles.css?v=20260708-bulk-upload-v5" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Quality monitoring</p>
+          <h1>Transcript QA evaluator</h1>
+          <p class="lede">
+            Enter an interaction ID and transcript to rate each monitoring-form
+            attribute as <strong>Yes</strong> or <strong>No</strong>.
+            <strong>Yes</strong> means the defect was observed and includes
+            timestamped rationale and coaching guidance.
+          </p>
+        </div>
+        <div id="engineBadge" class="engine-badge">Ready</div>
+      </section>
+      <p id="appVersion" class="app-version">Version: loading...</p>
+
+      <section class="card">
+        <div id="modeNotice" class="mode-notice">
+          Checking evaluation mode...
+        </div>
+        <form id="evaluationForm">
+          <details class="llm-config" open>
+            <summary>LLM Configuration</summary>
+            <p class="config-help">
+              Paste your API key here to run full LLM evaluation. The key is sent
+              only with this request and is not saved in the repository.
+            </p>
+            <div class="config-grid">
+              <div>
+                <label for="llmBaseUrl">LiteLLM / OpenAI base URL</label>
+                <input
+                  id="llmBaseUrl"
+                  name="llm_base_url"
+                  value="https://litellm-stg.cloud.247-inc.net"
+                  autocomplete="off"
+                />
+              </div>
+              <div>
+                <label for="llmModel">Model</label>
+                <input
+                  id="llmModel"
+                  name="llm_model"
+                  value="gpt-41-mini"
+                  autocomplete="off"
+                />
+              </div>
+              <div>
+                <label for="llmApiKey">API key</label>
+                <input
+                  id="llmApiKey"
+                  name="llm_api_key"
+                  type="password"
+                  placeholder="Paste API key for LLM evaluation"
+                  autocomplete="off"
+                />
+              </div>
+              <div>
+                <label for="llmTemperature">Temperature</label>
+                <input
+                  id="llmTemperature"
+                  name="llm_temperature"
+                  type="number"
+                  min="0"
+                  max="2"
+                  step="0.1"
+                  value="0.2"
+                />
+              </div>
+            </div>
+            <div class="actions config-actions">
+              <button id="testLlmConnectionButton" type="button" class="secondary">
+                Test LLM connection
+              </button>
+            </div>
+            <div id="llmConnectionResult" class="connection-result hidden"></div>
+          </details>
+
+          <label for="interactionId">Interaction ID</label>
+          <input
+            id="interactionId"
+            name="interaction_id"
+            placeholder="Example: INT-104283"
+            autocomplete="off"
+            required
+          />
+
+          <label for="transcript">Transcript</label>
+          <textarea
+            id="transcript"
+            name="transcript"
+            rows="14"
+            placeholder="[00:00] Agent: Thank you for calling BJ's Member Care..."
+            required
+          ></textarea>
+
+          <div class="actions">
+            <button id="evaluateButton" type="submit">Evaluate transcript</button>
+            <button id="loadExampleButton" type="button" class="secondary">Load example</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="errorPanel" class="alert hidden" role="alert"></section>
+
+      <section class="card">
+        <div class="table-toolbar">
+          <div>
+            <p class="eyebrow">Bulk evaluation</p>
+            <h2>Upload transcripts CSV</h2>
+            <p class="config-help">
+              Upload a CSV with headers <code>Interaction ID</code> and
+              <code>Transcript</code>. Each row is evaluated one interaction at
+              a time. Leave the API key blank to test with local rules mode.
+            </p>
+          </div>
+          <button id="downloadSampleCsvButton" type="button" class="secondary">
+            Download sample CSV
+          </button>
+        </div>
+        <form id="bulkForm" class="bulk-form">
+          <label for="bulkCsvFile">CSV file</label>
+          <input id="bulkCsvFile" name="bulk_csv_file" type="file" accept=".csv,text/csv" required />
+          <div class="actions">
+            <button id="bulkEvaluateButton" type="submit">Evaluate bulk CSV</button>
+          </div>
+        </form>
+        <div id="bulkStatus" class="connection-result hidden"></div>
+      </section>
+
+      <section id="resultPanel" class="card hidden">
+        <div class="result-header">
+          <div>
+            <p class="eyebrow">Evaluation result</p>
+            <h2 id="resultTitle">Interaction result</h2>
+          </div>
+          <div class="score-box">
+            <span id="scoreValue">--</span>
+            <small>Score</small>
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <div>
+            <h3>Strengths</h3>
+            <ul id="strengthsList"></ul>
+          </div>
+          <div>
+            <h3>Opportunities</h3>
+            <ul id="opportunitiesList"></ul>
+          </div>
+          <div>
+            <h3>Next steps</h3>
+            <ul id="nextStepsList"></ul>
+          </div>
+        </div>
+
+        <div class="table-toolbar">
+          <h3>Attribute ratings</h3>
+          <div class="actions compact">
+            <button id="copyJsonButton" type="button" class="secondary">Copy JSON</button>
+            <button id="downloadJsonButton" type="button" class="secondary">Download JSON</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Attribute</th>
+                <th>SubAttribute</th>
+                <th>Rating</th>
+                <th>Timestamp</th>
+                <th>Rationale / coaching</th>
+              </tr>
+            </thead>
+            <tbody id="ratingsTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <details>
+          <summary>Prompt for tuning</summary>
+          <p>
+            This is the prompt template used by the LLM path. Edit
+            <code>prompts/qa_monitoring_prompt.md</code> to tune rubric behavior.
+          </p>
+          <pre id="promptViewer">Loading prompt...</pre>
+        </details>
+      </section>
+    </main>
+
+    <script src="/static/app.js?v=20260708-bulk-upload-v5"></script>
+  </body>
+</html>

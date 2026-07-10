@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PulseWFM — Workforce Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="atmosphere" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <a class="brand" href="#home" data-nav="home">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-text">PulseWFM</span>
+      </a>
+      <nav class="top-nav" aria-label="Primary">
+        <button type="button" data-nav="home" class="nav-link is-active">Overview</button>
+        <button type="button" data-nav="realtime" class="nav-link">Intraday</button>
+        <button type="button" data-nav="scheduling" class="nav-link">Schedules</button>
+        <button type="button" data-nav="performance" class="nav-link">Analytics</button>
+        <button type="button" data-nav="connections" class="nav-link">Connections</button>
+      </nav>
+      <div class="top-meta">
+        <span id="db-pill" class="pill">DB: demo</span>
+        <span id="clock" class="clock"></span>
+      </div>
+    </header>
+
+    <main>
+      <section id="view-home" class="view is-visible">
+        <div class="hero">
+          <p class="hero-brand">PulseWFM</p>
+          <h1 class="hero-title">Workforce command for voice and digital</h1>
+          <p class="hero-lede">
+            Forecast demand, plan capacity, schedule with skill fit, and steer the floor in real time —
+            connected to cloud or on-prem databases through a service account.
+          </p>
+          <div class="hero-actions">
+            <button type="button" class="btn btn-primary" data-nav="realtime">Open intraday</button>
+            <button type="button" class="btn btn-ghost" data-nav="forecast">Review forecast</button>
+          </div>
+          <div class="hero-visual" aria-hidden="true">
+            <div class="wave-layer wave-a"></div>
+            <div class="wave-layer wave-b"></div>
+            <div class="signal-grid"></div>
+          </div>
+        </div>
+
+        <section class="section">
+          <div class="section-head">
+            <h2>Operational pulse</h2>
+            <p>Live channel health against today’s forecast and staffing plan.</p>
+          </div>
+          <div id="kpi-strip" class="kpi-strip"></div>
+          <div id="channel-pulse" class="channel-pulse"></div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <h2>WFM modules</h2>
+            <p>Twelve core workflows spanning forecast through long-term planning.</p>
+          </div>
+          <div id="module-grid" class="module-grid"></div>
+        </section>
+      </section>
+
+      <section id="view-module" class="view">
+        <div class="module-chrome">
+          <button type="button" class="btn btn-ghost" data-nav="home">← Overview</button>
+          <div>
+            <h2 id="module-title">Module</h2>
+            <p id="module-subtitle" class="muted"></p>
+          </div>
+        </div>
+        <div id="module-body" class="module-body"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>PulseWFM · digital + voice workforce management</span>
+      <span id="footer-status">Ready</span>
+    </footer>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

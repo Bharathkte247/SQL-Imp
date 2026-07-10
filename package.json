@@ -1,0 +1,32 @@
+{
+  "name": "wfm-workforce-management",
+  "version": "1.0.0",
+  "description": "Workforce Management platform for digital and voice channels with multi-database connectivity",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bharathkte247/SQL-Imp.git"
+  },
+  "keywords": [
+    "wfm",
+    "workforce-management",
+    "forecasting",
+    "scheduling",
+    "contact-center"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@clickhouse/client": "^1.18.5",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mssql": "^11.0.1",
+    "mysql2": "^3.14.1",
+    "pg": "^8.16.0"
+  }
+}

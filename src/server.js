@@ -118,7 +118,7 @@ app.post("/api/query", async (req, res) => {
   }
 });
 
-app.get("*", (req, res) => {
+app.use((req, res) => {
   if (req.path.startsWith("/api/")) {
     return fail(res, 404, "API route not found");
   }

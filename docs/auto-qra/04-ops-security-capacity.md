@@ -1,6 +1,6 @@
 # Auto Quality Review Automation (Auto QRA)
 
-Product & Technical Design Package - Operations, Security, and Capacity
+Product & Technical Design Package
 
 Version: 1.0  
 Date: July 2026  
@@ -12,11 +12,7 @@ Scope: Sections 33-46
 
 The purpose of the monitoring strategy is to define how Auto Quality Review Automation (Auto QRA) will be measured, operated, and governed in production. Auto QRA is expected to process 60,000 audits per month, with an average of approximately 2,000 audits per day. Each audit is estimated to consume 3,200 tokens, based on 2,500 input tokens and 700 output tokens. This produces an expected monthly inference volume of 192,000,000 tokens and a daily inference volume of approximately 6,400,000 tokens. Because the automation supports enterprise quality review decisions, monitoring must cover service health, inference performance, model behavior, data protection, workflow completion, cost, and human escalation.
 
-Monitoring must also prove that service-level expectations are being met. The target latency is less than 60 seconds per audit, and the target availability is 99.9%. These targets require operational visibility across application services, vLLM inference endpoints, Redis queues, PostgreSQL persistence, GCS object storage, SSO integrations, PII masking controls, encryption boundaries, and user-facing review workflows. The monitoring strategy therefore uses Prometheus for metric collection, Grafana for visualization, and alerting policies that separate customer-impacting incidents from early warning conditions.
-
 ### Description
-
-Auto QRA monitoring is organized around four operating questions. First, is the platform available and able to accept audit work? Second, is the platform processing audits within the expected latency, throughput, and quality boundaries? Third, are data protection controls working as designed, including PII masking and encryption? Fourth, is the system operating within planned capacity and cost assumptions?
 
 The system will expose metrics from every major component. Application APIs will publish request counts, error rates, latency distributions, queue depth, audit state transitions, and dependency timing. vLLM workers will publish model throughput, GPU utilization, GPU memory consumption, batch size, prefill latency, decode latency, time to first token, and tokens per second. Redis will publish memory, eviction, latency, connected clients, blocked clients, and queue length. PostgreSQL will publish connection count, transaction latency, lock waits, deadlocks, replication lag where applicable, and table growth. GCS access will be monitored through storage metrics, object operation counts, and access logs. SSO, authorization, PII masking, and encryption events will be monitored through security and audit metrics.
 
@@ -26,13 +22,9 @@ Monitoring will be implemented as a layered program rather than a dashboard-only
 
 Auto QRA will be used to improve quality review consistency, throughput, and cost efficiency. Monitoring protects that investment by detecting failures before they become broad business disruption. A 99.9% availability target allows approximately 43.2 minutes of unplanned downtime per month. Without strong monitoring, a small issue such as a saturated Redis queue, an overloaded vLLM worker, or a failed PII masking step could silently delay audit processing or expose sensitive data. The business consequence would be missed review deadlines, loss of trust in automated decisions, increased manual work, and potential compliance risk.
 
-Monitoring also supports capacity and financial governance. At 60,000 audits per month, each audit carries compute, storage, and review workflow cost. A small regression in token output length, inference efficiency, retry rate, or cache behavior can materially change monthly spend. Monitoring token volume, GPU efficiency, and cost per audit provides finance and operations stakeholders with a factual basis for scaling decisions. It also supports enterprise service reviews, vendor governance, compliance reporting, and executive reporting on automation value.
-
 ### Technical Details
 
 The monitoring architecture uses Prometheus-compatible instrumentation and exporters. Application services will expose `/metrics` endpoints. vLLM workers will expose inference metrics and GPU exporters will expose device-level metrics through NVIDIA DCGM Exporter. Redis and PostgreSQL will use managed service metrics and exporters where available. Grafana will read Prometheus time series and cloud provider metrics through configured data sources. Alertmanager will route alerts by severity and ownership.
-
-Core service-level indicators are availability, latency, error rate, throughput, and saturation. For Auto QRA, the primary service-level indicator is successful audit completion within 60 seconds. Supporting indicators include API request success, queue wait time, vLLM inference latency, database latency, and storage latency. The recommended SLO is that at least 99.5% of audits complete within 60 seconds during normal operating periods and 99.9% of public API requests avoid 5xx responses over a rolling 30-day window.
 
 The expected average audit arrival rate is:
 
@@ -47,8 +39,6 @@ The expected average audit arrival rate is:
 | Peak hourly audits | 83.3 x 3 = 250 audits/hour |
 | Peak per-minute audits | 250 / 60 = 4.17 audits/minute |
 | Peak per-second audits | 4.17 / 60 = 0.069 audits/second |
-
-This average rate is modest, but inference bursts and dependency failures can still create queue backlogs. Monitoring therefore must track both request rate and backlog clearance rate. If the system receives 250 audits per hour at peak and each audit must complete within 60 seconds, the minimum steady-state throughput requirement is 4.17 completed audits per minute, with additional headroom for retries, maintenance, and N+1 high availability.
 
 Prometheus metric catalog for platform health:
 
@@ -99,21 +89,15 @@ Prometheus metric catalog for data and security controls:
 
 ### Best Practices
 
-Monitoring should be designed from the user journey backward. The most important measured outcome is not whether a container is running; it is whether an audit submitted by an authorized user is completed accurately, securely, and within the target latency. For this reason, every audit should carry a correlation ID from ingestion through PII masking, queueing, inference, post-processing, persistence, and user presentation. Metrics should use bounded-cardinality labels. Tenant, model family, environment, and priority are acceptable labels; raw user IDs, free-text fields, document names, and audit content must not be labels.
-
 Prometheus recording rules should be used for SLO calculations and expensive percentile queries. Grafana dashboards should distinguish real-time operations from executive reporting. On-call dashboards should prioritize latency, error rate, queue depth, and GPU health. Leadership dashboards should prioritize audit volume, automation coverage, SLO attainment, quality outcomes, and cost per audit. Alert thresholds should be reviewed after the first 30 days of production traffic, because forecasted rates may differ from actual enterprise usage patterns.
 
 ### Risks
 
 The main risk is under-monitoring workflow failure modes. A system can appear healthy at the container level while audits are delayed in Redis, blocked on database locks, failing PII masking, or retrying inference. Another risk is high-cardinality metric design, which can increase monitoring cost and reduce Prometheus performance. GPU metrics can also be misleading if they are reviewed without vLLM queue metrics; high utilization can be healthy during batch inference, while low utilization can indicate either idle capacity or a bottleneck before inference.
 
-Security monitoring introduces a separate risk. Logging or labeling sensitive values can leak PII into observability systems. All logs and metrics must be reviewed under the same data minimization rules as production data. The monitoring system itself must be treated as a sensitive system because it contains operational metadata, incident traces, and potentially tenant-level activity patterns.
-
 ### Recommendations
 
 Implement monitoring as a required production readiness gate before any enterprise rollout. Configure Prometheus, Grafana, Alertmanager, DCGM Exporter, Redis exporter, PostgreSQL exporter, and application metrics in the first production environment. Establish SLO dashboards for audit completion within 60 seconds and API 5xx-free availability. Add synthetic audit probes that run every five minutes using a safe test payload with no PII, and verify the complete path through masking, queueing, vLLM, persistence, and GCS artifact retrieval.
-
-The initial operating target should be 99.9% API availability and at least 99.5% audit completion under 60 seconds. The first 90 days should include weekly review of monitoring noise, missing signals, and threshold accuracy. After traffic stabilizes, the organization should formalize error budgets, escalation policies, and capacity review cadences.
 
 ## 34. Observability
 
@@ -125,13 +109,9 @@ The purpose of observability is to make Auto QRA diagnosable, explainable, and g
 
 Observability for Auto QRA is based on three pillars: metrics, logs, and traces. Metrics provide numerical indicators of health and performance. Logs provide structured event records for state changes, decisions, exceptions, and security-relevant actions. Traces connect distributed operations across services and dependencies. A fourth practical pillar, audit evidence, is also required because Auto QRA produces quality review decisions that may need to be explained to business stakeholders, internal auditors, and compliance teams.
 
-Each submitted audit will receive a stable `audit_id` and `correlation_id`. The `audit_id` identifies the business object. The `correlation_id` identifies a specific processing attempt or request chain. Retry attempts will add an `attempt_id` while preserving the parent identifiers. These identifiers will be included in logs, traces, database records, object metadata, and support tooling. The system will not use PII or customer-provided text as identifiers.
-
 ### Business Justification
 
 Enterprise users need confidence that Auto QRA decisions are repeatable and supportable. When a reviewer asks why an audit was delayed, escalated, or scored a certain way, the support team must be able to reconstruct the workflow without exposing protected data. Observability shortens mean time to detect and mean time to resolve incidents. It also reduces the amount of engineering time required to investigate production issues.
-
-Observability is also a control for model operations. vLLM performance varies based on model size, quantization, sequence length, batching, GPU type, and concurrent demand. Without observability, the organization cannot distinguish between prompt growth, model degradation, hardware saturation, queueing, database contention, and downstream workflow issues. Strong observability protects service quality while enabling iterative model improvements.
 
 ### Technical Details
 
@@ -182,13 +162,11 @@ Example Grafana dashboard-as-code definition summary:
 
 ### Best Practices
 
-Observability should be designed as a product capability, not as a troubleshooting afterthought. Every audit state transition should be emitted as a structured event. Every retry should preserve the original context and record the reason for retry. Every model call should record token counts, model version, quantization mode, latency, and validation result. Every security control should emit a success or failure event that can be audited without exposing sensitive payloads.
-
 Sampling decisions must reflect business risk. High-volume low-risk spans can be sampled, but error traces, PII masking failures, authorization denials, schema validation failures, and audit result publication failures should be retained at or near 100%. Trace retention should be long enough to support incident review and customer support investigations, typically 30 days for detailed traces and 90 days for aggregated operational data.
 
 ### Risks
 
-The primary observability risk is accidental data exposure. Auto QRA processes business records that may contain PII or confidential quality evidence. Logs, traces, metric labels, dashboard variables, and support tools must not store raw audit text or unmasked prompts. A second risk is incomplete correlation. If one service emits `audit_id` and another emits only request IDs, support teams will struggle to reconstruct incidents. A third risk is dashboard sprawl, where many dashboards exist but none clearly answer operational questions.
+The primary observability risk is accidental data exposure through logs, traces, metric labels, dashboard variables, or support tools. A second risk is incomplete correlation, where services emit incompatible identifiers and support teams cannot reconstruct incidents. A third risk is dashboard sprawl.
 
 ### Recommendations
 
@@ -204,13 +182,9 @@ The purpose of the logging strategy is to define what Auto QRA records, how it s
 
 Auto QRA will use structured JSON logs across all application services, workers, model gateway components, security controls, and administrative jobs. Logs will be emitted to standard output from containers, collected by the platform logging agent, and routed to a centralized log backend and SIEM integration. The application will never log raw prompts, raw model outputs, unmasked PII, authentication tokens, secrets, encryption keys, or full request bodies. Instead, it will log stable identifiers, status, timing, counts, versions, and policy outcomes.
 
-Logging is divided into operational logs, security logs, audit logs, model operation logs, data access logs, and administrative logs. Operational logs support incident response. Security logs support detection and investigation. Audit logs establish a record of user and system actions. Model operation logs capture inference metadata. Data access logs record read and write actions against PostgreSQL and GCS. Administrative logs record configuration changes, deployments, secret rotations, and access policy updates.
-
 ### Business Justification
 
 Enterprise customers expect transparent and controlled operation of automated decision systems. Logging provides the evidence required to answer support questions, investigate incidents, and demonstrate compliance with internal controls. Well-designed logs reduce incident duration because engineers can find the failed stage, dependency, and correlation ID quickly. They also reduce privacy risk because teams are not tempted to add ad hoc debugging statements that expose sensitive data.
-
-Retention policy is a cost and compliance issue. Retaining every detailed log indefinitely would be expensive and risky. Retaining too little would impair investigations. The strategy balances these needs by separating short-lived detailed operational logs from longer-lived immutable audit logs and aggregated metrics.
 
 ### Technical Details
 
@@ -272,11 +246,9 @@ Event taxonomy:
 
 Logs should be deterministic and machine-readable. Free-form messages can exist for humans, but the operational meaning must be captured in structured fields. Every error should have a stable error code. Every retry should log the reason, attempt number, and next action. Every security denial should log the policy name and decision without logging sensitive resource values. Stack traces should be restricted to error logs and scrubbed for secrets.
 
-PII masking must occur before any prompt or derived content can be logged. The logging library should provide safe helper functions and reject unsafe keys. Production debug logging should require time-bound approval and should automatically expire. Access to logs should use SSO, role-based access control, least privilege, and periodic access review.
-
 ### Risks
 
-The highest logging risk is sensitive data leakage. Model prompts and outputs may contain customer records or review evidence. Even partial fields can be sensitive when combined. Another risk is poor retention discipline. Keeping detailed logs too long increases exposure, while deleting audit logs too early creates compliance gaps. A third risk is unstructured logs, which make incident response slower and reduce confidence in automated alerting.
+The highest logging risk is sensitive data leakage from prompts, outputs, or combined partial fields. Other risks are poor retention discipline and unstructured logs, which slow incident response and reduce confidence in automated alerting.
 
 ### Recommendations
 
@@ -290,9 +262,7 @@ The purpose of alerting is to convert monitoring signals into timely, actionable
 
 ### Description
 
-Alerting will use Prometheus Alertmanager integrated with incident management, chat operations, email distribution groups, and security tooling. Alerts will be grouped by service, tenant impact, severity, and environment. The alerting model will distinguish symptoms from causes. For example, an audit latency SLO burn alert is a symptom alert and should page on-call when user impact is real. A rising GPU utilization alert is a cause or early warning alert and should usually route as a ticket or low-severity notification unless it is already causing latency failures.
-
-Alert severity is divided into four levels: Sev1, Sev2, Sev3, and Sev4. Sev1 represents broad production impact, data exposure, or complete inability to process audits. Sev2 represents material degradation, such as sustained latency above target or partial regional capacity loss. Sev3 represents degraded redundancy, elevated error rates, or early capacity pressure. Sev4 represents informational conditions that require follow-up but not immediate interruption.
+Alerting will use Prometheus Alertmanager integrated with incident management, chat operations, email distribution groups, and security tooling. Alerts will be grouped by service, tenant impact, severity, and environment. The alerting model will distinguish symptoms from causes so paging conditions reflect customer impact while early warnings become tickets.
 
 ### Business Justification
 
@@ -342,9 +312,7 @@ Example Prometheus alert rule definitions:
 
 ### Best Practices
 
-Alerts should be actionable, owned, and documented. Every paging alert should have a runbook, dashboard link, likely causes, mitigation steps, rollback guidance, and escalation path. Alerts should page on symptoms when customer impact is likely and create tickets for early warning signals. Multi-window burn-rate alerts should be used for SLOs so the team detects both fast outages and slow error-budget consumption.
-
-Alert grouping should prevent storms during dependency failures. If PostgreSQL is unavailable, dozens of application errors may occur; Alertmanager should group related alerts and highlight the database root condition. Maintenance windows, deployments, and load tests should annotate dashboards and suppress known noisy alerts only through controlled change records.
+Alerts should be actionable, owned, and documented. Every paging alert should have a runbook, dashboard link, likely causes, mitigation steps, rollback guidance, and escalation path. Alert grouping should prevent storms during dependency failures, and maintenance windows should annotate dashboards through controlled change records.
 
 ### Risks
 
@@ -362,9 +330,7 @@ The purpose of the security architecture is to protect Auto QRA data, models, in
 
 ### Description
 
-Auto QRA security is built around identity-aware access, network segmentation, encrypted data paths, controlled model serving, PII masking, and immutable audit records. Users authenticate through enterprise SSO. Application services validate identity and authorization for each action. Service-to-service communication uses workload identity and mutual authentication where supported. Sensitive data is masked before model inference. Data is encrypted in transit and at rest. Administrative access uses privileged access workflows, short-lived credentials, and complete audit logging.
-
-The system uses a zero-trust model. No network location, service, user, or workload is trusted implicitly. Every request is authenticated, authorized, logged, and evaluated against policy. The model serving tier is isolated from direct user access. vLLM endpoints are reachable only from approved application workers. GCS buckets, PostgreSQL databases, Redis instances, and monitoring systems are private and protected by IAM, VPC controls, and encryption policies.
+Auto QRA security is built around identity-aware access, network segmentation, encrypted data paths, controlled model serving, PII masking, and immutable audit records. Users authenticate through enterprise SSO. Application services validate identity and authorization for each action. Service-to-service communication uses workload identity and mutual authentication where supported. The zero-trust model means no network location, service, user, or workload is trusted implicitly.
 
 ### Business Justification
 
@@ -429,9 +395,7 @@ Zero-trust recommendations:
 
 ### Best Practices
 
-Security design should fail closed for regulated or sensitive workflows. If PII masking fails, the audit should not proceed to model inference. If audit logging fails for an action that must be recorded, the action should be blocked or queued for controlled recovery. If authorization cannot be evaluated, access should be denied. Administrative access should be time-bound and reviewed.
-
-Encryption should use managed services and centralized key control. GCS buckets should use uniform bucket-level access, public access prevention, retention policies where audit records require immutability, and object versioning where appropriate. PostgreSQL backups should be encrypted. Redis should be private, encrypted in transit where supported, and protected from eviction for durable queue metadata. Secrets should be rotated and never mounted broadly into containers.
+Security design should fail closed for regulated or sensitive workflows. If PII masking fails, the audit should not proceed to model inference. If audit logging fails for an action that must be recorded, the action should be blocked or queued for controlled recovery. Encryption should use managed services and centralized key control, and secrets should be rotated rather than mounted broadly into containers.
 
 ### Risks
 
@@ -449,9 +413,7 @@ The purpose of disaster recovery is to define how Auto QRA will restore service 
 
 ### Description
 
-Auto QRA has a target availability of 99.9%, but disaster recovery addresses events that exceed normal high-availability mechanisms. DR planning covers recovery time objective, recovery point objective, failover process, backup restoration, data integrity verification, security validation, and business communication. The architecture should support recovery of application services, PostgreSQL data, Redis queue state where feasible, GCS artifacts, model serving configuration, observability data, and audit logs.
-
-Not every component requires the same recovery objective. Completed audit records and audit logs require strong durability and low data loss tolerance. Redis queues are operationally important, but queued work can often be reconstructed from PostgreSQL audit state if enqueue operations are persisted. vLLM model servers are stateless apart from model artifacts and configuration. Application containers can be redeployed from images and infrastructure-as-code.
+Auto QRA has a target availability of 99.9%, but disaster recovery addresses events that exceed normal high-availability mechanisms. DR planning covers recovery time objective, recovery point objective, failover process, backup restoration, data integrity verification, security validation, and business communication across application services, PostgreSQL, Redis, GCS, vLLM, observability, and audit logs.
 
 ### Business Justification
 
@@ -488,9 +450,7 @@ Disaster scenarios and response:
 
 ### Best Practices
 
-DR must be tested, not just documented. At minimum, the team should conduct quarterly tabletop exercises and semiannual technical recovery tests. Recovery tests should include PostgreSQL point-in-time restore, GCS object restore, vLLM redeployment, Redis queue reconstruction from PostgreSQL, and full synthetic audit processing in the recovered environment. Runbooks should be version controlled and include validation steps, rollback criteria, and communication templates.
-
-The system should maintain clear source-of-truth boundaries. PostgreSQL should record durable audit states so Redis can be treated as a dispatch mechanism rather than the only copy of pending work. GCS should store immutable artifacts with versioning and retention. Infrastructure should be reproducible from code. Model artifacts and prompt templates should be versioned so recovered inference behavior matches the intended release.
+DR must be tested, not just documented. At minimum, the team should conduct quarterly tabletop exercises and semiannual technical recovery tests covering PostgreSQL PITR, GCS object restore, vLLM redeployment, Redis queue reconstruction, and full synthetic audit processing in the recovered environment.
 
 ### Risks
 
@@ -508,9 +468,7 @@ The purpose of the backup strategy is to preserve Auto QRA data, configuration, 
 
 ### Description
 
-Backups will use a combination of managed service backups, versioned object storage, infrastructure-as-code repositories, configuration exports, and immutable audit archives. PostgreSQL will use automated backups and point-in-time recovery. GCS buckets will use object versioning, lifecycle rules, and retention policies. Redis queue state will not be treated as the primary durable store; instead, pending and in-progress audit states will be reconstructable from PostgreSQL. Grafana dashboards, Prometheus rules, and deployment configuration will be backed up through source control.
-
-Backup design must consider confidentiality. Backups contain sensitive audit records and must be encrypted, access-controlled, logged, and retained according to policy. Backup restoration must also be controlled; restoring sensitive data into non-production environments should require masking or explicit approval.
+Backups will use managed service backups, versioned object storage, infrastructure-as-code repositories, configuration exports, and immutable audit archives. PostgreSQL will use automated backups and point-in-time recovery. GCS buckets will use object versioning, lifecycle rules, and retention policies. Redis queue state will be reconstructable from PostgreSQL rather than treated as the primary durable store.
 
 ### Business Justification
 
@@ -545,9 +503,7 @@ Backup classification:
 
 ### Best Practices
 
-Backups should be automated, monitored, and tested. A backup that has not been restored is only an assumption. Backup jobs should emit metrics for success, failure, duration, size, and age. Backup failures should alert. Restore tests should verify not only that data can be loaded, but also that applications can use the restored data correctly.
-
-Backup access must follow least privilege. Operators who can restore backups should not automatically have broad access to read sensitive contents. Backup buckets should block public access, use retention policies where applicable, and log access. Restoration into development or testing environments should use masked or synthetic data unless a formal exception is approved.
+Backups should be automated, monitored, and tested. Backup jobs should emit metrics for success, failure, duration, size, and age; restore tests should verify that applications can use the restored data correctly. Backup access must follow least privilege and restoration into lower environments should use masked or synthetic data.
 
 ### Risks
 
@@ -565,7 +521,7 @@ The purpose of high availability is to keep Auto QRA operational during common i
 
 ### Description
 
-Auto QRA high availability is implemented through redundant stateless services, managed HA data services, durable workflow state, multiple worker replicas, N+1 GPU capacity, private networking, health checks, and controlled failover. API services and workers run across multiple zones. Redis is deployed using a managed high-availability configuration where available. PostgreSQL uses Cloud SQL high availability with automated failover. GCS provides durable multi-zone object storage. vLLM GPU workers are deployed as a pool with at least one spare unit above calculated peak requirement.
+Auto QRA high availability is implemented through redundant stateless services, managed HA data services, durable workflow state, multiple worker replicas, N+1 GPU capacity, private networking, health checks, and controlled failover. API services and workers run across multiple zones, PostgreSQL uses Cloud SQL high availability, and vLLM GPU workers run as a pool with at least one spare unit above calculated peak requirement.
 
 ### Business Justification
 
@@ -643,9 +599,7 @@ The system should therefore be designed to process at least 10 concurrent audit 
 
 ### Best Practices
 
-HA should be tested through failure injection and controlled maintenance events. Application services should be stateless. Workers should be idempotent so retrying an audit attempt does not create duplicate final records. Database writes should use transactions around state changes. Queue operations should be paired with durable state in PostgreSQL. Readiness probes should verify actual dependency readiness rather than only process liveness.
-
-Deployment strategies should use rolling updates or blue-green releases. vLLM model rollouts should avoid replacing all model servers simultaneously. Model version changes should be canaried with a small percentage of traffic or internal test audits before full rollout. GPU nodes should be drained before maintenance so in-flight inference can complete or be retried cleanly.
+HA should be tested through failure injection and controlled maintenance events. Application services should be stateless; workers should be idempotent; database writes should use transactions around state changes; and queue operations should be paired with durable state in PostgreSQL. Model rollouts should use canaries and avoid replacing all vLLM servers simultaneously.
 
 ### Risks
 
@@ -663,11 +617,11 @@ The purpose of capacity planning is to translate business volume, token usage, l
 
 ### Description
 
-Capacity planning for Auto QRA uses average load, peak load, burst load, retry load, and HA headroom. Average load is useful for cost estimation, but peak and burst assumptions drive infrastructure sizing. The baseline assumption is a 3x peak over daily average. A separate 2x burst and retry factor is applied to concurrent workflow sizing. GPU capacity is sized using assumed throughput per GPU for quantized 3B and 7B models on L40 48GB and A100 80GB GPU instances on GCP. Application, Redis, PostgreSQL, GCS, and Superset capacity are sized based on workflow volume and retention.
+Capacity planning for Auto QRA uses average load, peak load, burst load, retry load, and HA headroom. The baseline assumption is a 3x peak over daily average, with a separate 2x burst and retry factor for concurrent workflow sizing. GPU capacity is sized using assumed throughput per GPU for quantized 3B and 7B models on L40 48GB and A100 80GB GPU instances on GCP.
 
 ### Business Justification
 
-Capacity planning prevents two expensive outcomes: under-provisioning and over-provisioning. Under-provisioning would cause audit delays, SLO misses, customer dissatisfaction, and manual fallback. Over-provisioning would waste GPU and database spend. Because GPU resources are the dominant cost driver, capacity planning must use explicit math and conservative assumptions. The planned average volume is not large, but enterprise usage patterns can create bursts, and N+1 HA is required for a professional production service.
+Capacity planning prevents under-provisioning that causes audit delays and over-provisioning that wastes GPU and database spend. Because GPU resources are the dominant cost driver, capacity planning must use explicit math, conservative assumptions, and N+1 HA headroom.
 
 ### Technical Details
 
@@ -728,9 +682,7 @@ Capacity sizing baseline:
 
 ### Best Practices
 
-Capacity planning should be reviewed monthly during the first quarter and quarterly after traffic stabilizes. The plan should compare forecasted audits, actual audits, token volume, p95 latency, GPU utilization, queue age, database growth, storage growth, and cost per audit. Token counts must be tracked because prompt growth can silently increase GPU cost and latency. The organization should define soft limits for prompt length and output length to protect the latency target.
-
-Capacity planning should also include operational headroom. Running at 95% GPU utilization may look financially efficient but leaves little room for bursts, retries, or node failure. A production system with 99.9% availability should target 50-70% average utilization during business peaks when N+1 capacity is included. This allows one node to fail without immediate SLO violation.
+Capacity planning should be reviewed monthly during the first quarter and quarterly after traffic stabilizes. The review should compare forecasted audits, actual audits, token volume, p95 latency, GPU utilization, queue age, database growth, storage growth, and cost per audit. Production should target 50-70% average GPU utilization during business peaks when N+1 capacity is included.
 
 ### Risks
 
@@ -748,9 +700,7 @@ The purpose of performance estimation is to predict whether Auto QRA can meet th
 
 ### Description
 
-Auto QRA performance is dominated by model inference but also includes PII masking, prompt assembly, queue wait time, result validation, database persistence, GCS writes, and notification. The target latency is measured from accepted audit submission to completed audit availability. For synchronous user workflows, the same target applies to the user-visible completion path. For asynchronous batch workflows, the target applies to workflow completion after intake.
-
-The baseline audit contains 2,500 input tokens and 700 output tokens, for 3,200 total tokens. Input tokens affect prefill latency and memory pressure. Output tokens affect decode latency. vLLM improves throughput through batching and efficient KV cache management, but latency still depends on model size, quantization, GPU type, batch shape, and concurrency.
+Auto QRA performance is dominated by model inference but also includes PII masking, prompt assembly, queue wait time, result validation, database persistence, GCS writes, and notification. The baseline audit contains 2,500 input tokens and 700 output tokens, for 3,200 total tokens; vLLM improves throughput through batching, but latency still depends on model size, quantization, GPU type, batch shape, and concurrency.
 
 ### Business Justification
 
@@ -809,13 +759,11 @@ This math shows that even the conservative 7B-on-L40 assumption can satisfy the 
 
 ### Best Practices
 
-Performance should be measured using realistic prompts, realistic output constraints, and production-like batching. Synthetic token-only benchmarks are useful for early sizing but can overstate real throughput. Test data should include short audits, average audits, long audits, and malformed inputs. Performance tests should report p50, p95, p99, queue wait, time to first token, total inference latency, output token count, schema validation failures, retry rate, and GPU utilization.
-
-Prompt and output governance is a performance control. The product should enforce maximum input length, structured output schemas, and concise response requirements. Longer outputs increase decode time and can threaten the 60-second target. vLLM configuration should be tuned for expected sequence length, maximum concurrent requests, GPU memory utilization, and batching behavior.
+Performance should be measured using realistic prompts, output constraints, and production-like batching. Tests should include short audits, average audits, long audits, and malformed inputs, and should report p50, p95, p99, queue wait, time to first token, total inference latency, output token count, schema validation failures, retry rate, and GPU utilization. Prompt and output governance should enforce maximum input length, structured output schemas, and concise responses.
 
 ### Risks
 
-Performance estimates can be wrong if model prompts change, if quantization quality requires a larger model, if output length grows, or if traffic is burstier than expected. A 7B model with a long context and unconstrained output could exceed the latency budget on L40 under concurrency. Database or GCS latency could also become visible if the inference path becomes faster. Another risk is cold-start behavior if GPU nodes are scaled to zero; model loading can take minutes and is incompatible with a 60-second audit target.
+Performance estimates can be wrong if prompts change, quantization quality requires a larger model, output length grows, or traffic is burstier than expected. Database or GCS latency can also become visible as inference improves. GPU scale-to-zero is not acceptable because model loading can exceed the 60-second audit target.
 
 ### Recommendations
 
@@ -829,11 +777,11 @@ The purpose of GPU sizing is to determine the number and type of GPU instances r
 
 ### Description
 
-Auto QRA inference will use vLLM and quantized 3B or 7B models. Candidate GPUs are L40 48GB and A100 80GB. L40 is cost-effective for moderate inference workloads and can support quantized 3B and 7B models with sufficient memory. A100 provides higher memory bandwidth, more memory headroom, and higher throughput, especially for larger batch sizes and longer contexts. Because the planned workload is moderate, the initial recommendation is two L40 GPU nodes for production N+1 HA, with A100 reserved for higher-latency sensitivity, larger models, heavier concurrency, or consolidation across additional workloads.
+Auto QRA inference will use vLLM and quantized 3B or 7B models. Candidate GPUs are L40 48GB and A100 80GB. L40 is cost-effective for moderate inference workloads, while A100 provides higher memory bandwidth, more memory headroom, and higher throughput. The initial recommendation is two L40 GPU nodes for production N+1 HA, with A100 reserved for stricter latency, larger models, or heavier concurrency.
 
 ### Business Justification
 
-GPU sizing is the largest direct infrastructure cost decision for Auto QRA. The difference between one GPU, two L40 GPUs, and two A100 GPUs can materially change monthly spend. However, undersizing GPU capacity can cause missed latency targets and force manual operations. A professional enterprise architecture must balance cost efficiency with resilience and service commitments. N+1 GPU capacity is justified because the service target is 99.9% availability and model serving is mission-critical to audit completion.
+GPU sizing is the largest direct infrastructure cost decision for Auto QRA. Undersizing GPU capacity can cause missed latency targets and manual fallback, while over-sizing increases monthly spend. N+1 GPU capacity is justified because the service target is 99.9% availability and model serving is mission-critical to audit completion.
 
 ### Technical Details
 
@@ -906,13 +854,11 @@ Recommended vLLM configuration starting points:
 
 ### Best Practices
 
-GPU sizing should be validated with representative performance tests. Each candidate model and GPU combination should be benchmarked using real prompt templates, expected output schemas, and production-like concurrency. Tests should include average audits, long audits, and burst submissions. GPU memory utilization should leave room for KV cache growth, request variance, and framework overhead.
-
-Separate model-serving autoscaling from application autoscaling. Application pods can scale quickly, but GPU nodes are slower and more expensive. Keep minimum warm GPU capacity and scale additional GPU workers based on queue age, vLLM waiting requests, and latency. Use canary model deployments to avoid fleet-wide regressions.
+GPU sizing should be validated with representative performance tests using real prompt templates, expected output schemas, and production-like concurrency. GPU memory utilization should leave room for KV cache growth, request variance, and framework overhead. Keep minimum warm GPU capacity and scale additional GPU workers based on queue age, vLLM waiting requests, and latency.
 
 ### Risks
 
-The main GPU sizing risk is relying on theoretical tokens per second. Real throughput can be lower because of prompt length, output constraints, safety validation, JSON formatting retries, and batch inefficiency at low traffic. Another risk is using L40 when A100 is needed for future larger models or stricter latency requirements. Conversely, choosing A100 too early can produce unnecessary cost if L40 meets the target comfortably.
+The main GPU sizing risk is relying on theoretical tokens per second. Real throughput can be lower because of prompt length, output constraints, safety validation, JSON retries, and batch inefficiency. Another risk is choosing L40 when A100 is needed, or choosing A100 before L40 benchmarks justify the cost.
 
 ### Recommendations
 
@@ -926,11 +872,11 @@ The purpose of infrastructure sizing is to define the CPU, memory, disk, network
 
 ### Description
 
-Auto QRA has moderate transaction volume but strict reliability, security, and latency expectations. The non-GPU infrastructure must handle audit intake, PII masking, workflow orchestration, queueing, database persistence, object storage, reporting, monitoring, and administrative access. Sizing should support average traffic, 3x peak traffic, 2x burst/retry conditions, and N+1 high availability for critical components.
+Auto QRA has moderate transaction volume but strict reliability, security, and latency expectations. The non-GPU infrastructure must handle audit intake, PII masking, workflow orchestration, queueing, database persistence, object storage, reporting, monitoring, and administrative access under average traffic, 3x peak traffic, burst/retry conditions, and N+1 high availability.
 
 ### Business Justification
 
-Infrastructure sizing ensures the platform does not become bottlenecked outside the model-serving layer. A common failure pattern in AI automation systems is focusing on GPU capacity while undersizing Redis, database connection pools, object storage paths, or application workers. Balanced sizing prevents avoidable latency and reduces incident risk. It also gives finance and platform teams a transparent starting point for monthly cost management.
+Infrastructure sizing ensures the platform does not become bottlenecked outside the model-serving layer. Balanced sizing prevents avoidable latency, reduces incident risk, and gives finance and platform teams a transparent starting point for monthly cost management.
 
 ### Technical Details
 
@@ -983,9 +929,7 @@ Superset sizing detail:
 
 ### Best Practices
 
-Separate operational workloads from analytical workloads. Superset dashboards should query aggregate tables or replicas, not the primary audit workflow tables during peak operations. Redis used for queues should not be shared with analytics caches. Prometheus retention and label cardinality should be tuned to avoid runaway disk usage. PostgreSQL should use connection pooling to protect the database from autoscaling application pods.
-
-Infrastructure should be provisioned through code. Resource requests and limits should be set for every Kubernetes workload. Autoscaling should use meaningful signals such as queue age, request latency, CPU, and vLLM waiting requests. Storage lifecycle policies should move older artifacts to lower-cost storage when allowed by compliance requirements.
+Separate operational workloads from analytical workloads. Superset dashboards should query aggregate tables or replicas, Redis queues should not be shared with analytics caches, Prometheus cardinality should be controlled, and PostgreSQL should use connection pooling. Infrastructure should be provisioned through code with resource requests, limits, and lifecycle policies.
 
 ### Risks
 
@@ -1062,9 +1006,7 @@ Cost sensitivity table:
 
 ### Best Practices
 
-Cost should be managed through explicit unit metrics. Grafana should show cost per audit, cost per 1 million tokens, GPU utilization, idle GPU hours, log ingestion volume, GCS growth, database storage growth, and retry cost. GPU commitments should be considered only after benchmark and traffic stability. If traffic is predictable and steady, committed use discounts may materially reduce cost. If traffic is seasonal or uncertain, on-demand or shorter commitments may be safer.
-
-Logging and tracing should be governed because observability spend can grow quietly. Use sampling for successful traces, retention tiers for logs, and cardinality reviews for metrics. Store large artifacts in GCS rather than PostgreSQL. Use lifecycle policies for older GCS objects where retention rules allow.
+Cost should be managed through explicit unit metrics. Grafana should show cost per audit, cost per 1 million tokens, GPU utilization, idle GPU hours, log ingestion volume, GCS growth, database storage growth, and retry cost. Use sampling for successful traces, retention tiers for logs, cardinality reviews for metrics, and lifecycle policies for older GCS objects where retention rules allow.
 
 ### Risks
 
@@ -1082,13 +1024,11 @@ The purpose of the scaling strategy is to define how Auto QRA will increase or d
 
 ### Description
 
-Auto QRA uses horizontal scaling for stateless application services and workers, managed scaling for data services, and controlled scaling for GPU-backed vLLM nodes. The platform should scale application pods based on CPU, request latency, and queue signals. Workers should scale based on queue depth, queue age, and active job count. GPU nodes should scale more conservatively because model loading is slower and costs are high. Redis and PostgreSQL should scale through managed tier upgrades, read replicas, connection pooling, and query optimization rather than frequent reactive changes.
-
-Scaling must preserve N+1 HA. If the calculated requirement is one GPU node, production should run two. If growth increases the calculated requirement to two GPU nodes, production should run three. The same principle applies to critical application tiers: capacity should remain sufficient after one replica or zone fails.
+Auto QRA uses horizontal scaling for stateless application services and workers, managed scaling for data services, and controlled scaling for GPU-backed vLLM nodes. Application pods scale on CPU, request latency, and queue signals; workers scale on queue depth, queue age, and active job count; GPU nodes scale conservatively because model loading is slower and costs are high. Scaling must preserve N+1 HA.
 
 ### Business Justification
 
-Scaling strategy protects service quality as adoption grows. Auto QRA may begin with 60,000 audits per month but expand to additional teams, tenants, audit types, and stricter quality workflows. Without a scaling strategy, growth can produce sudden performance incidents and emergency infrastructure changes. With a scaling strategy, the organization can plan capacity, cost, and operational readiness ahead of demand.
+Scaling strategy protects service quality as adoption grows from 60,000 audits per month to additional teams, tenants, audit types, and stricter quality workflows. It allows capacity, cost, and operational readiness to be planned ahead of demand.
 
 ### Technical Details
 
@@ -1156,9 +1096,7 @@ The formula is:
 
 ### Best Practices
 
-Autoscaling should be based on bottleneck-aware signals. Scaling workers does not improve throughput if vLLM is saturated. Scaling API pods does not improve audit completion if Redis or PostgreSQL is constrained. Scaling GPU nodes does not help if PII masking is the bottleneck. Dashboards and scaling policies must show the active bottleneck before automated scale-out becomes aggressive.
-
-Scale-in should be conservative, especially for GPU nodes. Removing GPU capacity too quickly can cause model reload delays and latency spikes. Keep two warm GPU nodes in production. Use scheduled scaling if audit traffic follows predictable business hours, but do not reduce below N+1. For large batch submissions, consider priority queues so urgent audits are not delayed behind bulk workloads.
+Autoscaling should be based on bottleneck-aware signals. Scaling workers does not improve throughput if vLLM is saturated, and scaling GPU nodes does not help if PII masking is the bottleneck. Scale-in should be conservative, especially for GPU nodes, and production should keep two warm GPU nodes with priority queues for urgent audits.
 
 ### Risks
 

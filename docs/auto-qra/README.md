@@ -210,6 +210,17 @@ The package includes Mermaid diagrams for:
 | Numbered sections | 65 |
 | Mermaid diagrams | 28+ |
 
+### Microsoft Word Download
+
+A professionally formatted Word document is available:
+
+- **[`Auto-QRA-Design-Package.docx`](Auto-QRA-Design-Package.docx)** (~2.5 MB)
+  - Cover page, table of contents, styled headings/tables
+  - 29 rendered architecture/process diagrams
+  - Headers, footers, and page numbers
+
+Open in Microsoft Word and choose **Yes** if prompted to update fields (refreshes the table of contents and page numbers).
+
 To export for Word/PDF review:
 
 1. Use the prebuilt combined file: [Auto-QRA-Design-Package-Combined.md](Auto-QRA-Design-Package-Combined.md) (~67,000 words; ~170–190 Word pages).

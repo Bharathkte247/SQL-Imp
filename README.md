@@ -17,7 +17,9 @@ The complete **Auto Quality Review Automation (Auto QRA)** Product and Technical
 | Sections 33–46 | [docs/auto-qra/04-ops-security-capacity.md](docs/auto-qra/04-ops-security-capacity.md) |
 | Sections 47–65 | [docs/auto-qra/05-devops-apis-governance.md](docs/auto-qra/05-devops-apis-governance.md) |
 
-To generate a single concatenated markdown file for Word export:
+**Word document (recommended):** [docs/auto-qra/Auto-QRA-Design-Package.docx](docs/auto-qra/Auto-QRA-Design-Package.docx)
+
+To regenerate the concatenated markdown source:
 
 ```bash
 bash docs/auto-qra/scripts/build-combined.sh

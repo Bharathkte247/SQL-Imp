@@ -4,7 +4,7 @@ Repository for SQL assets and enterprise design packages.
 
 ## Auto QRA Design Package
 
-The complete **Auto Quality Review Automation (Auto QRA)** Product and Technical Design Package is located at:
+The complete **Auto Quality Review Automation (Auto QRA)** Product and Technical Design Package (Microsoft Azure / AKS) is located at:
 
 **[docs/auto-qra/README.md](docs/auto-qra/README.md)**
 

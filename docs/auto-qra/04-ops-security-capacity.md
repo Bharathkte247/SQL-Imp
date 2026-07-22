@@ -14,7 +14,7 @@ The purpose of the monitoring strategy is to define how Auto Quality Review Auto
 
 ### Description
 
-The system will expose metrics from every major component. Application APIs will publish request counts, error rates, latency distributions, queue depth, audit state transitions, and dependency timing. vLLM workers will publish model throughput, GPU utilization, GPU memory consumption, batch size, prefill latency, decode latency, time to first token, and tokens per second. Redis will publish memory, eviction, latency, connected clients, blocked clients, and queue length. PostgreSQL will publish connection count, transaction latency, lock waits, deadlocks, replication lag where applicable, and table growth. GCS access will be monitored through storage metrics, object operation counts, and access logs. SSO, authorization, PII masking, and encryption events will be monitored through security and audit metrics.
+The system will expose metrics from every major component. Application APIs will publish request counts, error rates, latency distributions, queue depth, audit state transitions, and dependency timing. vLLM workers will publish model throughput, GPU utilization, GPU memory consumption, batch size, prefill latency, decode latency, time to first token, and tokens per second. Redis will publish memory, eviction, latency, connected clients, blocked clients, and queue length. PostgreSQL will publish connection count, transaction latency, lock waits, deadlocks, replication lag where applicable, and table growth. Azure Blob Storage access will be monitored through storage metrics, object operation counts, and access logs. SSO, authorization, PII masking, and encryption events will be monitored through security and audit metrics.
 
 Monitoring will be implemented as a layered program rather than a dashboard-only activity. The first layer is service-level monitoring, focused on availability, latency, error rate, throughput, and saturation. The second layer is workflow monitoring, focused on the audit lifecycle from ingestion to completion. The third layer is model and GPU monitoring, focused on inference throughput and hardware saturation. The fourth layer is security monitoring, focused on identity, access, data masking, and anomalous behavior. The fifth layer is business monitoring, focused on audit volume, automation coverage, reviewer escalations, and cost per audit.
 
@@ -97,7 +97,7 @@ The main risk is under-monitoring workflow failure modes. A system can appear he
 
 ### Recommendations
 
-Implement monitoring as a required production readiness gate before any enterprise rollout. Configure Prometheus, Grafana, Alertmanager, DCGM Exporter, Redis exporter, PostgreSQL exporter, and application metrics in the first production environment. Establish SLO dashboards for audit completion within 60 seconds and API 5xx-free availability. Add synthetic audit probes that run every five minutes using a safe test payload with no PII, and verify the complete path through masking, queueing, vLLM, persistence, and GCS artifact retrieval.
+Implement monitoring as a required production readiness gate before any enterprise rollout. Configure Prometheus, Grafana, Alertmanager, DCGM Exporter, Redis exporter, PostgreSQL exporter, and application metrics in the first production environment. Establish SLO dashboards for audit completion within 60 seconds and API 5xx-free availability. Add synthetic audit probes that run every five minutes using a safe test payload with no PII, and verify the complete path through masking, queueing, vLLM, persistence, and Azure Blob Storage artifact retrieval.
 
 ## 34. Observability
 
@@ -115,7 +115,7 @@ Enterprise users need confidence that Auto QRA decisions are repeatable and supp
 
 ### Technical Details
 
-OpenTelemetry should be used for distributed tracing across application services. Traces should include spans for API ingestion, authentication, authorization, PII masking, prompt construction, queue enqueue, worker pickup, vLLM request, post-processing, persistence, GCS write, notification, and UI retrieval. Span attributes should be carefully controlled. Safe attributes include environment, service name, model family, model size, quantization mode, tenant ID if approved for operational use, audit type, queue name, priority, token counts, and status codes. Unsafe attributes include raw prompt text, model output text, names, emails, phone numbers, addresses, account numbers, and free-form customer notes.
+OpenTelemetry should be used for distributed tracing across application services. Traces should include spans for API ingestion, authentication, authorization, PII masking, prompt construction, queue enqueue, worker pickup, vLLM request, post-processing, persistence, Azure Blob Storage write, notification, and UI retrieval. Span attributes should be carefully controlled. Safe attributes include environment, service name, model family, model size, quantization mode, tenant ID if approved for operational use, audit type, queue name, priority, token counts, and status codes. Unsafe attributes include raw prompt text, model output text, names, emails, phone numbers, addresses, account numbers, and free-form customer notes.
 
 Recommended trace model:
 
@@ -130,7 +130,7 @@ Recommended trace model:
 | `worker.process` | Root or linked | `attempt_id`, `worker_pool`, `node` | Worker timeout |
 | `vllm.generate` | `worker.process` | `model`, `gpu_type`, `input_tokens`, `output_tokens` | Timeout, OOM, invalid response |
 | `result.validate` | `worker.process` | `schema_version`, `validation_result` | JSON schema failure |
-| `result.persist` | `worker.process` | `postgres_table`, `gcs_bucket`, `object_class` | DB or GCS write failure |
+| `result.persist` | `worker.process` | `postgres_table`, `gcs_bucket`, `object_class` | DB or Azure Blob Storage write failure |
 | `review.publish` | `worker.process` | `destination`, `notification_type` | Notification failure |
 
 Grafana dashboard definitions should be managed as code and stored with the deployment configuration. Dashboards must support drill-down from executive status to service dependency and audit-level troubleshooting. The following dashboard set is recommended:
@@ -141,7 +141,7 @@ Grafana dashboard definitions should be managed as code and stored with the depl
 | Auto QRA Operations Overview | On-call, SRE | API availability, p95/p99 latency, error rate, queue depth, oldest audit age, worker utilization | Prometheus | 1m |
 | Audit Workflow Funnel | Support, Engineering | Submitted, masked, queued, processing, completed, failed, retried, escalated | Prometheus, PostgreSQL | 5m |
 | vLLM Inference Health | ML Platform, SRE | Time to first token, request latency, tokens/sec, waiting requests, running requests, model errors | vLLM metrics, DCGM | 30s |
-| GPU Fleet | ML Platform | GPU utilization, memory, temperature, power, XID errors, node status | DCGM, GCP metrics | 30s |
+| GPU Fleet | ML Platform | GPU utilization, memory, temperature, power, XID errors, node status | DCGM, Azure metrics | 30s |
 | Data Layer Health | DBAs, SRE | PostgreSQL CPU, connections, locks, deadlocks, slow queries, Redis memory, evictions | PostgreSQL exporter, Redis metrics | 1m |
 | Security and Compliance | Security, Compliance | SSO failures, authorization denials, PII masking failures, DLP findings, audit log failures | App metrics, SIEM export | 5m |
 | Capacity and Cost | FinOps, Platform | Token volume, GPU hours, cost per audit, utilization by model, storage growth | Prometheus, billing export | 1h |
@@ -158,7 +158,7 @@ Example Grafana dashboard-as-code definition summary:
 | Row 2 | Intake: submitted audits, completed audits, failed audits, retry rate |
 | Row 3 | Queues: queue depth, queue age, worker active jobs, worker saturation |
 | Row 4 | Inference: vLLM latency, waiting requests, tokens/sec, GPU utilization |
-| Row 5 | Dependencies: PostgreSQL latency, Redis latency, GCS errors, SSO errors |
+| Row 5 | Dependencies: PostgreSQL latency, Redis latency, Azure Blob Storage errors, SSO errors |
 
 ### Best Practices
 
@@ -208,7 +208,7 @@ Core log schema:
 | `event_category` | Enum | Yes | `workflow`, `security`, `model`, `data` | Used for routing |
 | `status` | Enum | Yes | `success`, `failure`, `denied` | Consistent status values |
 | `duration_ms` | Number | Conditional | `1275` | Required for timed operations |
-| `dependency` | String | Conditional | `postgres`, `redis`, `vllm`, `gcs` | For dependency events |
+| `dependency` | String | Conditional | `postgres`, `redis`, `vllm`, `azure_blob` | For dependency events |
 | `error_code` | String | Conditional | `VLLM_TIMEOUT` | Controlled error code |
 | `error_class` | String | Conditional | `TimeoutError` | No full stack at INFO |
 | `retryable` | Boolean | Conditional | `true` | For failures |
@@ -225,11 +225,11 @@ Logging retention table:
 
 | Log category | Examples | Retention hot | Retention archive | Storage target | Access model |
 | --- | --- | ---: | ---: | --- | --- |
-| Operational application logs | API events, worker events, dependency failures | 30 days | 180 days | Central logging, GCS archive | SRE, engineering support |
-| Security logs | SSO failures, authorization denials, policy violations | 90 days | 1 year | SIEM, immutable GCS bucket | Security, compliance |
-| Audit logs | User actions, system decisions, approvals, overrides | 1 year | 7 years where policy requires | PostgreSQL plus immutable GCS | Compliance, limited admins |
+| Operational application logs | API events, worker events, dependency failures | 30 days | 180 days | Central logging, Azure Blob Storage archive | SRE, engineering support |
+| Security logs | SSO failures, authorization denials, policy violations | 90 days | 1 year | SIEM, immutable Azure Blob Storage bucket | Security, compliance |
+| Audit logs | User actions, system decisions, approvals, overrides | 1 year | 7 years where policy requires | PostgreSQL plus immutable Azure Blob Storage | Compliance, limited admins |
 | Model operation logs | Model version, token counts, latency, validation result | 90 days | 1 year | Central logging, analytics tables | ML platform, SRE |
-| Data access logs | GCS object access, DB administrative access | 90 days | 1 year | Cloud audit logs, SIEM | Security, platform |
+| Data access logs | Azure Blob Storage object access, DB administrative access | 90 days | 1 year | Cloud audit logs, SIEM | Security, platform |
 | Debug logs | Temporary elevated diagnostics | 7 days | None unless incident attached | Central logging | Break-glass only |
 
 Event taxonomy:
@@ -239,7 +239,7 @@ Event taxonomy:
 | Workflow | `audit.submitted`, `audit.masked`, `audit.queued`, `audit.completed`, `audit.failed` | Include correlation and state transition |
 | Security | `auth.login.failed`, `authz.denied`, `policy.violation`, `secret.rotated` | Route to SIEM |
 | Model | `inference.started`, `inference.completed`, `schema.validation.failed` | Include token counts and model version |
-| Data | `result.persisted`, `gcs.object.written`, `db.query.slow` | No payload data |
+| Data | `result.persisted`, `azure_blob.object.written`, `db.query.slow` | No payload data |
 | Admin | `config.changed`, `model.deployed`, `dashboard.updated` | Require actor hash and change ID |
 
 ### Best Practices
@@ -252,7 +252,7 @@ The highest logging risk is sensitive data leakage from prompts, outputs, or com
 
 ### Recommendations
 
-Implement a shared logging package and schema validation in CI. Add automated tests that fail when unsafe log fields such as `prompt`, `raw_text`, `email`, `phone`, `token`, `secret`, or `authorization` are introduced. Route security and audit events to the SIEM and immutable GCS storage. Configure retention by log category rather than by service alone. Review log samples during production readiness to confirm that PII masking, token redaction, and correlation IDs are working.
+Implement a shared logging package and schema validation in CI. Add automated tests that fail when unsafe log fields such as `prompt`, `raw_text`, `email`, `phone`, `token`, `secret`, or `authorization` are introduced. Route security and audit events to the SIEM and immutable Azure Blob Storage storage. Configure retention by log category rather than by service alone. Review log samples during production readiness to confirm that PII masking, token redaction, and correlation IDs are working.
 
 ## 36. Alerting
 
@@ -293,7 +293,7 @@ Detailed alert threshold catalog:
 | `AutoQRAVLLMFailureRateHigh` | vLLM failures / total | Sev2 | > 5% | 5m | Inspect model server logs and GPU errors |
 | `AutoQRAGPUXidError` | DCGM XID error | Sev2 | Any repeated error | 1m | Drain node and replace GPU VM |
 | `AutoQRAGPUMemoryCritical` | GPU memory used | Sev2 | > 95% | 5m | Reduce max batch or scale GPU workers |
-| `AutoQRAPostgresUnavailable` | DB health check | Sev1 | Primary unavailable | 2m | Failover Cloud SQL, pause writes if needed |
+| `AutoQRAPostgresUnavailable` | DB health check | Sev1 | Primary unavailable | 2m | Failover Azure Database for PostgreSQL, pause writes if needed |
 | `AutoQRAPostgresConnectionSaturation` | Connections / max | Sev3 | > 80% | 15m | Check pool size and slow queries |
 | `AutoQRARedisEvictions` | Redis evictions | Sev2 | > 0 in production queue DB | 5m | Increase memory, inspect key TTLs |
 | `AutoQRAPIIMaskingFailure` | Masking failures / attempts | Sev1 | > 2% or any high-risk failure | 5m | Stop processing affected workflow and investigate |
@@ -351,20 +351,19 @@ flowchart LR
     Queue --> Worker[Audit Worker Pool]
     Worker --> VLLM[vLLM Model Serving Tier]
     VLLM --> GPU[GPU Nodes: L40 or A100]
-    Worker --> PG[(PostgreSQL / Cloud SQL)]
-    Worker --> GCS[(GCS Encrypted Buckets)]
+    Worker --> PG[(PostgreSQL / Azure Database for PostgreSQL)]
+    Worker --> AzureBlobStorage[(Azure Blob Storage Encrypted Buckets)]
     App --> PG
-    App --> GCS
+    App --> AzureBlobStorage
     App --> Logs[Central Logs and SIEM]
     Worker --> Logs
     VLLM --> Metrics[Prometheus / Grafana]
     App --> Metrics
-    KMS[Cloud KMS] --> PG
-    KMS --> GCS
+    KMS[Azure Key Vault] --> PG
+    KMS --> AzureBlobStorage
     KMS --> App
     Admin[Privileged Admin] --> PAM[Privileged Access Workflow]
-    PAM --> Gateway
-```
+    PAM --> Gateway```
 
 Security control matrix:
 
@@ -372,13 +371,13 @@ Security control matrix:
 | --- | --- | --- | --- |
 | Identity | SSO required | SAML/OIDC through enterprise IdP | Login logs, IdP policy |
 | Authorization | Least privilege RBAC/ABAC | Role and tenant scoped policies | Authorization decision logs |
-| Service identity | Workload identity | GCP service accounts with minimal IAM | IAM inventory |
-| Network | Private service access | VPC, firewall rules, private endpoints | Network policy export |
+| Service identity | Workload identity | Azure service accounts with minimal IAM | IAM inventory |
+| Network | Private service access | VNet, firewall rules, private endpoints | Network policy export |
 | Transport encryption | TLS everywhere | TLS 1.2+ external, mTLS or workload identity internal | TLS scan, config |
-| At-rest encryption | Encrypted databases and buckets | Cloud KMS-managed keys where required | KMS key policy |
+| At-rest encryption | Encrypted databases and buckets | Azure Key Vault-managed keys where required | KMS key policy |
 | PII protection | Mask before inference | PII masking service and DLP validation | Masking metrics and logs |
-| Secrets | Managed secrets | Secret Manager, no secrets in code | Secret access logs |
-| Auditability | Immutable audit trail | PostgreSQL audit table plus GCS retention lock | Audit records |
+| Secrets | Managed secrets | Azure Key Vault, no secrets in code | Secret access logs |
+| Auditability | Immutable audit trail | PostgreSQL audit table plus Azure Blob Storage retention lock | Audit records |
 | Model isolation | No direct model access | vLLM private endpoint only | Firewall and IAM |
 | Admin access | Privileged access management | Just-in-time access, MFA, break-glass logs | PAM records |
 | Monitoring | Security event routing | SIEM integration | Alert history |
@@ -389,7 +388,7 @@ Zero-trust recommendations:
 | --- | --- |
 | Verify explicitly | Validate user identity, device posture where available, tenant authorization, service identity, and request policy on every action. |
 | Use least privilege | Separate roles for reviewer, auditor, administrator, ML operator, SRE, and security investigator. Grant data access by tenant and purpose. |
-| Assume breach | Segment vLLM, Redis, PostgreSQL, and GCS. Rotate credentials. Monitor anomalous access. Keep immutable audit records. |
+| Assume breach | Segment vLLM, Redis, PostgreSQL, and Azure Blob Storage. Rotate credentials. Monitor anomalous access. Keep immutable audit records. |
 | Minimize data | Mask PII before prompts, store only required evidence, and avoid sensitive data in logs or metrics. |
 | Continuous evaluation | Route security events to SIEM, review access quarterly, and use automated policy checks in CI/CD. |
 
@@ -399,11 +398,11 @@ Security design should fail closed for regulated or sensitive workflows. If PII 
 
 ### Risks
 
-The largest security risk is PII entering the model or observability layers without masking. Another risk is excessive service account privileges, especially for workers that access queues, databases, buckets, and model endpoints. Misconfigured GCS permissions can expose stored review artifacts. Model-serving endpoints can become an exfiltration or abuse path if they are reachable outside the trusted worker tier. Logging systems can also become a secondary data exposure channel.
+The largest security risk is PII entering the model or observability layers without masking. Another risk is excessive service account privileges, especially for workers that access queues, databases, buckets, and model endpoints. Misconfigured Azure Blob Storage permissions can expose stored review artifacts. Model-serving endpoints can become an exfiltration or abuse path if they are reachable outside the trusted worker tier. Logging systems can also become a secondary data exposure channel.
 
 ### Recommendations
 
-Implement a security readiness checklist before production. Require threat modeling for the audit workflow, model serving path, data storage path, and administrative path. Deploy PII masking as a hard gate before inference. Use private networking for Redis, PostgreSQL, GCS access paths, and vLLM. Configure SSO, MFA, role-based access, and tenant scoping. Route security logs to SIEM and require quarterly access reviews. Add automated policy checks for IAM, bucket public access, encryption settings, and logging redaction.
+Implement a security readiness checklist before production. Require threat modeling for the audit workflow, model serving path, data storage path, and administrative path. Deploy PII masking as a hard gate before inference. Use private networking for Redis, PostgreSQL, Azure Blob Storage access paths, and vLLM. Configure SSO, MFA, role-based access, and tenant scoping. Route security logs to SIEM and require quarterly access reviews. Add automated policy checks for IAM, bucket public access, encryption settings, and logging redaction.
 
 ## 38. Disaster Recovery
 
@@ -413,7 +412,7 @@ The purpose of disaster recovery is to define how Auto QRA will restore service 
 
 ### Description
 
-Auto QRA has a target availability of 99.9%, but disaster recovery addresses events that exceed normal high-availability mechanisms. DR planning covers recovery time objective, recovery point objective, failover process, backup restoration, data integrity verification, security validation, and business communication across application services, PostgreSQL, Redis, GCS, vLLM, observability, and audit logs.
+Auto QRA has a target availability of 99.9%, but disaster recovery addresses events that exceed normal high-availability mechanisms. DR planning covers recovery time objective, recovery point objective, failover process, backup restoration, data integrity verification, security validation, and business communication across application services, PostgreSQL, Redis, Azure Blob Storage, vLLM, observability, and audit logs.
 
 ### Business Justification
 
@@ -426,12 +425,12 @@ RTO/RPO table:
 | Component | Business role | RTO target | RPO target | Recovery method | Priority |
 | --- | --- | ---: | ---: | --- | --- |
 | Public API and UI services | Intake and review access | 1 hour | 15 minutes for in-flight state | Redeploy to healthy zone/region using IaC | P1 |
-| Audit workflow state in PostgreSQL | Source of truth for audits | 1 hour | <= 5 minutes | Cloud SQL PITR, HA failover, cross-region backup | P1 |
-| Immutable audit logs | Compliance evidence | 4 hours | Near zero after write | GCS versioning, retention lock, replicated archive | P1 |
-| GCS result artifacts | Stored model outputs and evidence | 4 hours | <= 15 minutes | Bucket versioning and replication | P1 |
+| Audit workflow state in PostgreSQL | Source of truth for audits | 1 hour | <= 5 minutes | Azure Database for PostgreSQL PITR, HA failover, cross-region backup | P1 |
+| Immutable audit logs | Compliance evidence | 4 hours | Near zero after write | Azure Blob Storage versioning, retention lock, replicated archive | P1 |
+| Azure Blob Storage result artifacts | Stored model outputs and evidence | 4 hours | <= 15 minutes | Bucket versioning and replication | P1 |
 | Redis queues | Work dispatch | 30 minutes | <= 15 minutes where persistence supported | Rebuild from PostgreSQL pending states | P2 |
 | vLLM serving tier | Inference execution | 1 hour | None for stateless runtime | Recreate GPU nodes, reload model artifacts | P1 |
-| Model artifacts | Required inference assets | 4 hours | <= 24 hours for model releases | Store in versioned GCS artifact bucket | P1 |
+| Model artifacts | Required inference assets | 4 hours | <= 24 hours for model releases | Store in versioned Azure Blob Storage artifact bucket | P1 |
 | Observability stack | Operations visibility | 4 hours | <= 1 hour | Managed metrics retention, dashboard-as-code restore | P2 |
 | Billing and cost exports | Cost governance | 24 hours | <= 24 hours | Cloud billing export retention | P3 |
 | Superset or analytics | Reporting and analysis | 24 hours | <= 24 hours | Database backups, IaC redeploy | P3 |
@@ -442,15 +441,15 @@ Disaster scenarios and response:
 | --- | --- | --- |
 | Single zone outage | Reduced capacity, possible worker interruption | HA topology shifts workload to remaining zones; autoscaler replaces nodes |
 | Regional outage | API, workers, GPU, and database in region unavailable | Activate regional DR runbook, restore services in secondary region, promote replicated data |
-| Database corruption | Audit state unreliable | Stop writes, restore PITR to clean timestamp, reconcile GCS artifacts |
-| GCS object deletion | Missing result artifacts | Restore object versions or replicated archive |
+| Database corruption | Audit state unreliable | Stop writes, restore PITR to clean timestamp, reconcile Azure Blob Storage artifacts |
+| Azure Blob Storage object deletion | Missing result artifacts | Restore object versions or replicated archive |
 | Failed deployment | Elevated errors or stopped processing | Roll back application version and model config |
 | Security incident | Potential data exposure | Isolate affected services, revoke credentials, preserve logs, restore from trusted images |
 | GPU capacity shortage | Inference degraded | Shift to alternate GPU type, reduce model size, prioritize queues |
 
 ### Best Practices
 
-DR must be tested, not just documented. At minimum, the team should conduct quarterly tabletop exercises and semiannual technical recovery tests covering PostgreSQL PITR, GCS object restore, vLLM redeployment, Redis queue reconstruction, and full synthetic audit processing in the recovered environment.
+DR must be tested, not just documented. At minimum, the team should conduct quarterly tabletop exercises and semiannual technical recovery tests covering PostgreSQL PITR, Azure Blob Storage object restore, vLLM redeployment, Redis queue reconstruction, and full synthetic audit processing in the recovered environment.
 
 ### Risks
 
@@ -458,17 +457,17 @@ The main DR risk is assuming managed service high availability is the same as di
 
 ### Recommendations
 
-Set formal DR targets of RTO 1 hour and RPO 5 minutes for PostgreSQL-backed audit state, RTO 4 hours and RPO 15 minutes for GCS artifacts, and RTO 1 hour for vLLM serving capacity. Persist audit state transitions in PostgreSQL before queue dispatch. Enable Cloud SQL high availability and point-in-time recovery. Enable GCS versioning and retention for audit artifacts. Keep deployment manifests, Grafana dashboards, Prometheus rules, and model-serving configuration in version control. Run a full DR exercise before production launch and repeat at least twice per year.
+Set formal DR targets of RTO 1 hour and RPO 5 minutes for PostgreSQL-backed audit state, RTO 4 hours and RPO 15 minutes for Azure Blob Storage artifacts, and RTO 1 hour for vLLM serving capacity. Persist audit state transitions in PostgreSQL before queue dispatch. Enable Azure Database for PostgreSQL high availability and point-in-time recovery. Enable Azure Blob Storage versioning and retention for audit artifacts. Keep deployment manifests, Grafana dashboards, Prometheus rules, and model-serving configuration in version control. Run a full DR exercise before production launch and repeat at least twice per year.
 
 ## 39. Backup Strategy
 
 ### Purpose
 
-The purpose of the backup strategy is to preserve Auto QRA data, configuration, and evidence so the system can recover from data loss, corruption, accidental deletion, failed deployments, and compliance review needs. The backup strategy covers PostgreSQL databases, GCS artifacts, model artifacts, configuration, audit logs, dashboards, alert rules, and operational metadata.
+The purpose of the backup strategy is to preserve Auto QRA data, configuration, and evidence so the system can recover from data loss, corruption, accidental deletion, failed deployments, and compliance review needs. The backup strategy covers PostgreSQL databases, Azure Blob Storage artifacts, model artifacts, configuration, audit logs, dashboards, alert rules, and operational metadata.
 
 ### Description
 
-Backups will use managed service backups, versioned object storage, infrastructure-as-code repositories, configuration exports, and immutable audit archives. PostgreSQL will use automated backups and point-in-time recovery. GCS buckets will use object versioning, lifecycle rules, and retention policies. Redis queue state will be reconstructable from PostgreSQL rather than treated as the primary durable store.
+Backups will use managed service backups, versioned object storage, infrastructure-as-code repositories, configuration exports, and immutable audit archives. PostgreSQL will use automated backups and point-in-time recovery. Azure Blob Storage buckets will use object versioning, lifecycle rules, and retention policies. Redis queue state will be reconstructable from PostgreSQL rather than treated as the primary durable store.
 
 ### Business Justification
 
@@ -480,15 +479,15 @@ Backup schedule:
 
 | Asset | Backup mechanism | Frequency | Retention | Encryption | Restore test |
 | --- | --- | ---: | ---: | --- | --- |
-| PostgreSQL primary database | Cloud SQL automated backup plus PITR | Continuous WAL, daily full | 35 days PITR, monthly snapshots 1 year | Cloud KMS where required | Monthly PITR test |
-| PostgreSQL logical export | `pg_dump` or managed export for selected schemas | Weekly | 13 weeks | Encrypted GCS bucket | Quarterly |
-| GCS audit artifacts | Versioning, retention lock, optional cross-region replication | Continuous on write | 1-7 years by policy | CMEK where required | Quarterly object restore |
-| GCS model artifacts | Versioned model registry bucket | On release | Keep all production releases, archive retired models | CMEK where required | Semiannual |
-| Audit logs | Immutable GCS archive and SIEM retention | Continuous | 7 years where required | CMEK and retention lock | Quarterly sample retrieval |
+| PostgreSQL primary database | Azure Database for PostgreSQL automated backup plus PITR | Continuous WAL, daily full | 35 days PITR, monthly snapshots 1 year | Azure Key Vault where required | Monthly PITR test |
+| PostgreSQL logical export | `pg_dump` or managed export for selected schemas | Weekly | 13 weeks | Encrypted Azure Blob Storage bucket | Quarterly |
+| Azure Blob Storage audit artifacts | Versioning, retention lock, optional cross-region replication | Continuous on write | 1-7 years by policy | CMEK where required | Quarterly object restore |
+| Azure Blob Storage model artifacts | Versioned model registry bucket | On release | Keep all production releases, archive retired models | CMEK where required | Semiannual |
+| Audit logs | Immutable Azure Blob Storage archive and SIEM retention | Continuous | 7 years where required | CMEK and retention lock | Quarterly sample retrieval |
 | Redis operational queue | Reconstruct from PostgreSQL pending states | Not primary backup | Not applicable | Private encrypted service | Monthly queue rebuild drill |
 | Grafana dashboards | Git repository JSON/Jsonnet | On change | Full Git history | Repository controls | On environment rebuild |
 | Prometheus rules | Git repository YAML | On change | Full Git history | Repository controls | On environment rebuild |
-| Secrets metadata | Secret Manager versions and rotation records | On change | Per security policy | Managed encryption | Quarterly access review |
+| Secrets metadata | Azure Key Vault versions and rotation records | On change | Per security policy | Managed encryption | Quarterly access review |
 | Infrastructure configuration | Terraform or equivalent IaC | On change | Full Git history | Repository controls | Semiannual rebuild |
 
 Backup classification:
@@ -511,7 +510,7 @@ The main backup risk is silent failure. If backup failures are not monitored, th
 
 ### Recommendations
 
-Adopt a backup control framework with defined asset owners, retention schedules, restore procedures, and test evidence. Enable Cloud SQL PITR, daily backups, and monthly retained snapshots. Enable GCS versioning and retention for audit artifacts. Store model artifacts in versioned GCS buckets. Treat Redis as reconstructable from durable audit state. Add backup age and success metrics to Prometheus and Grafana. Conduct monthly database restore tests and quarterly full workflow recovery tests.
+Adopt a backup control framework with defined asset owners, retention schedules, restore procedures, and test evidence. Enable Azure Database for PostgreSQL PITR, daily backups, and monthly retained snapshots. Enable Azure Blob Storage versioning and retention for audit artifacts. Store model artifacts in versioned Azure Blob Storage buckets. Treat Redis as reconstructable from durable audit state. Add backup age and success metrics to Prometheus and Grafana. Conduct monthly database restore tests and quarterly full workflow recovery tests.
 
 ## 40. High Availability
 
@@ -521,7 +520,7 @@ The purpose of high availability is to keep Auto QRA operational during common i
 
 ### Description
 
-Auto QRA high availability is implemented through redundant stateless services, managed HA data services, durable workflow state, multiple worker replicas, N+1 GPU capacity, private networking, health checks, and controlled failover. API services and workers run across multiple zones, PostgreSQL uses Cloud SQL high availability, and vLLM GPU workers run as a pool with at least one spare unit above calculated peak requirement.
+Auto QRA high availability is implemented through redundant stateless services, managed HA data services, durable workflow state, multiple worker replicas, N+1 GPU capacity, private networking, health checks, and controlled failover. API services and workers run across multiple zones, PostgreSQL uses Azure Database for PostgreSQL high availability, and vLLM GPU workers run as a pool with at least one spare unit above calculated peak requirement.
 
 ### Business Justification
 
@@ -533,7 +532,7 @@ Recommended HA topology:
 
 ```mermaid
 flowchart TB
-    subgraph Region[GCP Primary Region]
+    subgraph Region[Azure Primary Region]
         subgraph ZoneA[Zone A]
             APIA[API Pods]
             WorkA[Worker Pods]
@@ -545,9 +544,9 @@ flowchart TB
             GPUB[vLLM GPU Node B]
         end
         LB[Global / Regional Load Balancer]
-        Redis[(Redis Memorystore HA)]
-        PG[(Cloud SQL PostgreSQL HA)]
-        GCS[(GCS Buckets)]
+        Redis[(Redis Azure Cache for Redis HA)]
+        PG[(Azure Database for PostgreSQL PostgreSQL HA)]
+        AzureBlobStorage[(Azure Blob Storage Buckets)]
         Prom[Prometheus]
         Graf[Grafana]
     end
@@ -564,12 +563,11 @@ flowchart TB
     APIB --> PG
     WorkA --> PG
     WorkB --> PG
-    WorkA --> GCS
-    WorkB --> GCS
+    WorkA --> AzureBlobStorage
+    WorkB --> AzureBlobStorage
     GPUA --> Prom
     GPUB --> Prom
-    Prom --> Graf
-```
+    Prom --> Graf```
 
 HA design by component:
 
@@ -579,8 +577,8 @@ HA design by component:
 | Audit workers | Minimum 2 replicas across zones, idempotent processing | Failed job retried from durable state |
 | vLLM GPU workers | N+1 GPU nodes, private endpoint, health probes | Scheduler routes to healthy model endpoint |
 | Redis | Managed HA tier, persistence where applicable | Failover to replica; rebuild queue from PostgreSQL if needed |
-| PostgreSQL | Cloud SQL HA primary/standby, PITR | Automated failover; application reconnects |
-| GCS | Regional or dual-region bucket based on DR policy | Storage remains available through zone failures |
+| PostgreSQL | Azure Database for PostgreSQL HA primary/standby, PITR | Automated failover; application reconnects |
+| Azure Blob Storage | Regional or dual-region bucket based on DR policy | Storage remains available through zone failures |
 | SSO | Enterprise IdP plus token caching policy | Existing sessions continue within risk limits |
 | Monitoring | Redundant collectors where feasible | Alerts on observability impairment |
 
@@ -607,7 +605,7 @@ The main HA risk is hidden single points of failure. A single Redis instance, si
 
 ### Recommendations
 
-Run at least two API replicas, two worker replicas, and two vLLM GPU nodes in production, even if average load could fit on one node. Use N+1 GPU capacity so the platform can absorb a single GPU node failure during peak. Use Cloud SQL HA, Redis HA, private networking, and GCS versioning. Implement idempotent workers and durable audit state. Conduct quarterly HA tests, including killing one application pod, draining one GPU node, simulating Redis failover, and validating Cloud SQL failover behavior.
+Run at least two API replicas, two worker replicas, and two vLLM GPU nodes in production, even if average load could fit on one node. Use N+1 GPU capacity so the platform can absorb a single GPU node failure during peak. Use Azure Database for PostgreSQL HA, Redis HA, private networking, and Azure Blob Storage versioning. Implement idempotent workers and durable audit state. Conduct quarterly HA tests, including killing one application pod, draining one GPU node, simulating Redis failover, and validating Azure Database for PostgreSQL failover behavior.
 
 ## 41. Capacity Planning
 
@@ -617,7 +615,7 @@ The purpose of capacity planning is to translate business volume, token usage, l
 
 ### Description
 
-Capacity planning for Auto QRA uses average load, peak load, burst load, retry load, and HA headroom. The baseline assumption is a 3x peak over daily average, with a separate 2x burst and retry factor for concurrent workflow sizing. GPU capacity is sized using assumed throughput per GPU for quantized 3B and 7B models on L40 48GB and A100 80GB GPU instances on GCP.
+Capacity planning for Auto QRA uses average load, peak load, burst load, retry load, and HA headroom. The baseline assumption is a 3x peak over daily average, with a separate 2x burst and retry factor for concurrent workflow sizing. GPU capacity is sized using assumed throughput per GPU for quantized 3B and 7B models on L40 48GB and A100 80GB GPU instances on Azure.
 
 ### Business Justification
 
@@ -662,7 +660,7 @@ Storage capacity math:
 | --- | ---: | ---: | ---: |
 | Audit metadata in PostgreSQL | 10 KB/audit | 60,000 x 10 KB = 600 MB | 7.2 GB |
 | Structured model result | 25 KB/audit | 1.5 GB | 18 GB |
-| Masked prompt and response artifact in GCS | 50 KB/audit | 3.0 GB | 36 GB |
+| Masked prompt and response artifact in Azure Blob Storage | 50 KB/audit | 3.0 GB | 36 GB |
 | Audit logs and workflow events | 20 events x 1 KB x 60,000 | 1.2 GB | 14.4 GB |
 | Trace/log overhead | 5 KB/audit sampled average | 300 MB | 3.6 GB |
 | Index and database overhead | 2x data estimate | 4.2 GB/month effective DB growth | 50 GB/year effective |
@@ -675,8 +673,8 @@ Capacity sizing baseline:
 | Workers | 4-8 vCPU, 16-32 GB RAM per replica | 2 replicas minimum, autoscale to 8 |
 | vLLM | 1 GPU per model-serving node | 2 GPU nodes minimum for N+1 |
 | Redis | 5-10 GB memory | HA tier, no eviction for queues |
-| PostgreSQL | 4-8 vCPU, 16-32 GB RAM | Cloud SQL HA, 100-250 GB SSD initial |
-| GCS | Versioned bucket | Lifecycle to archive after retention window |
+| PostgreSQL | 4-8 vCPU, 16-32 GB RAM | Azure Database for PostgreSQL HA, 100-250 GB SSD initial |
+| Azure Blob Storage | Versioned bucket | Lifecycle to archive after retention window |
 | Superset | 2-4 vCPU, 8-16 GB RAM | 2 replicas if business critical |
 | Prometheus | 4 vCPU, 16 GB RAM | Retention tuned by cardinality |
 
@@ -686,11 +684,11 @@ Capacity planning should be reviewed monthly during the first quarter and quarte
 
 ### Risks
 
-The main capacity risk is workload burstiness. Although the average rate is only 1.39 audits per minute, upstream batch submissions can produce higher short-term demand. Another risk is token creep. If prompt templates grow from 2,500 input tokens to 5,000 input tokens, monthly token volume nearly doubles. Retry storms can also multiply demand during dependency issues. Database growth can become a long-term risk if audit artifacts are stored in PostgreSQL rather than GCS.
+The main capacity risk is workload burstiness. Although the average rate is only 1.39 audits per minute, upstream batch submissions can produce higher short-term demand. Another risk is token creep. If prompt templates grow from 2,500 input tokens to 5,000 input tokens, monthly token volume nearly doubles. Retry storms can also multiply demand during dependency issues. Database growth can become a long-term risk if audit artifacts are stored in PostgreSQL rather than Azure Blob Storage.
 
 ### Recommendations
 
-Use 3x average as the initial peak assumption and 2x additional factor for burst/retry concurrency. Size production for at least 10 concurrent audit workflows and 500 queued audits without degradation. Start with two GPU nodes for N+1 HA, two API replicas, two worker replicas, Redis HA, and Cloud SQL HA. Track actual tokens per audit and use it as a scaling input. Keep large artifacts in GCS and store structured metadata in PostgreSQL. Review capacity after 30, 60, and 90 days of production traffic.
+Use 3x average as the initial peak assumption and 2x additional factor for burst/retry concurrency. Size production for at least 10 concurrent audit workflows and 500 queued audits without degradation. Start with two GPU nodes for N+1 HA, two API replicas, two worker replicas, Redis HA, and Azure Database for PostgreSQL HA. Track actual tokens per audit and use it as a scaling input. Keep large artifacts in Azure Blob Storage and store structured metadata in PostgreSQL. Review capacity after 30, 60, and 90 days of production traffic.
 
 ## 42. Performance Estimation
 
@@ -700,7 +698,7 @@ The purpose of performance estimation is to predict whether Auto QRA can meet th
 
 ### Description
 
-Auto QRA performance is dominated by model inference but also includes PII masking, prompt assembly, queue wait time, result validation, database persistence, GCS writes, and notification. The baseline audit contains 2,500 input tokens and 700 output tokens, for 3,200 total tokens; vLLM improves throughput through batching, but latency still depends on model size, quantization, GPU type, batch shape, and concurrency.
+Auto QRA performance is dominated by model inference but also includes PII masking, prompt assembly, queue wait time, result validation, database persistence, Azure Blob Storage writes, and notification. The baseline audit contains 2,500 input tokens and 700 output tokens, for 3,200 total tokens; vLLM improves throughput through batching, but latency still depends on model size, quantization, GPU type, batch shape, and concurrency.
 
 ### Business Justification
 
@@ -718,7 +716,7 @@ End-to-end latency budget:
 | Queue wait | 5s | Should remain low under normal peak |
 | vLLM inference | 40s | Dominant stage; varies by model and GPU |
 | Result validation and scoring | 2s | JSON schema and business rules |
-| PostgreSQL and GCS persistence | 3s | Includes audit state and artifact write |
+| PostgreSQL and Azure Blob Storage persistence | 3s | Includes audit state and artifact write |
 | Notification or UI availability | 2s | Event publication and cache update |
 | Total target | < 60s | p95 operating target |
 
@@ -763,7 +761,7 @@ Performance should be measured using realistic prompts, output constraints, and 
 
 ### Risks
 
-Performance estimates can be wrong if prompts change, quantization quality requires a larger model, output length grows, or traffic is burstier than expected. Database or GCS latency can also become visible as inference improves. GPU scale-to-zero is not acceptable because model loading can exceed the 60-second audit target.
+Performance estimates can be wrong if prompts change, quantization quality requires a larger model, output length grows, or traffic is burstier than expected. Database or Azure Blob Storage latency can also become visible as inference improves. GPU scale-to-zero is not acceptable because model loading can exceed the 60-second audit target.
 
 ### Recommendations
 
@@ -773,7 +771,7 @@ Do not scale production GPU serving to zero. Keep at least two warm GPU nodes. U
 
 ### Purpose
 
-The purpose of GPU sizing is to determine the number and type of GPU instances required to serve Auto QRA inference using vLLM with quantized 3B and 7B models on GCP. The sizing must meet the target latency of less than 60 seconds, support 60,000 audits per month, provide N+1 high availability, and leave headroom for peak traffic and retries.
+The purpose of GPU sizing is to determine the number and type of GPU instances required to serve Auto QRA inference using vLLM with quantized 3B and 7B models on Azure. The sizing must meet the target latency of less than 60 seconds, support 60,000 audits per month, provide N+1 high availability, and leave headroom for peak traffic and retries.
 
 ### Description
 
@@ -864,11 +862,23 @@ The main GPU sizing risk is relying on theoretical tokens per second. Real throu
 
 Use two L40 48GB GPU nodes for the initial production deployment if benchmark results confirm p95 audit latency below 60 seconds for the selected 7B quantized model. Keep A100 80GB as the performance upgrade path for larger models, heavier batch windows, or stricter latency. Maintain N+1 GPU capacity at all times. Revisit GPU sizing when monthly audits exceed 150,000, average tokens per audit exceed 5,000, p95 inference latency exceeds 40 seconds, or GPU utilization exceeds 70% during peak windows with N+1 included.
 
+
+### Azure AKS GPU SKU Guidance
+
+| Role | Azure approach | Notes |
+| --- | --- | --- |
+| Orchestration | AKS with dedicated GPU node pool | Taints/tolerations for vLLM only |
+| GPU class (preferred validation) | NVIDIA A100-class Azure NC/ND SKUs where available | Use for 7B quantized headroom |
+| GPU class (cost-optimized) | L40 / equivalent Azure GPU SKUs where region-available | Validate quota before commit |
+| App/API/workers | Ddsv5 / Epdsv5-class CPU node pools | Separate from GPU pool |
+| Images | Azure Container Registry (ACR) | Private link to AKS |
+| Data plane | Azure Database for PostgreSQL + Azure Cache for Redis + Blob Storage | Private endpoints |
+
 ## 44. Infrastructure Sizing
 
 ### Purpose
 
-The purpose of infrastructure sizing is to define the CPU, memory, disk, network, and managed service capacity required for Auto QRA beyond GPU inference. This includes application APIs, audit workers, Redis, PostgreSQL, GCS, Superset or analytics, observability, and supporting services.
+The purpose of infrastructure sizing is to define the CPU, memory, disk, network, and managed service capacity required for Auto QRA beyond GPU inference. This includes application APIs, audit workers, Redis, PostgreSQL, Azure Blob Storage, Superset or analytics, observability, and supporting services.
 
 ### Description
 
@@ -888,9 +898,9 @@ Recommended production infrastructure:
 | Audit worker pods | 2 replicas, 4 vCPU, 8 GB RAM | 2-4 replicas, 4 vCPU, 16 GB RAM | Queue age > 60s, active jobs > 80% | CPU-heavy masking and validation |
 | PII masking service | 2 replicas, 4 vCPU, 8 GB RAM | 2-4 replicas, 4-8 vCPU, 16 GB RAM | Masking p95 > 5s | May need more CPU for DLP |
 | vLLM GPU nodes | 2 nodes, 1 GPU each | 2 L40 nodes initially | vLLM waiting requests > 20 or p95 inference > 40s | N+1 HA |
-| Redis Memorystore | HA, 5 GB | HA, 10-16 GB | Memory > 70%, queue > 500, evictions > 0 | No eviction for queue keys |
-| PostgreSQL Cloud SQL | HA, 4 vCPU, 16 GB RAM, 100 GB SSD | HA, 8 vCPU, 32 GB RAM, 250 GB SSD | CPU > 60%, connections > 70%, storage > 70% | PITR enabled |
-| GCS buckets | Regional/dual-region | Versioned, lifecycle managed | Storage growth > forecast x 1.5 | Store artifacts outside DB |
+| Redis Azure Cache for Redis | HA, 5 GB | HA, 10-16 GB | Memory > 70%, queue > 500, evictions > 0 | No eviction for queue keys |
+| PostgreSQL Azure Database for PostgreSQL | HA, 4 vCPU, 16 GB RAM, 100 GB SSD | HA, 8 vCPU, 32 GB RAM, 250 GB SSD | CPU > 60%, connections > 70%, storage > 70% | PITR enabled |
+| Azure Blob Storage buckets | Regional/dual-region | Versioned, lifecycle managed | Storage growth > forecast x 1.5 | Store artifacts outside DB |
 | Superset | 1 replica, 2 vCPU, 8 GB RAM | 2 replicas, 4 vCPU, 16 GB RAM | Dashboard p95 > 5s | Can be lower priority |
 | Prometheus | 2 vCPU, 8 GB RAM | 4 vCPU, 16 GB RAM, 200 GB disk | Query latency, disk > 70% | Cardinality controls |
 | Grafana | 1 replica, 1 vCPU, 2 GB RAM | 2 replicas, 2 vCPU, 4 GB RAM | User demand | Dashboards as code |
@@ -937,19 +947,19 @@ The main infrastructure risk is cross-workload interference. Reporting queries c
 
 ### Recommendations
 
-Start with the recommended initial sizes rather than minimum sizes for production. Use Cloud SQL HA with 8 vCPU, 32 GB RAM, and 250 GB SSD. Use Redis Memorystore HA with 10-16 GB. Run two L40 GPU nodes for vLLM. Keep API and worker services horizontally scalable. Isolate Superset and analytics from operational tables through replicas or aggregates. Review CPU, memory, disk, connection, and queue metrics monthly.
+Start with the recommended initial sizes rather than minimum sizes for production. Use Azure Database for PostgreSQL HA with 8 vCPU, 32 GB RAM, and 250 GB SSD. Use Redis Azure Cache for Redis HA with 10-16 GB. Run two L40 GPU nodes for vLLM. Keep API and worker services horizontally scalable. Isolate Superset and analytics from operational tables through replicas or aggregates. Review CPU, memory, disk, connection, and queue metrics monthly.
 
 ## 45. Cost Estimation
 
 ### Purpose
 
-The purpose of cost estimation is to provide a transparent monthly GCP cost model for Auto QRA infrastructure. The estimate includes GPU VMs, application compute, Cloud SQL/PostgreSQL, Redis Memorystore, GCS, networking, monitoring, logging, and supporting services. Costs are presented as ranges because final pricing depends on region, committed use discounts, sustained use discounts, machine families, storage classes, logging volume, and operational policies.
+The purpose of cost estimation is to provide a transparent monthly Azure cost model for Auto QRA infrastructure. The estimate includes AKS GPU node pools, application compute, Azure Database for PostgreSQL/PostgreSQL, Redis Azure Cache for Redis, Azure Blob Storage, networking, monitoring, logging, and supporting services. Costs are presented as ranges because final pricing depends on region, committed use discounts, sustained use discounts, machine families, storage classes, logging volume, and operational policies.
 
 ### Description
 
-Auto QRA cost is dominated by GPU serving. Even though monthly token volume is 192,000,000 tokens, the average throughput requirement is modest. The main cost decision is whether to keep two warm L40 nodes or two warm A100 nodes for N+1 HA. Application compute, Redis, PostgreSQL, GCS, and monitoring are smaller but still material. Logging and observability costs can grow if high-cardinality metrics or verbose logs are not controlled.
+Auto QRA cost is dominated by GPU serving. Even though monthly token volume is 192,000,000 tokens, the average throughput requirement is modest. The main cost decision is whether to keep two warm L40 nodes or two warm A100 nodes for N+1 HA. Application compute, Redis, PostgreSQL, Azure Blob Storage, and monitoring are smaller but still material. Logging and observability costs can grow if high-cardinality metrics or verbose logs are not controlled.
 
-The estimates below assume continuous production operation for approximately 730 hours per month. They assume two warm GPU nodes, managed database and cache services, production observability, moderate log retention, and GCS storage for audit artifacts. Figures are planning ranges, not quotes.
+The estimates below assume continuous production operation for approximately 730 hours per month. They assume two warm GPU nodes, managed database and cache services, production observability, moderate log retention, and Azure Blob Storage storage for audit artifacts. Figures are planning ranges, not quotes.
 
 ### Business Justification
 
@@ -961,15 +971,15 @@ Primary monthly cost estimate:
 
 | Cost category | Assumption | Low monthly estimate | High monthly estimate | Notes |
 | --- | --- | ---: | ---: | --- |
-| GPU VMs - L40 option | 2 L40 48GB nodes, 730 hrs, on-demand or discounted range | $3,500 | $9,000 | Dominant cost; region and machine type sensitive |
-| GPU VMs - A100 option | 2 A100 80GB nodes, 730 hrs, on-demand or discounted range | $8,000 | $20,000 | Use if L40 latency insufficient |
-| Application GKE/VM compute | API, workers, PII service, support pods | $600 | $2,000 | Depends on node pool and HA |
-| Cloud SQL PostgreSQL | HA, 8 vCPU, 32 GB RAM, 250 GB SSD, backups | $900 | $2,500 | Includes HA and storage range |
-| Redis Memorystore | HA, 10-16 GB | $300 | $1,000 | Tier and region dependent |
-| GCS storage | Artifacts, backups, logs archive, versioning | $100 | $600 | Current volume is small; retention drives cost |
+| AKS GPU node pools - L40 option | 2 L40 48GB nodes, 730 hrs, on-demand or discounted range | $3,500 | $9,000 | Dominant cost; region and machine type sensitive |
+| AKS GPU node pools - A100 option | 2 A100 80GB nodes, 730 hrs, on-demand or discounted range | $8,000 | $20,000 | Use if L40 latency insufficient |
+| Application AKS/VM compute | API, workers, PII service, support pods | $600 | $2,000 | Depends on node pool and HA |
+| Azure Database for PostgreSQL PostgreSQL | HA, 8 vCPU, 32 GB RAM, 250 GB SSD, backups | $900 | $2,500 | Includes HA and storage range |
+| Redis Azure Cache for Redis | HA, 10-16 GB | $300 | $1,000 | Tier and region dependent |
+| Azure Blob Storage storage | Artifacts, backups, logs archive, versioning | $100 | $600 | Current volume is small; retention drives cost |
 | Networking | Load balancing, egress, NAT, private connectivity | $200 | $1,000 | Higher if cross-region replication or egress |
 | Monitoring and logging | Metrics, logs, traces, dashboards | $500 | $2,000 | Strongly affected by log volume and cardinality |
-| Security services | KMS, Secret Manager, audit logs, DLP usage | $200 | $1,500 | DLP cost depends on scanning volume |
+| Security services | KMS, Azure Key Vault, audit logs, DLP usage | $200 | $1,500 | DLP cost depends on scanning volume |
 | Superset/analytics | Compute and metadata storage | $200 | $800 | Can be lower in early deployment |
 
 Scenario totals:
@@ -1006,7 +1016,7 @@ Cost sensitivity table:
 
 ### Best Practices
 
-Cost should be managed through explicit unit metrics. Grafana should show cost per audit, cost per 1 million tokens, GPU utilization, idle GPU hours, log ingestion volume, GCS growth, database storage growth, and retry cost. Use sampling for successful traces, retention tiers for logs, cardinality reviews for metrics, and lifecycle policies for older GCS objects where retention rules allow.
+Cost should be managed through explicit unit metrics. Grafana should show cost per audit, cost per 1 million tokens, GPU utilization, idle GPU hours, log ingestion volume, Azure Blob Storage growth, database storage growth, and retry cost. Use sampling for successful traces, retention tiers for logs, cardinality reviews for metrics, and lifecycle policies for older Azure Blob Storage objects where retention rules allow.
 
 ### Risks
 
@@ -1050,8 +1060,7 @@ flowchart TD
     Cost[Cost and Utilization Metrics] --> FinOps[Monthly Capacity Review]
     Workers --> VLLM
     Workers --> PG[(PostgreSQL)]
-    API --> Redis
-```
+    API --> Redis```
 
 Scaling triggers:
 

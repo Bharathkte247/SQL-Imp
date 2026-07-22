@@ -4,7 +4,7 @@
 **Version:** 1.0
 **Date:** July 2026
 **Scope:** Sections 47-65
-**Platform facts:** Self-hosted vLLM on GCP, 3B/7B quantized models, Docker to Kubernetes, PostgreSQL, Redis, Superset, Google Cloud Storage, SSO, RBAC, PII controls, human override, 60,000 audits per month, 30 QA parameters, target latency under 60 seconds, 99.9% availability, greater than 90% human agreement, and less than 5% hallucination rate.
+**Platform facts:** Self-hosted vLLM on Azure, 3B/7B quantized models, Docker to Kubernetes, PostgreSQL, Redis, Superset, Azure Blob Storage, Microsoft Entra ID SSO, RBAC, PII controls, human override, 60,000 audits per month, 30 QA parameters, target latency under 60 seconds, 99.9% availability, greater than 90% human agreement, and less than 5% hallucination rate.
 
 ---
 
@@ -34,7 +34,7 @@ The staged approach also supports change management. QA teams need time to compa
 | Limited Availability | 3-5 business units, supervisor dashboard, override workflow | 20%-40% of monthly audits | Human verification for sampled and disputed audits | Pilot exit gates met for two consecutive weeks | p95 latency under 60s, availability over 99.9%, agreement over 90%, hallucination under 5%, dashboard reconciliation within 1% |
 | General Availability | Eligible production queues and standard reporting | Up to 60,000 audits per month | Human override, exception sampling, calibration reviews | LA exit gates met for four consecutive weeks | Sustained SLO compliance, documented operating model, DR tested, compliance sign-off |
 
-Rollout traffic will be controlled using feature flags at tenant, queue, and role levels. Kubernetes deployment strategies will use canary releases for API and worker services, with model-serving capacity scaled separately from application services. Redis will support queueing and short-lived state. PostgreSQL will remain the system of record for audits, scores, overrides, users, roles, and version metadata. GCS will store raw conversation artifacts, redacted evidence bundles, generated explanations, and evaluation snapshots according to retention rules.
+Rollout traffic will be controlled using feature flags at tenant, queue, and role levels. Kubernetes deployment strategies will use canary releases for API and worker services, with model-serving capacity scaled separately from application services. Redis will support queueing and short-lived state. PostgreSQL will remain the system of record for audits, scores, overrides, users, roles, and version metadata. Azure Blob Storage will store raw conversation artifacts, redacted evidence bundles, generated explanations, and evaluation snapshots according to retention rules.
 
 ### Best Practices
 
@@ -46,7 +46,7 @@ Operational readiness should include playbooks for model degradation, queue back
 
 The main rollout risks are premature trust, hidden data quality issues, uneven reviewer adoption, score drift, and compliance gaps. If managers treat AI scores as final before agreement is proven, employees may receive unfair coaching. If conversation data is inconsistent, prompts may produce low-quality reasoning even when the model is healthy. If rollout metrics are averaged across queues, serious issues in a specific queue can be masked by better performance elsewhere.
 
-There is also a capacity risk. Self-hosted vLLM serving quantized 3B and 7B models on GCP can meet latency targets only if concurrency, token budgets, batching, and GPU capacity are managed. A sudden move from pilot traffic to full production traffic can exhaust inference capacity, increase queue backlog, and cause audit completion delays.
+There is also a capacity risk. Self-hosted vLLM serving quantized 3B and 7B models on Azure can meet latency targets only if concurrency, token budgets, batching, and GPU capacity are managed. A sudden move from pilot traffic to full production traffic can exhaust inference capacity, increase queue backlog, and cause audit completion delays.
 
 ### Recommendations
 
@@ -91,8 +91,7 @@ flowchart LR
     M --> N[Approval Gate]
     N --> O[Canary Deploy]
     O --> P[Production Progressive Rollout]
-    P --> Q[Post Deploy Monitoring]
-```
+    P --> Q[Post Deploy Monitoring]```
 
 Core pipeline stages:
 
@@ -108,7 +107,7 @@ Core pipeline stages:
 
 ### Best Practices
 
-Separate infrastructure deployment, database migration, and model deployment into independently observable steps while keeping them linked by release metadata. Use immutable container image digests rather than mutable tags for production. Require peer review for application changes, prompt changes, and schema migrations. Run migration tests against anonymized production-like schemas. Store AI evaluation outputs in GCS with references in PostgreSQL so each release can be audited later.
+Separate infrastructure deployment, database migration, and model deployment into independently observable steps while keeping them linked by release metadata. Use immutable container image digests rather than mutable tags for production. Require peer review for application changes, prompt changes, and schema migrations. Run migration tests against anonymized production-like schemas. Store AI evaluation outputs in Azure Blob Storage with references in PostgreSQL so each release can be audited later.
 
 Use progressive deployment for the API and workers. For vLLM model servers, prefer blue-green model pool deployment because model warmup and GPU memory allocation can be expensive and slow. Use readiness probes that verify the loaded model version, not only the HTTP process status. Block production release if the API can reach a healthy model pool but that pool is serving an unapproved model version.
 
@@ -132,7 +131,7 @@ The DevOps strategy defines how Auto QRA will be built, deployed, monitored, sca
 
 ### Description
 
-Auto QRA will run on GCP using containerized services deployed to Kubernetes. Application components include REST API services, audit orchestration workers, prompt rendering services, evaluation services, dashboard extract jobs, and administrative services. AI inference will run through self-hosted vLLM serving quantized 3B and 7B models. PostgreSQL will provide transactional persistence. Redis will handle queues, idempotency windows, short-lived locks, and transient workflow state. GCS will hold conversation payloads, redacted artifacts, generated explanations, evaluation files, and long-term report exports. Superset will provide operational and product dashboards.
+Auto QRA will run on Azure using containerized services deployed to Kubernetes. Application components include REST API services, audit orchestration workers, prompt rendering services, evaluation services, dashboard extract jobs, and administrative services. AI inference will run through self-hosted vLLM serving quantized 3B and 7B models. PostgreSQL will provide transactional persistence. Redis will handle queues, idempotency windows, short-lived locks, and transient workflow state. Azure Blob Storage will hold conversation payloads, redacted artifacts, generated explanations, evaluation files, and long-term report exports. Superset will provide operational and product dashboards.
 
 The DevOps operating model should be product-aligned rather than infrastructure-only. The team must own SLOs for audit creation, scoring completion, report availability, override workflow reliability, inference health, and evaluation quality. Production behavior will be observed through metrics, traces, logs, audit logs, dashboard reconciliation, and business KPIs.
 
@@ -140,7 +139,7 @@ The DevOps operating model should be product-aligned rather than infrastructure-
 
 DevOps maturity is essential because Auto QRA sits at the intersection of automation, people operations, compliance, and customer interaction data. An outage delays QA cycles and can affect coaching or compliance commitments. Poor observability can conceal model degradation. Weak deployment discipline can cause inconsistent scoring. A clear DevOps strategy lowers operational risk and improves confidence in the platform.
 
-The strategy also supports cost management. Self-hosted vLLM can be cost-effective versus external API calls, but only if GPU utilization, batching, autoscaling, and token budgets are actively managed. Kubernetes and GCP provide the control plane needed to balance availability, latency, and spend.
+The strategy also supports cost management. Self-hosted vLLM can be cost-effective versus external API calls, but only if GPU utilization, batching, autoscaling, and token budgets are actively managed. Kubernetes and Azure provide the control plane needed to balance availability, latency, and spend.
 
 ### Technical Details
 
@@ -149,13 +148,13 @@ Recommended service architecture:
 | Service | Responsibility | Scaling Signal | Data Stores |
 |---|---|---|---|
 | API service | REST endpoints, SSO context, RBAC, validation | request rate, p95 latency | PostgreSQL, Redis |
-| Audit worker | scoring orchestration, retries, prompt execution | queue depth, job age | PostgreSQL, Redis, GCS, vLLM |
-| Evaluation worker | golden set and regression evals | evaluation queue depth | PostgreSQL, GCS, vLLM |
+| Audit worker | scoring orchestration, retries, prompt execution | queue depth, job age | PostgreSQL, Redis, Azure Blob Storage, vLLM |
+| Evaluation worker | golden set and regression evals | evaluation queue depth | PostgreSQL, Azure Blob Storage, vLLM |
 | Model gateway | routing to vLLM pools, token limits, timeout policy | inference latency, GPU utilization | Redis, vLLM |
 | Admin service | prompt/model version promotion, RBAC admin | admin request rate | PostgreSQL |
-| Reporting extractor | aggregates for Superset datasets | schedule duration | PostgreSQL, GCS |
+| Reporting extractor | aggregates for Superset datasets | schedule duration | PostgreSQL, Azure Blob Storage |
 
-Kubernetes namespaces should separate development, staging, and production. Production should use dedicated node pools for API workloads, worker workloads, and GPU inference workloads. Workload identity should be used for GCS access. Secrets should be managed through GCP Secret Manager or an approved secrets operator. Network policies should restrict lateral movement between services.
+Kubernetes namespaces should separate development, staging, and production. Production should use dedicated node pools for API workloads, worker workloads, and GPU inference workloads. Workload identity should be used for Azure Blob Storage access. Secrets should be managed through Azure Key Vault or an approved secrets operator. Network policies should restrict lateral movement between services.
 
 ### Best Practices
 
@@ -165,7 +164,7 @@ For observability, establish golden signals for each service: latency, traffic, 
 
 ### Risks
 
-Operational risks include GPU capacity exhaustion, Redis queue accumulation, PostgreSQL lock contention, dashboard extract lag, SSO outage, GCS permission misconfiguration, and vLLM model crash loops. AI-specific risks include drift, increased hallucination, prompt regression, model version mismatch, and non-deterministic scoring changes caused by sampling configuration changes.
+Operational risks include GPU capacity exhaustion, Redis queue accumulation, PostgreSQL lock contention, dashboard extract lag, SSO outage, Azure Blob Storage permission misconfiguration, and vLLM model crash loops. AI-specific risks include drift, increased hallucination, prompt regression, model version mismatch, and non-deterministic scoring changes caused by sampling configuration changes.
 
 There is also a cultural risk: if AI quality is treated as separate from production operations, incidents may be routed too late or to the wrong owner. Model degradation should be handled with the same urgency and discipline as API degradation when it affects business outcomes.
 
@@ -242,8 +241,7 @@ flowchart TD
     C --> D[Unit Tests]
     E[AI Evaluation Layer] --> B
     E --> C
-    E --> D
-```
+    E --> D```
 
 The AI evaluation layer is shown alongside the pyramid because it applies to multiple levels. A prompt renderer may be unit tested, while a full golden-set evaluation is closer to an integration or system test.
 
@@ -258,14 +256,14 @@ Strong testing also reduces release cycle time. When teams can trust automated t
 | Test Level | Scope | Examples | Frequency | Owner |
 |---|---|---|---|---|
 | Unit | deterministic functions | scoring aggregation, RBAC predicates, prompt variable validation | every commit | Engineering |
-| Integration | services and data stores | audit worker with PostgreSQL, Redis retries, GCS artifact writes | every PR and nightly | Engineering |
+| Integration | services and data stores | audit worker with PostgreSQL, Redis retries, Azure Blob Storage artifact writes | every PR and nightly | Engineering |
 | Contract | API compatibility | OpenAPI request/response schema, error codes | every PR | Engineering |
 | E2E | full workflow | create audit, run model, score parameters, override, report | staging and release | QA Automation |
 | Performance | scale and latency | 60k monthly equivalent load, p95 completion under 60s | release and quarterly | SRE |
 | Security | vulnerabilities and access | SAST, DAST, secret scan, RBAC tests | every PR and monthly | Security |
 | AI evaluation | model and prompt quality | golden set, agreement tests, hallucination probes | prompt/model PR and nightly | AI Owner |
 
-Critical test data sets include anonymized production conversations, synthetic edge cases, adversarial prompts, short and long conversations, multilingual samples if supported, regulatory-policy examples, and known disagreement cases. Test data must be versioned and stored securely in GCS with metadata in PostgreSQL.
+Critical test data sets include anonymized production conversations, synthetic edge cases, adversarial prompts, short and long conversations, multilingual samples if supported, regulatory-policy examples, and known disagreement cases. Test data must be versioned and stored securely in Azure Blob Storage with metadata in PostgreSQL.
 
 ### Best Practices
 
@@ -425,7 +423,7 @@ Model versioning defines how self-hosted vLLM models are identified, configured,
 
 ### Description
 
-Auto QRA will use self-hosted quantized models served by vLLM on GCP. Model versions include base model identifier, quantization method, artifact URI, tokenizer version, serving configuration, GPU profile, context window, safety constraints, compatible prompt versions, and evaluation results. Because model behavior can change with quantization, tokenizer changes, decoding parameters, and vLLM runtime versions, model versioning must include more than the base model name.
+Auto QRA will use self-hosted quantized models served by vLLM on Azure. Model versions include base model identifier, quantization method, artifact URI, tokenizer version, serving configuration, GPU profile, context window, safety constraints, compatible prompt versions, and evaluation results. Because model behavior can change with quantization, tokenizer changes, decoding parameters, and vLLM runtime versions, model versioning must include more than the base model name.
 
 Model promotion will follow a controlled path from imported, benchmarked, evaluated, approved, canary, production, deprecated, and retired states. Production model pools should be immutable for a given model version. New versions should be deployed to separate pools and receive traffic through the model gateway after approval.
 
@@ -450,7 +448,7 @@ Model version schema:
   "vllm_version": "0.x",
   "status": "candidate",
   "context_window": 32768,
-  "gpu_profile": "gcp-l4-or-a100-nodepool",
+  "gpu_profile": "aks-ncadsa100-or-ncas-t4-v3-nodepool",
   "max_concurrency_per_replica": 8,
   "default_temperature": 0.0,
   "default_top_p": 1.0,
@@ -476,7 +474,7 @@ Promotion rules:
 
 ### Best Practices
 
-Treat model artifacts as immutable. Store model metadata in PostgreSQL and artifacts in GCS with restricted access. Use signed artifacts or checksums to detect tampering. Maintain separate vLLM deployments for candidate and production versions. Record serving parameters and runtime versions because they affect outputs and latency.
+Treat model artifacts as immutable. Store model metadata in PostgreSQL and artifacts in Azure Blob Storage with restricted access. Use signed artifacts or checksums to detect tampering. Maintain separate vLLM deployments for candidate and production versions. Record serving parameters and runtime versions because they affect outputs and latency.
 
 Use shadow evaluation before routing production decisions to a new model. Compare score distributions, parameter-level agreement, refusal patterns, token usage, and explanation length. For 3B models, use cases should be limited to lower complexity or latency-sensitive flows unless evaluation proves sufficient agreement. For 7B models, capacity planning must account for GPU memory, batching, and context length.
 
@@ -738,7 +736,7 @@ Readiness health for dependencies.
   "checks": {
     "postgresql": "ok",
     "redis": "ok",
-    "gcs": "ok",
+    "azure_blob": "ok",
     "model_gateway": "ok",
     "active_prompt_version": "pv_2026_07_001",
     "active_model_version": "mv_2026_07_7b_q4"
@@ -789,7 +787,7 @@ The database schema defines the transactional foundation for audits, scores, QA 
 
 ### Description
 
-PostgreSQL is the system of record for Auto QRA. The schema must store audit lifecycle state, score details for up to 30 QA parameters per audit, conversation metadata, human overrides, prompt and model metadata, user and role assignments, and immutable audit logs. Large conversation artifacts and generated evidence bundles should be stored in GCS, with PostgreSQL storing URIs and metadata.
+PostgreSQL is the system of record for Auto QRA. The schema must store audit lifecycle state, score details for up to 30 QA parameters per audit, conversation metadata, human overrides, prompt and model metadata, user and role assignments, and immutable audit logs. Large conversation artifacts and generated evidence bundles should be stored in Azure Blob Storage, with PostgreSQL storing URIs and metadata.
 
 The schema must preserve historical context. If a QA parameter changes later, past audits must still be interpretable. If a prompt or model is retired, its version record must remain. If a user leaves the company, override and audit log records must remain attributable through stable identifiers and governed retention rules.
 
@@ -812,8 +810,7 @@ erDiagram
     users ||--o{ overrides : "creates"
     users ||--o{ audit_logs : "acts"
     roles ||--o{ users : "assigned_to"
-    audits ||--o{ audit_logs : "referenced_by"
-```
+    audits ||--o{ audit_logs : "referenced_by"```
 
 Core DDL:
 
@@ -1125,7 +1122,7 @@ Operational KPIs define whether Auto QRA is reliable, performant, scalable, and 
 
 ### Description
 
-Operational KPIs are owned by SRE, Engineering, and Operations. They ensure the platform can process 60,000 audits per month while meeting p95 audit completion latency under 60 seconds and 99.9% availability. They also provide early warning when Redis queues, PostgreSQL, GCS, API services, or vLLM model servers are approaching limits.
+Operational KPIs are owned by SRE, Engineering, and Operations. They ensure the platform can process 60,000 audits per month while meeting p95 audit completion latency under 60 seconds and 99.9% availability. They also provide early warning when Redis queues, PostgreSQL, Azure Blob Storage, API services, or vLLM model servers are approaching limits.
 
 Operational KPIs must be reviewed at different cadences. Real-time metrics support alerting and incident response. Weekly metrics support capacity planning. Monthly metrics support cost and reliability governance.
 
@@ -1160,7 +1157,7 @@ Capacity tests should model monthly volume, peak concurrency, long conversations
 
 Operational KPI risks include measuring the wrong layer, alert fatigue, hidden backlog, cost surprises, and insufficient GPU capacity. A healthy API can still produce poor user experience if workers are delayed or model inference is timing out. A low average latency can hide p95 or p99 failures.
 
-Another risk is incomplete dependency monitoring. GCS errors, SSO failures, and Superset extract failures may not appear as API errors but still impair business workflows.
+Another risk is incomplete dependency monitoring. Azure Blob Storage errors, SSO failures, and Superset extract failures may not appear as API errors but still impair business workflows.
 
 ### Recommendations
 
@@ -1279,9 +1276,9 @@ Compliance defines how Auto QRA protects personal data, supports privacy rights,
 
 ### Description
 
-Auto QRA processes conversation data that may contain customer PII, employee identifiers, case metadata, and sensitive operational information. The platform must use privacy-by-design controls: data minimization, purpose limitation, access restriction, retention enforcement, encryption, audit logging, and human oversight. Because the platform is self-hosted on GCP with vLLM, the organization retains greater control over data movement but also bears responsibility for infrastructure, model artifact, and access controls.
+Auto QRA processes conversation data that may contain customer PII, employee identifiers, case metadata, and sensitive operational information. The platform must use privacy-by-design controls: data minimization, purpose limitation, access restriction, retention enforcement, encryption, audit logging, and human oversight. Because the platform is self-hosted on Azure with vLLM, the organization retains greater control over data movement but also bears responsibility for infrastructure, model artifact, and access controls.
 
-Compliance readiness should be built into architecture and operations rather than handled as a late review. API access, Superset dashboards, GCS buckets, PostgreSQL tables, Redis usage, logs, prompts, model outputs, and evaluation datasets all require control consideration.
+Compliance readiness should be built into architecture and operations rather than handled as a late review. API access, Superset dashboards, Azure Blob Storage buckets, PostgreSQL tables, Redis usage, logs, prompts, model outputs, and evaluation datasets all require control consideration.
 
 ### Business Justification
 
@@ -1295,8 +1292,8 @@ Compliance controls mapping:
 |---|---|---|---|
 | Purpose limitation | use data for defined QA purposes | documented processing purpose | approved data processing register and product policy |
 | Data minimization | collect only needed fields | data classification and design review | store conversation URI and required metadata, avoid unnecessary PII fields |
-| Access control | restrict personal data access | logical access controls | SSO, RBAC, least privilege, quarterly access review |
-| Encryption | protect data in transit and at rest | encryption controls | TLS, GCP-managed or customer-managed encryption, encrypted PostgreSQL and GCS |
+| Access control | restrict personal data access | logical access controls | Microsoft Entra ID SSO, RBAC, least privilege, quarterly access review |
+| Encryption | protect data in transit and at rest | encryption controls | TLS, Azure-managed or customer-managed encryption, encrypted PostgreSQL and Azure Blob Storage |
 | Audit logging | record access and changes | logging and monitoring | immutable `audit_logs`, admin logs, Superset access logs |
 | Retention | delete or anonymize when no longer needed | retention policy and job evidence | retention timestamps and scheduled deletion jobs |
 | Data subject rights | support access/deletion requests where applicable | request handling process | locate records by external identifiers and apply approved deletion/anonymization |
@@ -1310,7 +1307,7 @@ PII handling requirements include transcript redaction where feasible, strict ac
 
 ### Best Practices
 
-Conduct privacy impact assessments before GA and before expanding to new regions, channels, or data categories. Use data classification labels for GCS buckets, PostgreSQL columns, and Superset datasets. Keep raw conversation artifacts separate from redacted versions. Give most reviewers access to redacted evidence rather than raw transcripts unless raw access is required.
+Conduct privacy impact assessments before GA and before expanding to new regions, channels, or data categories. Use data classification labels for Azure Blob Storage buckets, PostgreSQL columns, and Superset datasets. Keep raw conversation artifacts separate from redacted versions. Give most reviewers access to redacted evidence rather than raw transcripts unless raw access is required.
 
 For SOC2 readiness, maintain evidence for access reviews, change approvals, vulnerability management, incident response, backup tests, DR tests, monitoring, and vendor/model approvals. Compliance should review prompt instructions to ensure they do not direct the model to make employment, legal, or compliance conclusions beyond the approved QA rubric.
 
@@ -1357,13 +1354,13 @@ Production readiness checklist:
 | Product and rollout | 9 | Release notes template approved |
 | Product and rollout | 10 | Change communications plan approved |
 | Architecture | 11 | Target architecture approved |
-| Architecture | 12 | GCP project and network design reviewed |
+| Architecture | 12 | Azure project and network design reviewed |
 | Architecture | 13 | Kubernetes namespaces configured |
 | Architecture | 14 | API, worker, evaluator, and admin service boundaries documented |
 | Architecture | 15 | vLLM serving architecture approved |
 | Architecture | 16 | PostgreSQL sizing reviewed |
 | Architecture | 17 | Redis sizing reviewed |
-| Architecture | 18 | GCS bucket structure and access model approved |
+| Architecture | 18 | Azure Blob Storage bucket structure and access model approved |
 | Architecture | 19 | Superset deployment and dataset model approved |
 | Architecture | 20 | Dependency map documented |
 | CI/CD | 21 | Docker builds are reproducible |
@@ -1432,7 +1429,7 @@ Production readiness checklist:
 | Reliability | 84 | vLLM health monitoring active |
 | Reliability | 85 | PostgreSQL monitoring active |
 | Reliability | 86 | Redis monitoring active |
-| Reliability | 87 | GCS error monitoring active |
+| Reliability | 87 | Azure Blob Storage error monitoring active |
 | Reliability | 88 | Superset freshness monitoring active |
 | Reliability | 89 | Paging alerts configured |
 | Reliability | 90 | Ticket alerts configured |
@@ -1568,8 +1565,8 @@ Enterprise design packages are used by diverse stakeholders. Shared definitions 
 | DR | Disaster Recovery |
 | ER | Entity Relationship |
 | GA | General Availability |
-| GCP | Google Cloud Platform |
-| GCS | Google Cloud Storage |
+| Azure | Microsoft Azure |
+| Azure Blob Storage | Azure Blob Storage |
 | GDPR | General Data Protection Regulation |
 | KPI | Key Performance Indicator |
 | Kubernetes | Container orchestration platform, often abbreviated as K8s |
@@ -1585,7 +1582,7 @@ Enterprise design packages are used by diverse stakeholders. Shared definitions 
 
 #### Reference architecture summary
 
-Auto QRA runs on GCP with Docker images deployed to Kubernetes. REST API services receive audit requests and enforce SSO/RBAC. Audit workers use Redis queues, load conversation artifacts from GCS, render approved prompts, call a model gateway, and receive structured output from self-hosted vLLM serving quantized 3B or 7B models. PostgreSQL stores audits, scores, overrides, version metadata, users, roles, and audit logs. Superset reads governed reporting views for dashboards. GCS stores raw and redacted conversation artifacts, prompt templates, model artifacts, evaluation datasets, and report exports.
+Auto QRA runs on Azure with Docker images deployed to Kubernetes. REST API services receive audit requests and enforce SSO/RBAC. Audit workers use Redis queues, load conversation artifacts from Azure Blob Storage, render approved prompts, call a model gateway, and receive structured output from self-hosted vLLM serving quantized 3B or 7B models. PostgreSQL stores audits, scores, overrides, version metadata, users, roles, and audit logs. Superset reads governed reporting views for dashboards. Azure Blob Storage stores raw and redacted conversation artifacts, prompt templates, model artifacts, evaluation datasets, and report exports.
 
 The system is designed for 60,000 audits per month, 30 QA parameters, p95 latency under 60 seconds, 99.9% availability, greater than 90% agreement with human QA, and less than 5% hallucination. Human override remains part of the core workflow.
 
@@ -1593,7 +1590,7 @@ The system is designed for 60,000 audits per month, 30 QA parameters, p95 latenc
 
 | ID | Assumption | Impact if False | Owner |
 |---|---|---|---|
-| A-001 | Conversation artifacts can be stored in GCS with approved retention controls. | Storage and privacy architecture must be revised. | Data Governance |
+| A-001 | Conversation artifacts can be stored in Azure Blob Storage with approved retention controls. | Storage and privacy architecture must be revised. | Data Governance |
 | A-002 | Historical human-scored audits are available for golden-set creation. | Pilot evaluation timeline extends. | QA Operations |
 | A-003 | SSO groups can be mapped to Auto QRA RBAC roles. | Custom identity workflow required. | Security |
 | A-004 | Quantized 7B model can meet p95 latency under 60s at planned concurrency. | GPU capacity or model routing plan must change. | AI Platform |
@@ -1619,7 +1616,7 @@ The system is designed for 60,000 audits per month, 30 QA parameters, p95 latenc
 
 | ID | Decision | Rationale | Date |
 |---|---|---|---|
-| D-001 | Use self-hosted vLLM on GCP. | Supports data control, cost management, and enterprise deployment requirements. | July 2026 |
+| D-001 | Use self-hosted vLLM on Azure. | Supports data control, cost management, and enterprise deployment requirements. | July 2026 |
 | D-002 | Use PostgreSQL as the system of record. | Provides transactional consistency and mature governance controls. | July 2026 |
 | D-003 | Use Redis for queues and transient workflow state. | Supports scalable asynchronous audit processing. | July 2026 |
 | D-004 | Use Superset for dashboards. | Aligns with specified reporting platform and enables governed BI. | July 2026 |

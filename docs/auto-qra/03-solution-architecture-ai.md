@@ -12,7 +12,7 @@ This section defines the overall solution architecture for Auto Quality Review A
 
 Auto QRA is a distributed audit automation platform. It ingests audit candidates from enterprise systems, normalizes the input, masks personally identifiable information, retrieves the applicable quality rubric and policy references, calls a self-hosted LLM served by vLLM, applies deterministic business rules, calculates confidence, stores audit outputs, and routes low-confidence or policy-sensitive decisions to human reviewers. The design separates orchestration, AI inference, rule evaluation, storage, and reporting so that each layer can scale and evolve independently.
 
-The solution uses Docker as the current deployment unit and is designed to be future-ready for Kubernetes. The initial production architecture runs containerized services on GCP virtual machines or managed container runtime infrastructure, with GPU nodes dedicated to vLLM. The target architecture uses GKE node pools with NVIDIA L40 48GB or A100 80GB GPUs for model serving, CPU node pools for API and worker services, PostgreSQL for relational audit data, Redis for asynchronous work queues, and GCS for transcripts, evidence payloads, model artifacts, policy files, prompt versions, batch exports, and immutable audit attachments.
+The solution uses Docker-packaged services deployed to **Azure Kubernetes Service (AKS)** as the production orchestration platform. Production architecture uses AKS node pools with NVIDIA L40 48GB or A100 80GB-class GPUs for vLLM model serving, CPU node pools for API and worker services, Azure Database for PostgreSQL for relational audit data, Azure Cache for Redis for asynchronous work queues, and Azure Blob Storage for transcripts, evidence payloads, model artifacts, policy files, prompt versions, batch exports, and immutable audit attachments.
 
 The platform intentionally combines probabilistic AI outputs with deterministic controls. The LLM proposes parameter-level ratings, evidence citations, and explanations. The business rules engine enforces contractual rules, compliance rules, escalation rules, and score caps. The confidence scoring layer assesses model confidence, retrieval confidence, rule confidence, data completeness, and disagreement signals. The human override workflow provides accountable review for low-confidence, high-impact, or exception cases.
 
@@ -44,7 +44,7 @@ flowchart TB
     subgraph Data["Data Layer"]
         Redis["Redis Queue"]
         PG["PostgreSQL"]
-        GCS["Google Cloud Storage"]
+        AzureBlobStorage["Azure Blob Storage"]
         Vector["pgvector Optional"]
     end
 
@@ -66,7 +66,7 @@ flowchart TB
     PII --> Redis
     Redis --> Orchestrator
     Orchestrator --> Retrieval
-    Retrieval --> GCS
+    Retrieval --> AzureBlobStorage
     Retrieval --> Vector
     Orchestrator --> Prompt
     Prompt --> VLLM
@@ -78,8 +78,7 @@ flowchart TB
     Confidence --> Review
     Review --> PG
     Reporting --> PG
-    Reporting --> GCS
-```
+    Reporting --> AzureBlobStorage```
 
 ### Business Justification
 
@@ -91,9 +90,9 @@ The architecture supports measurable business outcomes: reduced cycle time, lowe
 
 ### Technical Details
 
-The core transaction begins when an audit candidate is submitted through an API, batch job, or integration connector. The ingestion service validates schema, assigns a correlation ID, writes raw references to GCS when needed, and creates a normalized audit request. The PII masking service replaces names, phone numbers, account numbers, email addresses, and other configured identifiers with reversible or irreversible placeholders based on policy. Masked text and metadata are stored separately from restricted raw artifacts.
+The core transaction begins when an audit candidate is submitted through an API, batch job, or integration connector. The ingestion service validates schema, assigns a correlation ID, writes raw references to Azure Blob Storage when needed, and creates a normalized audit request. The PII masking service replaces names, phone numbers, account numbers, email addresses, and other configured identifiers with reversible or irreversible placeholders based on policy. Masked text and metadata are stored separately from restricted raw artifacts.
 
-Redis queues separate ingestion from processing. The audit orchestrator consumes queued work, resolves the active rubric version, retrieves policy snippets or few-shot examples, builds prompts, calls the vLLM server, validates the response schema, applies business rules, computes confidence, and writes results to PostgreSQL. GCS stores large objects, prompt snapshots, masked transcripts, source evidence, generated reports, and export files.
+Redis queues separate ingestion from processing. The audit orchestrator consumes queued work, resolves the active rubric version, retrieves policy snippets or few-shot examples, builds prompts, calls the vLLM server, validates the response schema, applies business rules, computes confidence, and writes results to PostgreSQL. Azure Blob Storage stores large objects, prompt snapshots, masked transcripts, source evidence, generated reports, and export files.
 
 The AI inference tier uses vLLM because it provides efficient continuous batching, paged attention, OpenAI-compatible serving patterns, and strong GPU utilization. Quantized 3B or 7B models are appropriate for the latency target when prompts are controlled, retrieval is compact, and output schemas are bounded. L40 48GB GPUs provide a practical cost-performance balance for 7B quantized inference. A100 80GB GPUs are reserved for higher concurrency, larger context windows, calibration runs, or future model upgrades.
 
@@ -106,7 +105,7 @@ The AI inference tier uses vLLM because it provides efficient continuous batchin
 - Require structured JSON output from the model and validate it before applying rules or persisting scores.
 - Use deterministic business rules to cap, override, or escalate LLM recommendations when policies require consistency.
 - Track per-parameter confidence and decision reasons rather than only an aggregate score.
-- Design every service for Docker today and Kubernetes scheduling, probes, and scaling tomorrow.
+- Design every service for AKS scheduling, probes, resource requests/limits, and horizontal scaling from day one.
 
 ### Risks
 
@@ -130,7 +129,7 @@ This section identifies the major software components in Auto QRA and describes 
 
 Auto QRA is decomposed into services that align with business capabilities. The web portal supports administrative configuration, audit review, reporting, and human override. The API gateway centralizes authentication, rate limiting, and request routing. The ingestion service accepts audit candidates from upstream systems. The PII masking service protects sensitive data before AI processing. The audit orchestrator coordinates queue consumption, retrieval, prompting, inference, rules, confidence, and persistence.
 
-The AI subsystem consists of the retrieval service, prompt builder, vLLM inference server, and model registry. The deterministic subsystem consists of the business rules engine, confidence service, exception manager, and human review workflow. Storage components include PostgreSQL, Redis, GCS, and optionally pgvector for semantic retrieval. Observability components include structured logging, metrics, tracing, audit events, and operational dashboards.
+The AI subsystem consists of the retrieval service, prompt builder, vLLM inference server, and model registry. The deterministic subsystem consists of the business rules engine, confidence service, exception manager, and human review workflow. Storage components include PostgreSQL, Redis, Azure Blob Storage, and optionally pgvector for semantic retrieval. Observability components include structured logging, metrics, tracing, audit events, and operational dashboards.
 
 ```mermaid
 flowchart LR
@@ -170,7 +169,7 @@ flowchart LR
     subgraph Platforms["Platform Services"]
         Redis["Redis"]
         Postgres["PostgreSQL"]
-        GCS["GCS"]
+        AzureBlobStorage["Azure Blob Storage"]
         VLLM["vLLM Server"]
         Registry["Model/Prompt Registry"]
         Metrics["Metrics and Logs"]
@@ -199,19 +198,18 @@ flowchart LR
     Conf --> Postgres
     Review --> Postgres
     Report --> Postgres
-    Report --> GCS
-    Export --> GCS
+    Report --> AzureBlobStorage
+    Export --> AzureBlobStorage
     Notify --> Web
     Core --> Metrics
     Intelligence --> Metrics
-    ReviewOps --> Metrics
-```
+    ReviewOps --> Metrics```
 
 ### Business Justification
 
 The component model allows the business to scale audit throughput without turning the system into a monolith. Each capability has a clear control point. Security teams can review the masking boundary. Compliance teams can review rules and exception workflows. AI governance teams can review prompt and model registries. Operations teams can scale workers independently from GPU inference.
 
-This separation also supports phased delivery. A minimal viable release can include ingestion, masking, queueing, orchestration, vLLM inference, scoring, and reporting. Later releases can add richer retrieval, pgvector, calibration dashboards, advanced override workflows, and Kubernetes autoscaling without rewriting the whole system.
+This separation also supports phased delivery. A minimal viable release can include ingestion, masking, queueing, orchestration, vLLM inference, scoring, and reporting. Later releases can add richer retrieval, pgvector, calibration dashboards, advanced override workflows, and finer-grained AKS autoscaling without rewriting the whole system.
 
 ### Technical Details
 
@@ -219,7 +217,7 @@ The API gateway should validate authentication tokens from the enterprise SSO pr
 
 The audit worker should be stateless and horizontally scalable. It should claim jobs from Redis, obtain idempotency locks, execute orchestration, update job status, and publish retry or dead-letter events when needed. The orchestrator should not embed all scoring logic directly. It should call domain services for rubric resolution, retrieval, prompt construction, inference, rule evaluation, confidence scoring, and exception handling.
 
-The vLLM client should implement request timeouts, retry limits for transient transport failures, token budget controls, schema validation, and circuit-breaker behavior. The vLLM server should be deployed on GPU-capable infrastructure with model artifacts loaded from a controlled model registry or GCS bucket. PostgreSQL should store normalized audit entities, parameter results, override records, rule execution traces, confidence metrics, and reporting dimensions.
+The vLLM client should implement request timeouts, retry limits for transient transport failures, token budget controls, schema validation, and circuit-breaker behavior. The vLLM server should be deployed on GPU-capable infrastructure with model artifacts loaded from a controlled model registry or Azure Blob Storage bucket. PostgreSQL should store normalized audit entities, parameter results, override records, rule execution traces, confidence metrics, and reporting dimensions.
 
 ### Best Practices
 
@@ -248,21 +246,21 @@ Start with a small number of independently deployable services: API, worker, vLL
 
 ### Purpose
 
-This section defines the target cloud infrastructure for Auto QRA on Google Cloud Platform. It explains how compute, GPU resources, storage, networking, secrets, observability, and future Kubernetes resources support a secure and scalable audit automation platform.
+This section defines the target cloud infrastructure for Auto QRA on Microsoft Azure. It explains how compute, GPU resources, storage, networking, secrets, observability, and future Kubernetes resources support a secure and scalable audit automation platform.
 
 ### Description
 
-Auto QRA runs on GCP with containerized workloads. The initial architecture uses Docker-based deployment for application services and vLLM GPU inference. The infrastructure is arranged into separate layers for ingress, application processing, AI inference, data persistence, object storage, and operations. The architecture is Kubernetes-ready, meaning container images, configuration, service boundaries, health checks, secrets, resource requests, and stateless workers are designed so they can move to GKE with limited rework.
+Auto QRA runs on Microsoft Azure with containerized workloads deployed to **AKS**. Application services and vLLM GPU inference run as Kubernetes workloads. The infrastructure is arranged into separate layers for ingress (Application Gateway), application processing, AI inference, data persistence, object storage, and operations. Container images, configuration, service boundaries, health checks, Azure Key Vault secrets, resource requests, and stateless workers are designed for AKS from the first production release.
 
 The AI inference layer uses NVIDIA L40 48GB or A100 80GB GPUs. L40 GPUs are suitable for cost-efficient 3B and 7B quantized model inference with controlled prompt size. A100 GPUs provide additional memory and throughput headroom for larger batches, bigger context windows, and future model growth. vLLM runs close to the worker tier in private networking to minimize latency and avoid exposing model endpoints to the public internet.
 
 ```mermaid
 flowchart TB
-    subgraph GCP["GCP Project"]
-        subgraph VPC["Private VPC"]
+    subgraph Azure["Azure Project"]
+        subgraph VNet["Private Azure VNet"]
             subgraph PublicSubnet["Public Subnet"]
                 LB["HTTPS Load Balancer"]
-                NAT["Cloud NAT"]
+                NAT["Azure NAT Gateway"]
             end
 
             subgraph AppSubnet["Application Subnet"]
@@ -280,16 +278,16 @@ flowchart TB
             subgraph DataSubnet["Data Subnet"]
                 Redis["Redis Queue"]
                 PG["PostgreSQL"]
-                PrivateEndpoint["Private Service Connect"]
+                PrivateEndpoint["Azure Private Link"]
             end
         end
 
-        GCS["GCS Buckets"]
-        Secrets["Secret Manager"]
-        IAM["IAM and Workload Identity"]
-        Logs["Cloud Logging"]
-        Metrics["Cloud Monitoring"]
-        Registry["Artifact Registry"]
+        AzureBlobStorage["Azure Blob Storage Buckets"]
+        Secrets["Azure Key Vault"]
+        IAM["IAM and Azure Workload Identity"]
+        Logs["Azure Monitor Logs"]
+        Metrics["Azure Monitor"]
+        Registry["Azure Container Registry (ACR)"]
     end
 
     Internet["Enterprise Network/Internet"] --> LB
@@ -300,44 +298,43 @@ flowchart TB
     Workers --> PG
     Workers --> VLLM1
     Workers --> VLLM2
-    Workers --> GCS
+    Workers --> AzureBlobStorage
     Workers --> Secrets
-    VLLM1 --> GCS
-    VLLM2 --> GCS
+    VLLM1 --> AzureBlobStorage
+    VLLM2 --> AzureBlobStorage
     AppSubnet --> NAT
     Registry --> AppSubnet
     Registry --> AISubnet
-    Logs --> Metrics
-```
+    Logs --> Metrics```
 
 ### Business Justification
 
-GCP provides the GPU availability, storage durability, private networking, and operational tooling required by Auto QRA. Using self-hosted GPUs gives the business direct control over model runtime, data residency, cost, and latency. GCS supports low-cost, durable retention of large audit artifacts. PostgreSQL supports strong transactional integrity for audit decisions and review workflows. Redis supports burst absorption and asynchronous processing.
+Azure provides the GPU availability, storage durability, private networking, and operational tooling required by Auto QRA. Using self-hosted GPUs gives the business direct control over model runtime, data residency, cost, and latency. Azure Blob Storage supports low-cost, durable retention of large audit artifacts. PostgreSQL supports strong transactional integrity for audit decisions and review workflows. Redis supports burst absorption and asynchronous processing.
 
-The infrastructure architecture balances near-term delivery with future scale. Docker deployment allows a practical first production release. Kubernetes readiness avoids locking the organization into a manually managed deployment model. As audit volume grows or concurrency patterns become more variable, GKE can provide autoscaling, rolling deployment, scheduling constraints, and stronger workload isolation.
+The infrastructure architecture balances delivery speed with enterprise scale by standardizing on AKS. Helm-based releases, rolling deployments, HPA/KEDA scaling, GPU node-pool isolation, and network policies provide the operating model required for 99.9% availability and controlled growth beyond 60,000 audits per month.
 
 ### Technical Details
 
 The recommended infrastructure separates environments into development, staging, and production projects or folders. Each environment should have isolated networks, databases, buckets, Redis instances, secrets, and service accounts. Production should use private subnets for application, data, and AI services. Public ingress should terminate at an HTTPS load balancer or approved enterprise ingress layer. Backend services should communicate over private IP.
 
-PostgreSQL may be implemented with Cloud SQL for PostgreSQL or a managed PostgreSQL service approved by the enterprise. It should use private IP connectivity, automated backups, point-in-time recovery, high availability for production, and read replicas if reporting load becomes material. Redis may be implemented with Memorystore or a containerized Redis for early lower-risk environments; production should prefer managed Redis for availability and operational support.
+PostgreSQL may be implemented with Azure Database for PostgreSQL or a managed PostgreSQL service approved by the enterprise. It should use private IP connectivity, automated backups, point-in-time recovery, high availability for production, and read replicas if reporting load becomes material. Redis may be implemented with Azure Cache for Redis or a containerized Redis for early lower-risk environments; production should prefer managed Redis for availability and operational support.
 
-GCS buckets should be separated by data class. Recommended buckets include raw-audit-ingest, masked-audit-artifacts, policy-rubric-content, model-artifacts, generated-reports, and operational-exports. Each bucket should use lifecycle policies, uniform bucket-level access, CMEK where required, and object versioning for policies and prompts.
+Azure Blob Storage buckets should be separated by data class. Recommended buckets include raw-audit-ingest, masked-audit-artifacts, policy-rubric-content, model-artifacts, generated-reports, and operational-exports. Each bucket should use lifecycle policies, uniform bucket-level access, CMEK where required, and object versioning for policies and prompts.
 
 ### Best Practices
 
 - Use private IP for PostgreSQL, Redis, vLLM, and internal application service communication.
-- Store container images in Artifact Registry and scan them before production deployment.
-- Use Secret Manager for database credentials, SSO secrets, signing keys, and service tokens.
+- Store container images in Azure Container Registry (ACR) and scan them before production deployment.
+- Use Azure Key Vault for database credentials, SSO secrets, signing keys, and service tokens.
 - Assign least-privilege service accounts per workload.
 - Use CMEK for regulated storage classes when enterprise policy requires it.
-- Enable Cloud Logging, Cloud Monitoring, uptime checks, alerting, and audit logs.
+- Enable Azure Monitor Logs, Azure Monitor, uptime checks, alerting, and audit logs.
 - Place GPU workloads in dedicated nodes or instances with explicit capacity planning.
 - Maintain separate staging infrastructure for model, prompt, and rules regression testing.
 
 ### Risks
 
-GPU supply may be constrained in some GCP regions. The architecture must account for regional availability of L40 and A100 instances. GPU cost can grow quickly if vLLM servers are overprovisioned or left idle during low traffic periods. Cloud SQL and Redis sizing may be underestimated if the design stores high-cardinality parameter-level records and detailed traces without partitioning.
+GPU supply may be constrained in some Azure regions. The architecture must account for regional availability of L40 and A100 instances. GPU cost can grow quickly if vLLM servers are overprovisioned or left idle during low traffic periods. Azure Database for PostgreSQL and Redis sizing may be underestimated if the design stores high-cardinality parameter-level records and detailed traces without partitioning.
 
 Another risk is inconsistent environment configuration. If development, staging, and production differ significantly, prompt behavior, timeout behavior, and queue behavior may diverge. Security risk increases if service accounts have broad permissions to all buckets or if object storage is not separated by data class.
 
@@ -351,17 +348,17 @@ Use infrastructure as code for networks, service accounts, buckets, databases, R
 
 ### Purpose
 
-This section explains how Auto QRA is packaged, released, deployed, and operated. It covers the current Docker-based deployment model and the target Kubernetes deployment model. The purpose is to ensure the architecture can move from first production release to scalable enterprise operations without redesign.
+This section explains how Auto QRA is packaged, released, deployed, and operated on **Azure Kubernetes Service (AKS)**. The purpose is to ensure first production release and subsequent scale use the same AKS operating model.
 
 ### Description
 
-The current deployment model uses Docker containers for the web portal, API service, audit worker, reporting service, Redis, PostgreSQL client connectivity, and vLLM inference. Application containers are built from versioned source code and pushed to Artifact Registry. vLLM containers are built with GPU runtime support and configured with approved quantized model artifacts. Deployment can be performed through a controlled CI/CD pipeline that promotes images from development to staging to production.
+Production deployment uses Docker container images for the web portal, API service, audit worker, reporting service, and vLLM inference, orchestrated on AKS. Application containers are built from versioned source code and pushed to Azure Container Registry (ACR). vLLM containers are built with GPU runtime support and configured with approved quantized model artifacts. CI/CD promotes images from development to staging to production AKS clusters or namespaces.
 
-The target deployment model uses Kubernetes. In GKE, CPU workloads run in a general node pool and GPU workloads run in dedicated node pools with NVIDIA drivers and device plugin support. Worker pods scale horizontally based on Redis queue depth and processing latency. vLLM pods scale more conservatively because GPU capacity is expensive and model load time is significant. Kubernetes readiness probes, liveness probes, resource limits, node selectors, taints, tolerations, and pod disruption budgets are part of the target design.
+In AKS, CPU workloads run in general/app node pools and GPU workloads run in dedicated node pools with NVIDIA drivers and the device plugin. Managed Azure Database for PostgreSQL and Azure Cache for Redis remain outside the cluster. Worker pods scale horizontally based on Redis queue depth and processing latency (HPA/KEDA). vLLM pods scale more conservatively because GPU capacity is expensive and model load time is significant. Readiness probes, liveness probes, resource limits, node selectors, taints, tolerations, and pod disruption budgets are required production controls.
 
 ```mermaid
 flowchart LR
-    subgraph Now["Current Docker Deployment"]
+    subgraph Build["Container Build (Docker Images)"]
         DockerAPI["api container"]
         DockerPortal["portal container"]
         DockerWorker["worker container"]
@@ -379,7 +376,7 @@ flowchart LR
         Deploy["Deploy Release"]
     end
 
-    subgraph Target["Target Kubernetes Deployment"]
+    subgraph Deploy["AKS Production Deployment"]
         Ingress["Ingress Controller"]
         APIDeploy["API Deployment"]
         PortalDeploy["Portal Deployment"]
@@ -399,12 +396,11 @@ flowchart LR
     Scan --> Test
     Test --> Promote
     Promote --> Deploy
-    Deploy --> Target
-```
+    Deploy --> Target```
 
 ```mermaid
 flowchart TB
-    subgraph GKE["GKE Cluster Target"]
+    subgraph AKS["AKS Production Cluster"]
         subgraph System["System Node Pool"]
             Ingress["Ingress"]
             Metrics["Metrics Agents"]
@@ -443,8 +439,7 @@ flowchart TB
     HPA --> APIPod2
     Secrets --> APIPod1
     Secrets --> Worker1
-    Config --> VLLMPod1
-```
+    Config --> VLLMPod1```
 
 ### Business Justification
 
@@ -487,20 +482,20 @@ Define deployment gates: unit tests, integration tests, prompt schema tests, sec
 
 ### Purpose
 
-This section defines how Auto QRA services communicate securely across GCP network boundaries, enterprise ingress, private service endpoints, and internal service paths. The purpose is to protect sensitive audit data while preserving low-latency processing between workers, databases, queues, GCS, and vLLM inference.
+This section defines how Auto QRA services communicate securely across Azure network boundaries, enterprise ingress, private service endpoints, and internal service paths. The purpose is to protect sensitive audit data while preserving low-latency processing between workers, databases, queues, Azure Blob Storage, and vLLM inference.
 
 ### Description
 
-Auto QRA uses a private-first networking model. User and integration traffic enters through an enterprise-approved HTTPS endpoint, such as a GCP HTTPS load balancer or corporate ingress gateway. After ingress termination and authentication, service-to-service traffic remains inside the private VPC. PostgreSQL, Redis, and vLLM are not exposed publicly. GCS access is controlled through IAM and private access patterns where available.
+Auto QRA uses a private-first networking model. User and integration traffic enters through an enterprise-approved HTTPS endpoint, such as a Azure HTTPS load balancer or corporate ingress gateway. After ingress termination and authentication, service-to-service traffic remains inside the private VNet. PostgreSQL, Redis, and vLLM are not exposed publicly. Azure Blob Storage access is controlled through IAM and private access patterns where available.
 
-The recommended network topology includes a public ingress subnet, application subnet, AI/GPU subnet, data subnet, and operations subnet. Firewall rules and future Kubernetes NetworkPolicies restrict traffic to required paths. The API can reach ingestion, reporting, and review services. Workers can reach Redis, PostgreSQL, GCS, retrieval services, rules services, and vLLM. vLLM only accepts requests from the orchestration or worker tier. Admin access uses bastion, identity-aware proxy, or approved private connectivity.
+The recommended network topology includes a public ingress subnet, application subnet, AI/GPU subnet, data subnet, and operations subnet. Firewall rules and future Kubernetes NetworkPolicies restrict traffic to required paths. The API can reach ingestion, reporting, and review services. Workers can reach Redis, PostgreSQL, Azure Blob Storage, retrieval services, rules services, and vLLM. vLLM only accepts requests from the orchestration or worker tier. Admin access uses bastion, identity-aware proxy, or approved private connectivity.
 
 ```mermaid
 flowchart TB
     Internet["Enterprise Users and Systems"] --> WAF["WAF / HTTPS LB"]
     WAF --> IngressSubnet["Public Ingress Subnet"]
 
-    subgraph VPC["Auto QRA VPC"]
+    subgraph VNet["Auto QRA Azure VNet"]
         IngressSubnet --> API["API Gateway"]
 
         subgraph AppSubnet["Application Subnet"]
@@ -519,7 +514,7 @@ flowchart TB
         subgraph DataSubnet["Data Subnet"]
             Redis["Redis Private IP"]
             PG["PostgreSQL Private IP"]
-            PSC["Private Service Connect"]
+            PSC["Azure Private Link"]
         end
 
         subgraph OpsSubnet["Operations Subnet"]
@@ -533,12 +528,11 @@ flowchart TB
     Worker --> VLLM
     VLLM --> GPU
     Worker --> PSC
-    PSC --> GCS["GCS APIs"]
+    PSC --> AzureBlobStorage["Azure Blob Storage APIs"]
     Bastion --> AppSubnet
     Monitoring --> AppSubnet
     Monitoring --> AISubnet
-    Monitoring --> DataSubnet
-```
+    Monitoring --> DataSubnet```
 
 ### Business Justification
 
@@ -552,7 +546,7 @@ Inbound traffic should use HTTPS with TLS 1.2 or higher. The load balancer shoul
 
 Internal traffic should use private DNS names and private IP addresses. Database and Redis ports should only be open to approved application and worker service accounts or network tags. vLLM should listen on an internal interface only. If the vLLM server exposes an OpenAI-compatible endpoint, it must still be treated as private infrastructure and protected with network controls and service authentication.
 
-GCS access should use service accounts and IAM. When supported by enterprise GCP configuration, private Google access or Private Service Connect should be used so traffic to Google APIs does not require public egress. Cloud NAT can support controlled outbound access for package updates or external integrations, but production runtime dependencies should be minimized and allowlisted.
+Azure Blob Storage access should use service accounts and IAM. When supported by enterprise Azure configuration, private Google access or Azure Private Link should be used so traffic to Google APIs does not require public egress. Azure NAT Gateway can support controlled outbound access for package updates or external integrations, but production runtime dependencies should be minimized and allowlisted.
 
 ### Best Practices
 
@@ -561,13 +555,13 @@ GCS access should use service accounts and IAM. When supported by enterprise GCP
 - Apply firewall rules by service identity or network tag, not broad CIDR ranges alone.
 - Restrict worker-to-vLLM traffic to the minimum required ports and protocols.
 - Use mTLS or signed service tokens for high-sensitivity internal calls where required.
-- Enable VPC flow logs for production subnets with an appropriate sampling rate.
+- Enable VNet flow logs for production subnets with an appropriate sampling rate.
 - Use separate subnets for GPU workloads to simplify cost, access, and capacity controls.
 - Periodically test firewall rules and network policies through security validation.
 
 ### Risks
 
-Misconfigured firewall rules can expose sensitive services or block critical processing paths. GCS access can become a hidden public egress path if private access is not configured. Overly restrictive network rules may break deployment, image pulls, observability, or model artifact downloads. Conversely, overly permissive rules can undermine the security value of self-hosting the LLM.
+Misconfigured firewall rules can expose sensitive services or block critical processing paths. Azure Blob Storage access can become a hidden public egress path if private access is not configured. Overly restrictive network rules may break deployment, image pulls, observability, or model artifact downloads. Conversely, overly permissive rules can undermine the security value of self-hosting the LLM.
 
 Latency can be affected by poor placement of GPU nodes, workers, and data stores. If vLLM runs in a different region or zone from workers, inference calls may consume part of the 60-second latency budget unnecessarily. Network timeouts can create duplicate queue processing if idempotency is weak.
 
@@ -575,7 +569,7 @@ Latency can be affected by poor placement of GPU nodes, workers, and data stores
 
 Use a documented network matrix that lists every approved source, destination, port, protocol, identity, and reason. Treat the matrix as part of release governance. Keep workers, Redis, PostgreSQL, and vLLM in the same region and preferably in low-latency zones. Use private endpoints for managed services wherever available.
 
-For Kubernetes, implement NetworkPolicies from the first GKE release. The default namespace posture should deny ingress and allow only explicitly approved service communication. Include vLLM access tests, database connectivity tests, Redis queue tests, and GCS access tests in deployment smoke checks.
+For Kubernetes, implement NetworkPolicies from the first AKS release. The default namespace posture should deny ingress and allow only explicitly approved service communication. Include vLLM access tests, database connectivity tests, Redis queue tests, and Azure Blob Storage access tests in deployment smoke checks.
 
 ## 25. AI Pipeline
 
@@ -614,8 +608,7 @@ flowchart TD
     Q --> T["Persist score and report"]
     R --> T
     S --> T
-    X --> T
-```
+    X --> T```
 
 ### Business Justification
 
@@ -627,7 +620,7 @@ Using a self-hosted 3B or 7B quantized model provides a practical balance betwee
 
 The pipeline input should include audit ID, source system, audit type, channel, language, transcript or evidence payload, metadata, and optional existing human labels. Input validation should reject malformed payloads, unsupported channels, missing required fields, or payloads that exceed configured size limits. PII masking should run before any LLM prompt construction.
 
-Rubric resolution should select the effective rubric by tenant, line of business, audit type, date, region, and language. The retrieval service should fetch policy documents, QA rubric sections, and few-shot examples from GCS or pgvector. Retrieval output should be compact and ranked. Prompt construction should assemble system instructions, task instructions, rubric definitions, retrieved context, masked audit content, output schema, and guardrails.
+Rubric resolution should select the effective rubric by tenant, line of business, audit type, date, region, and language. The retrieval service should fetch policy documents, QA rubric sections, and few-shot examples from Azure Blob Storage or pgvector. Retrieval output should be compact and ranked. Prompt construction should assemble system instructions, task instructions, rubric definitions, retrieved context, masked audit content, output schema, and guardrails.
 
 The vLLM request should use deterministic or low-temperature generation for scoring tasks. Recommended settings include temperature between 0.0 and 0.2, bounded max output tokens, stop sequences when supported, and JSON-constrained output if the serving stack supports it. The response parser should reject non-JSON, missing parameter results, invalid score values, unsupported parameter IDs, and explanations without evidence.
 
@@ -664,7 +657,7 @@ This section documents how data moves through Auto QRA from ingestion through ma
 
 Auto QRA data flow is event-driven and traceable. Every audit receives a correlation ID at ingestion. Raw source references, masked artifacts, queue messages, LLM prompt versions, response payloads, business rule traces, confidence metrics, human overrides, and reports are linked by audit ID. The system should be able to reconstruct what happened without exposing raw PII to users who do not need it.
 
-The normal path is ingestion to PII mask to Redis queue to worker orchestration to retrieval to vLLM inference to rule evaluation to score persistence to report generation. Human review and exception flows branch from the confidence and exception stages. Reporting reads governed results from PostgreSQL and large artifacts from GCS.
+The normal path is ingestion to PII mask to Redis queue to worker orchestration to retrieval to vLLM inference to rule evaluation to score persistence to report generation. Human review and exception flows branch from the confidence and exception stages. Reporting reads governed results from PostgreSQL and large artifacts from Azure Blob Storage.
 
 ```mermaid
 sequenceDiagram
@@ -673,7 +666,7 @@ sequenceDiagram
     participant API as API Gateway
     participant Ingest as Ingestion Service
     participant Mask as PII Masking
-    participant GCS as GCS
+    participant Azure Blob Storage as Azure Blob Storage
     participant Redis as Redis Queue
     participant Worker as Audit Worker
     participant Retrieval as Retrieval Service
@@ -684,13 +677,13 @@ sequenceDiagram
 
     Source->>API: Submit audit candidate
     API->>Ingest: Authenticated request with correlation ID
-    Ingest->>GCS: Store raw artifact reference if required
+    Ingest->>Azure Blob Storage: Store raw artifact reference if required
     Ingest->>Mask: Send content for PII masking
-    Mask->>GCS: Store masked artifact
+    Mask->>Azure Blob Storage: Store masked artifact
     Mask->>Redis: Enqueue audit job
     Redis->>Worker: Dequeue job
     Worker->>Retrieval: Request rubric, policy, examples
-    Retrieval->>GCS: Load policy and rubric content
+    Retrieval->>Azure Blob Storage: Load policy and rubric content
     Retrieval-->>Worker: Return ranked context
     Worker->>VLLM: Submit masked prompt
     VLLM-->>Worker: Return structured model output
@@ -698,8 +691,7 @@ sequenceDiagram
     Rules-->>Worker: Return governed result
     Worker->>DB: Store scores, confidence, traces
     Report->>DB: Read audit results
-    Report->>GCS: Write generated report
-```
+    Report->>Azure Blob Storage: Write generated report```
 
 ```mermaid
 sequenceDiagram
@@ -717,22 +709,21 @@ sequenceDiagram
     Analyst->>Review: Approve, edit, or reject recommendation
     Review->>DB: Persist override decision and reason
     Review->>AuditLog: Record actor, timestamp, before/after values
-    Report->>DB: Read final governed score
-```
+    Report->>DB: Read final governed score```
 
 ### Business Justification
 
 Traceable data flow is essential for enterprise adoption. Quality scores may influence coaching, incentives, compliance remediation, customer experience reporting, and vendor performance. Stakeholders must be able to answer who submitted the audit, what data was used, how PII was handled, what model and prompt were used, which rules changed the score, why confidence was high or low, and who overrode the decision if applicable.
 
-The data flow also supports operational scalability. Redis absorbs bursts from batch ingestion. Workers process asynchronously so source systems are not blocked by GPU inference. PostgreSQL provides reliable records for reporting and workflow. GCS stores large artifacts without overloading the relational database.
+The data flow also supports operational scalability. Redis absorbs bursts from batch ingestion. Workers process asynchronously so source systems are not blocked by GPU inference. PostgreSQL provides reliable records for reporting and workflow. Azure Blob Storage stores large artifacts without overloading the relational database.
 
 ### Technical Details
 
 Data should be classified into raw source data, masked processing data, model input data, model output data, governed decision data, review data, and reporting data. Raw source data should have the most restrictive access and shortest feasible retention. Masked processing data can be used for AI scoring and reviewer workflows. Governed decision data is the system of record for audit outcomes.
 
-Queue messages should be small and contain references rather than full transcripts. A recommended Redis job payload includes audit ID, tenant ID, source event ID, masked artifact URI, rubric version, priority, retry count, creation timestamp, and idempotency key. The worker should fetch large content from GCS as needed. This prevents Redis memory pressure and simplifies retry behavior.
+Queue messages should be small and contain references rather than full transcripts. A recommended Redis job payload includes audit ID, tenant ID, source event ID, masked artifact URI, rubric version, priority, retry count, creation timestamp, and idempotency key. The worker should fetch large content from Azure Blob Storage as needed. This prevents Redis memory pressure and simplifies retry behavior.
 
-PostgreSQL should store normalized tables such as audits, audit_inputs, parameter_results, rule_executions, confidence_scores, review_tasks, overrides, exception_events, prompt_runs, model_runs, and report_exports. Large text blobs should be stored in GCS with URIs referenced by PostgreSQL. Sensitive fields should be encrypted or tokenized according to enterprise data policy.
+PostgreSQL should store normalized tables such as audits, audit_inputs, parameter_results, rule_executions, confidence_scores, review_tasks, overrides, exception_events, prompt_runs, model_runs, and report_exports. Large text blobs should be stored in Azure Blob Storage with URIs referenced by PostgreSQL. Sensitive fields should be encrypted or tokenized according to enterprise data policy.
 
 ### Best Practices
 
@@ -890,7 +881,7 @@ This section defines how Auto QRA retrieves QA rubrics, policy documents, refere
 
 ### Description
 
-The retrieval strategy is intentionally lightweight at first and extensible over time. The baseline implementation retrieves structured QA rubric content and policy snippets from GCS based on audit metadata. Optional semantic retrieval with pgvector can be added when policy volume, audit variety, or example matching requires more flexible search. Retrieval output should be ranked, bounded, versioned, and cited in model outputs.
+The retrieval strategy is intentionally lightweight at first and extensible over time. The baseline implementation retrieves structured QA rubric content and policy snippets from Azure Blob Storage based on audit metadata. Optional semantic retrieval with pgvector can be added when policy volume, audit variety, or example matching requires more flexible search. Retrieval output should be ranked, bounded, versioned, and cited in model outputs.
 
 Auto QRA should not send an entire policy library to the model. Instead, it should resolve the active rubric and retrieve the minimum relevant context for the audit type, channel, region, tenant, and parameter set. Few-shot examples should be curated and approved. They should demonstrate boundary cases, such as pass versus partial, partial versus fail, not applicable conditions, and compliance-sensitive failures.
 
@@ -900,22 +891,21 @@ flowchart TD
     B --> C["Load active rubric manifest"]
     C --> D["Identify parameter policy refs"]
     D --> E{"Retrieval mode"}
-    E -- "Manifest lookup" --> F["Fetch rubric and policy snippets from GCS"]
+    E -- "Manifest lookup" --> F["Fetch rubric and policy snippets from Azure Blob Storage"]
     E -- "Semantic optional" --> G["Search pgvector embeddings"]
     F --> H["Rank and deduplicate context"]
     G --> H
     H --> I["Select few-shot examples"]
     I --> J["Apply token budget"]
-    J --> K["Return retrieval package with references"]
-```
+    J --> K["Return retrieval package with references"]```
 
 ### RAG/Retrieval Approach
 
-The recommended release-one approach is manifest-based retrieval. A rubric manifest maps audit type and parameter IDs to approved policy snippets, examples, and scoring notes. Each snippet has a stable reference ID, version, effective date, owner, and source URI. The retrieval service reads the manifest, fetches the relevant snippets from GCS, and returns a bounded retrieval package.
+The recommended release-one approach is manifest-based retrieval. A rubric manifest maps audit type and parameter IDs to approved policy snippets, examples, and scoring notes. Each snippet has a stable reference ID, version, effective date, owner, and source URI. The retrieval service reads the manifest, fetches the relevant snippets from Azure Blob Storage, and returns a bounded retrieval package.
 
 The release-two approach can add pgvector. Policy snippets and few-shot examples are embedded and stored in PostgreSQL with pgvector. Retrieval can then combine metadata filters with vector similarity. For example, it can filter by tenant, channel, language, effective date, and parameter IDs, then rank semantically similar snippets based on the audit issue type or transcript summary. This hybrid approach keeps governance while improving context matching.
 
-GCS remains the source of truth for approved documents, rubrics, examples, and prompt bundles. pgvector stores derived embeddings and searchable chunks. Each retrieved chunk must reference the source document version in GCS so model outputs can be traced to approved content.
+Azure Blob Storage remains the source of truth for approved documents, rubrics, examples, and prompt bundles. pgvector stores derived embeddings and searchable chunks. Each retrieved chunk must reference the source document version in Azure Blob Storage so model outputs can be traced to approved content.
 
 ### Business Justification
 
@@ -933,7 +923,7 @@ If pgvector is used, embeddings should be generated through an approved internal
 
 ### Best Practices
 
-- Keep GCS as the governed source of truth for policy and rubric artifacts.
+- Keep Azure Blob Storage as the governed source of truth for policy and rubric artifacts.
 - Use metadata filters before vector similarity search.
 - Version every retrieved document and include references in audit records.
 - Bound retrieval output by token budget.
@@ -998,8 +988,7 @@ flowchart TD
     F --> G["Apply retrieval and evidence rules"]
     G --> H["Apply workflow routing rules"]
     H --> I["Record rule trace"]
-    I --> J["Governed result"]
-```
+    I --> J["Governed result"]```
 
 ### Business Justification
 
@@ -1101,8 +1090,7 @@ flowchart TD
     K -- ">= 0.85" --> L["Auto-finalize eligible"]
     K -- "0.70-0.84" --> M["Targeted review/sample"]
     K -- "0.50-0.69" --> N["Human review required"]
-    K -- "< 0.50" --> O["Exception or mandatory review"]
-```
+    K -- "< 0.50" --> O["Exception or mandatory review"]```
 
 ### Business Justification
 
@@ -1173,8 +1161,7 @@ sequenceDiagram
     Review->>Rules: Validate override against policy
     Rules-->>Review: Override allowed or blocked
     Review->>DB: Persist final decision and audit trail
-    Review->>Notify: Notify manager or downstream system if required
-```
+    Review->>Notify: Notify manager or downstream system if required```
 
 ```mermaid
 stateDiagram-v2
@@ -1191,8 +1178,7 @@ stateDiagram-v2
     Approved --> Finalized
     Edited --> Finalized
     Rejected --> Finalized
-    Finalized --> [*]
-```
+    Finalized --> [*]```
 
 ### Business Justification
 
@@ -1280,8 +1266,7 @@ stateDiagram-v2
     Resolved --> Processing: resume_if_applicable
     Resolved --> Completed: manually_finalized
     Cancelled --> [*]
-    Completed --> [*]
-```
+    Completed --> [*]```
 
 ```mermaid
 flowchart TD
@@ -1297,8 +1282,7 @@ flowchart TD
     D --> I
     I --> J["Assign owner and SLA"]
     J --> K["Record audit event"]
-    K --> L["Resolve, cancel, or manually finalize"]
-```
+    K --> L["Resolve, cancel, or manually finalize"]```
 
 ### Business Justification
 

@@ -4,14 +4,14 @@
 | Field | Value |
 | --- | --- |
 | Document Title | Auto QRA Product and Technical Design Package |
-| Version | 1.0 |
+| Version | 1.1 |
 | Status | Architecture Review Ready |
 | Classification | Internal — Confidential |
 | Date | July 2026 |
-| Preferred Cloud | Google Cloud Platform |
+| Target Cloud | Microsoft Azure |
 | Inference | Self-hosted LLM via vLLM |
 | Target Models | 3B or 7B Quantized |
-| Container Platform | Docker (Kubernetes Future Ready) |
+| Container Platform | Azure Kubernetes Service (AKS) |
 
 ---
 
@@ -67,10 +67,10 @@ Manual QA typically reviews a small sample of interactions, creating coverage ga
 | GPU candidates | NVIDIA L40 48GB / A100 80GB |
 | Data store | PostgreSQL |
 | Queue / cache | Redis |
-| Object storage | Google Cloud Storage |
+| Object storage | Azure Blob Storage |
 | Reporting | Apache Superset |
 | Monitoring | Prometheus + Grafana |
-| AuthN / AuthZ | SSO + RBAC |
+| AuthN / AuthZ | Microsoft Entra ID SSO + RBAC |
 | Security controls | PII masking, encryption at rest/transit, audit logging |
 
 ### High-Level Solution View
@@ -90,8 +90,7 @@ flowchart LR
     K --> J
     J --> L["Superset Dashboards"]
     E --> M["Prometheus / Grafana"]
-    J --> N["GCS Artifacts"]
-```
+    J --> N["Azure Blob Storage Artifacts"]```
 
 ### Table of Contents — All 65 Sections
 
@@ -237,12 +236,13 @@ To export for Word/PDF review:
 | GPU class | Start with L40 N+1 if benchmarks meet p95 < 60s; keep A100 as upgrade path |
 | Rollout mode | Shadow → Assisted review → High-confidence automation |
 | Automation policy | Auto-finalize only high-confidence, non-compliance-critical audits initially |
-| Platform path | Docker on GCP now; Kubernetes-ready manifests from day one |
+| Platform path | Production on Azure AKS with Helm charts, ACR, and GPU node pools |
 
 ### Document Control
 
 | Version | Date | Change Summary | Owner |
 | --- | --- | --- | --- |
+| 1.1 | July 2026 | Azure/AKS platform decision; cloud service remap from GCP baseline |
 | 1.0 | July 2026 | Initial complete Product and Technical Design Package | Product Management / Enterprise Architecture |
 
 ### Best Practices

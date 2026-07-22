@@ -2,7 +2,7 @@
 
 This document covers sections 13 through 19 of the Product and Technical Design Package for Auto Quality Review Automation (Auto QRA), an AI-assisted quality audit capability for customer conversations using a self-hosted LLM deployment. Auto QRA is designed for enterprise contact center, compliance, and customer experience teams that need consistent, scalable, auditable review of voice and text conversations while preserving human accountability, privacy controls, and operational transparency.
 
-The target operating model assumes approximately 60,000 audits per month, about 2,000 audits per business day or equivalent rolling daily workload, with an average prompt footprint of approximately 2,500 input tokens and 700 output tokens per audit. Each audit evaluates up to 30 quality assurance parameters. The inference layer uses self-hosted vLLM with 3B or 7B quantized models on L40 or A100 GPU infrastructure. The platform runs on GCP using Docker and Kubernetes, PostgreSQL for transactional data, Redis for queues and caching, GCS for durable object storage, Superset for analytics, Prometheus and Grafana for observability, and standard enterprise controls including SSO, RBAC, PII masking, encryption, audit logs, and human override.
+The target operating model assumes approximately 60,000 audits per month, about 2,000 audits per business day or equivalent rolling daily workload, with an average prompt footprint of approximately 2,500 input tokens and 700 output tokens per audit. Each audit evaluates up to 30 quality assurance parameters. The inference layer uses self-hosted vLLM with 3B or 7B quantized models on L40 or A100 GPU infrastructure. The platform runs on Azure using Docker and Kubernetes, PostgreSQL for transactional data, Redis for queues and caching, Azure Blob Storage for durable object storage, Superset for analytics, Prometheus and Grafana for observability, and standard enterprise controls including Microsoft Entra ID SSO, RBAC, PII masking, encryption, audit logs, and human override.
 
 ## 13. Functional Requirements
 
@@ -28,7 +28,7 @@ The business justification is fourfold: automated audits reduce unit cost and ma
 
 The functional design assumes modular services. Ingestion receives metadata and transcripts from CRM, telephony, chat, or contact center platforms. Preprocessing normalizes speaker labels, timestamps, language, channel, transcript confidence, and metadata. PII masking applies deterministic and contextual rules before prompts are built. The orchestrator persists job state in PostgreSQL, queues work through Redis, and sends inference requests to vLLM.
 
-The model response must be constrained by schema instructions and validated before scores are accepted. Results must include parameter ratings, evidence snippets, confidence, hallucination indicators, final score, routing decision, version metadata, source references, timestamps, and override fields. Results and artifacts should be stored in PostgreSQL and GCS; reporting datasets should be exposed to Superset through curated views.
+The model response must be constrained by schema instructions and validated before scores are accepted. Results must include parameter ratings, evidence snippets, confidence, hallucination indicators, final score, routing decision, version metadata, source references, timestamps, and override fields. Results and artifacts should be stored in PostgreSQL and Azure Blob Storage; reporting datasets should be exposed to Superset through curated views.
 
 ### Functional Requirements Table
 
@@ -99,7 +99,7 @@ The system must process high daily volume, respond within the target latency, re
 
 Auto QRA must support 60,000 audits per month with a typical daily operating target of about 2,000 audits. Each audit may include roughly 2,500 input tokens, 700 output tokens, and up to 30 QA parameters. Target latency is under 60 seconds per audit under normal operating conditions. Service availability target is 99.9%. Model quality targets include greater than 90% agreement with human reviewers and less than 5% hallucination or unsupported rationale rate.
 
-The infrastructure baseline is GCP with Docker and Kubernetes for deployment, vLLM for self-hosted inference on L40 or A100 GPUs, PostgreSQL for system of record data, Redis for queueing and cache support, GCS for artifacts, Superset for business reporting, and Prometheus/Grafana for telemetry. Security controls include SSO, RBAC, encryption, PII masking, audit logs, and human override.
+The infrastructure baseline is Azure with Docker and Kubernetes for deployment, vLLM for self-hosted inference on L40 or A100 GPUs, PostgreSQL for system of record data, Redis for queueing and cache support, Azure Blob Storage for artifacts, Superset for business reporting, and Prometheus/Grafana for telemetry. Security controls include Microsoft Entra ID SSO, RBAC, encryption, PII masking, audit logs, and human override.
 
 ### Business Justification
 
@@ -111,7 +111,7 @@ These requirements also set realistic expectations. The business can accept some
 
 Performance sizing should consider token throughput, queue concurrency, GPU memory, model quantization, prompt size, output schema length, and retry rates. A 7B quantized model on A100 GPUs may provide stronger reasoning than a 3B model, while L40 deployments may optimize cost for predictable volume.
 
-Kubernetes should run separate workload classes for APIs, workers, inference gateway, reporting refresh, and background jobs. Redis buffers execution tasks. PostgreSQL stores job, result, configuration, review, and audit log data. GCS stores large artifacts. Prometheus collects application, infrastructure, GPU, and model metrics. Grafana exposes operational dashboards and alerts. Superset exposes governed business metrics.
+Kubernetes should run separate workload classes for APIs, workers, inference gateway, reporting refresh, and background jobs. Redis buffers execution tasks. PostgreSQL stores job, result, configuration, review, and audit log data. Azure Blob Storage stores large artifacts. Prometheus collects application, infrastructure, GPU, and model metrics. Grafana exposes operational dashboards and alerts. Superset exposes governed business metrics.
 
 ### Non-Functional Requirements Table
 
@@ -124,7 +124,7 @@ Kubernetes should run separate workload classes for APIs, workers, inference gat
 | NFR-005 | The system shall achieve greater than 90% agreement with approved human reviewer baseline. | P0 | Must | Calibration set agreement by parameter and overall outcome. | Human agreement is the principal quality metric for audit trust. It must be monitored by scorecard, queue, language, and model version. |
 | NFR-006 | The system shall keep hallucination or unsupported rationale rate below 5%. | P0 | Must | Sampled audits with unsupported claims divided by reviewed audits. | Unsupported rationale undermines fairness and defensibility. Evidence validation and human routing are required controls. |
 | NFR-007 | PII shall be masked before model inference. | P0 | Must | 100% of model prompts pass PII masking checks for configured entity classes. | Self-hosting reduces exposure but does not remove the need for data minimization. |
-| NFR-008 | Data at rest shall be encrypted. | P0 | Must | Encryption enabled for PostgreSQL, GCS, Redis persistence if used, backups, and logs containing sensitive data. | Enterprise security requires encryption across storage layers. |
+| NFR-008 | Data at rest shall be encrypted. | P0 | Must | Encryption enabled for PostgreSQL, Azure Blob Storage, Redis persistence if used, backups, and logs containing sensitive data. | Enterprise security requires encryption across storage layers. |
 | NFR-009 | Data in transit shall be encrypted. | P0 | Must | TLS for all external and internal service calls where supported. | Conversations, prompts, model outputs, and user actions must not traverse plaintext links. |
 | NFR-010 | Access shall use SSO and role-based authorization. | P0 | Must | 100% interactive users authenticate through enterprise IdP; authorization checked per protected action. | Centralized identity and least privilege are mandatory for governance. |
 | NFR-011 | Audit logs shall be retained according to enterprise policy and protected from unauthorized modification. | P0 | Must | Retention policy compliance and immutability controls. | Score changes, exports, overrides, and configuration updates must be traceable. |
@@ -305,7 +305,7 @@ Acceptance testing should combine automated tests, integration tests, calibratio
 |---|---|---|---|---|
 | AC-001 | US-001, US-002 | Valid source transcripts with required metadata create audit jobs in pending state. | Integration test with approved source payloads. | Job records in PostgreSQL with source ID, conversation ID, metadata, and creation timestamp. |
 | AC-002 | US-002 | Invalid payloads are rejected with clear error classification and do not create active audit jobs. | Negative integration tests. | Error record showing validation failure reason and no corresponding active audit. |
-| AC-003 | US-003 | Normalized transcript includes ordered utterances, speaker roles, timestamps where available, channel, language, and transcript confidence. | Data validation test and reviewer inspection. | Normalized transcript artifact in GCS and database metadata. |
+| AC-003 | US-003 | Normalized transcript includes ordered utterances, speaker roles, timestamps where available, channel, language, and transcript confidence. | Data validation test and reviewer inspection. | Normalized transcript artifact in Azure Blob Storage and database metadata. |
 | AC-004 | US-004 | Configured PII classes are masked before prompt construction completes. | PII test corpus and prompt inspection. | Masked prompt artifact with no raw configured PII values. |
 | AC-005 | US-021 | Exclusion rules prevent prohibited conversations from entering inference and record the exclusion reason. | Rule-based test cases. | Exclusion record with rule ID, reason, timestamp, and source conversation reference. |
 | AC-006 | US-001, US-006 | Duplicate prevention blocks duplicate active audit jobs for the same source conversation and scorecard version unless reprocessing is explicitly requested. | Integration test with repeated payload. | Duplicate handling log and single active audit record. |
@@ -397,7 +397,7 @@ The flow also supports operational accountability. If daily audit volume drops, 
 
 ### Technical Details
 
-The process uses event-driven orchestration backed by durable state. PostgreSQL stores job state transitions and authoritative results. Redis queues decouple ingestion from processing and support retry and backpressure. GCS stores large artifacts. The vLLM inference endpoint receives masked prompts only. The parser validates structured model output and evidence references before routing. Metrics are emitted at every major step.
+The process uses event-driven orchestration backed by durable state. PostgreSQL stores job state transitions and authoritative results. Redis queues decouple ingestion from processing and support retry and backpressure. Azure Blob Storage stores large artifacts. The vLLM inference endpoint receives masked prompts only. The parser validates structured model output and evidence references before routing. Metrics are emitted at every major step.
 
 #### BPMN-Style Process Flow
 
@@ -436,8 +436,7 @@ flowchart TD
     S --> W
     V --> W
     W --> X[Dashboards, exports, coaching, compliance, calibration]
-    X --> Y([Continuous improvement feedback loop])
-```
+    X --> Y([Continuous improvement feedback loop])```
 
 #### Audit Lifecycle Sequence
 
@@ -452,7 +451,7 @@ sequenceDiagram
     participant Worker as Audit Worker
     participant VLLM as vLLM Endpoint
     participant DB as PostgreSQL
-    participant GCS as GCS Artifacts
+    participant Azure Blob Storage as Azure Blob Storage Artifacts
     participant Review as Human Review UI
     participant BI as Superset
 
@@ -460,23 +459,22 @@ sequenceDiagram
     API->>DB: Create ingestion record
     API->>Prep: Validate and normalize
     Prep->>Mask: Request PII masking
-    Mask->>GCS: Store masked transcript artifact
+    Mask->>Azure Blob Storage: Store masked transcript artifact
     Prep->>Orch: Create audit job with version context
     Orch->>DB: Persist pending audit job
     Orch->>Redis: Enqueue audit execution
     Worker->>Redis: Dequeue audit job
-    Worker->>GCS: Load masked transcript artifact
+    Worker->>Azure Blob Storage: Load masked transcript artifact
     Worker->>VLLM: Submit prompt to self-hosted LLM
     VLLM-->>Worker: Return structured candidate response
     Worker->>Worker: Parse, validate, score, and route
     Worker->>DB: Persist audit result and routing decision
-    Worker->>GCS: Store prompt and output artifacts
+    Worker->>Azure Blob Storage: Store prompt and output artifacts
     alt Human review required
         Review->>DB: Load queued audit
         Review->>DB: Save confirmation or override with rationale
     end
-    DB->>BI: Expose governed reporting view
-```
+    DB->>BI: Expose governed reporting view```
 
 ### Decision Table: Audit Routing
 
@@ -567,8 +565,7 @@ stateDiagram-v2
     Reported --> CalibrationSampled: selected for quality monitoring
     CalibrationSampled --> ImprovementBacklog: disagreement, drift, or hallucination finding
     ImprovementBacklog --> DraftConfiguration: scorecard, prompt, or model change proposed
-    Finalized --> Archived: retention lifecycle complete
-```
+    Finalized --> Archived: retention lifecycle complete```
 
 #### Swimlane: Human Override Workflow
 
@@ -614,8 +611,7 @@ flowchart LR
     S5 --> S6
     S6 --> M1
     M1 --> M2
-    M2 --> M3
-```
+    M2 --> M3```
 
 ### Decision Table: Product Routing and User Actions
 

@@ -15,7 +15,7 @@ The purpose of this executive summary is to define why the initiative matters, w
 
 ### Description
 
-Auto QRA will automate quality review workflows for customer conversations by ingesting interaction records, masking sensitive data, evaluating each conversation against a defined QA rubric, generating structured audit outputs, and enabling human reviewers to override or calibrate the final result. The initial target deployment uses a self-hosted 3B or 7B quantized model deployed with vLLM on NVIDIA L40 48GB or A100 80GB GPUs. The preferred cloud platform is GCP, with a Docker and Kubernetes-ready architecture that uses PostgreSQL for transactional data, GCS for conversation and artifact storage, Redis for queueing and caching, Superset for analytics, and Prometheus/Grafana for observability.
+Auto QRA will automate quality review workflows for customer conversations by ingesting interaction records, masking sensitive data, evaluating each conversation against a defined QA rubric, generating structured audit outputs, and enabling human reviewers to override or calibrate the final result. The initial target deployment uses a self-hosted 3B or 7B quantized model deployed with vLLM on NVIDIA L40 48GB or A100 80GB GPUs. The target cloud platform is Microsoft Azure, with a Docker deployed on AKS architecture that uses PostgreSQL for transactional data, Azure Blob Storage for conversation and artifact storage, Redis for queueing and caching, Superset for analytics, and Prometheus/Grafana for observability.
 
 Auto QRA is not positioned as a replacement for human judgment. It is positioned as an automation layer that performs first-pass review, prioritization, evidence extraction, scoring assistance, and reporting at production scale. Human override remains a core capability because enterprise QA relies on calibrated decision-making, policy interpretation, and exception handling. The system should therefore be designed as a controlled decision-support platform rather than an opaque autonomous adjudicator.
 
@@ -59,7 +59,7 @@ The core sizing baseline is 60,000 audits per month. At 3,200 tokens per audit, 
 
 The platform should be built using a disciplined enterprise AI operating model. Prompts should be versioned, model outputs should be structured and schema-validated, audit results should include citations or evidence snippets, and every automated score should be traceable to source conversation content. Human override, calibration workflows, and reviewer feedback loops should be first-class product capabilities rather than afterthoughts.
 
-Security and governance should be embedded from the start. SSO, RBAC, PII masking, encryption at rest, encryption in transit, audit logging, and least-privilege service accounts should be minimum production requirements. Model evaluation should include holdout sets, adversarial examples, ambiguous conversations, multilingual or code-switching samples if applicable, and periodic drift reviews. Production rollout should begin with shadow mode, move into assisted review, and only then expand to high-confidence automation.
+Security and governance should be embedded from the start. Microsoft Entra ID SSO, RBAC, PII masking, encryption at rest, encryption in transit, audit logging, and least-privilege service accounts should be minimum production requirements. Model evaluation should include holdout sets, adversarial examples, ambiguous conversations, multilingual or code-switching samples if applicable, and periodic drift reviews. Production rollout should begin with shadow mode, move into assisted review, and only then expand to high-confidence automation.
 
 ### Risks
 
@@ -71,7 +71,7 @@ Operational risk can also emerge if the 30-parameter rubric is not standardized,
 
 Proceed with a phased implementation that separates executive approval, model benchmarking, controlled pilot, and production scale-up. Establish a cross-functional steering group with Product Management, QA Operations, Enterprise Architecture, Security, Legal/Privacy, Data Engineering, MLOps, and Customer Operations. Approve success criteria before build begins, including human agreement greater than 90%, hallucination below 5%, latency below 60 seconds, 99.9% availability, and measurable operational impact.
 
-The recommended decision is to fund an MVP that supports ingestion, rubric execution, structured scoring, human review, analytics, monitoring, and security controls for a representative subset of queues. The MVP should run on GCP, use Kubernetes-ready deployment patterns, and benchmark both L40 and A100 GPU options before final production sizing.
+The recommended decision is to fund an MVP that supports ingestion, rubric execution, structured scoring, human review, analytics, monitoring, and security controls for a representative subset of queues. The MVP should run on Microsoft Azure using AKS, and benchmark both L40 and A100 GPU options before final production sizing.
 
 ## 2. Business Background
 
@@ -105,7 +105,7 @@ The platform also supports management consistency. Executives and operations lea
 
 The background context implies a need for a platform that can integrate with existing customer interaction repositories, support asynchronous processing, and provide reliable downstream reporting. The technical design should assume conversation data may arrive from multiple channels, including voice transcripts, chat logs, email threads, and CRM case notes. The MVP may start with one or two sources, but the data model should anticipate channel, queue, language, agent, supervisor, customer segment, and policy metadata.
 
-From an infrastructure perspective, GCP is preferred because it offers managed Kubernetes, GCS, IAM integration patterns, managed PostgreSQL options, and GPU-enabled compute. Docker and Kubernetes readiness allow the platform to run consistently across development, test, and production environments. Redis supports job queueing, cache coordination, and rate control. PostgreSQL supports audit workflow, score storage, rubric versions, override records, and operational metadata. Superset supports executive and operational dashboards, while Prometheus/Grafana supports application and infrastructure monitoring.
+From an infrastructure perspective, Azure is preferred because it offers managed Kubernetes, Azure Blob Storage, IAM integration patterns, managed PostgreSQL options, and GPU-enabled compute. Docker and Kubernetes readiness allow the platform to run consistently across development, test, and production environments. Redis supports job queueing, cache coordination, and rate control. PostgreSQL supports audit workflow, score storage, rubric versions, override records, and operational metadata. Superset supports executive and operational dashboards, while Prometheus/Grafana supports application and infrastructure monitoring.
 
 ### Best Practices
 
@@ -262,8 +262,7 @@ flowchart LR
     C1[Compare AI results with human QA and calibrate] --> C
     D1[Operate at 60,000 audits/month with 99.9% availability] --> D
     E1[Trend analysis, coaching insights, compliance themes] --> E
-    F1[Model evaluation, prompt improvement, drift management] --> F
-```
+    F1[Model evaluation, prompt improvement, drift management] --> F```
 
 ### Business Justification
 
@@ -273,7 +272,7 @@ The vision also supports workforce alignment. Human QA reviewers remain importan
 
 ### Technical Details
 
-The vision requires modular architecture. Model serving should be decoupled from workflow orchestration. Rubric definitions should be versioned independently from application code. Prompt templates should be managed as controlled artifacts. Data storage should separate raw conversation artifacts in GCS from structured workflow and scoring data in PostgreSQL. Analytics should consume curated tables rather than raw model responses. Monitoring should include infrastructure, application, model, and business metrics.
+The vision requires modular architecture. Model serving should be decoupled from workflow orchestration. Rubric definitions should be versioned independently from application code. Prompt templates should be managed as controlled artifacts. Data storage should separate raw conversation artifacts in Azure Blob Storage from structured workflow and scoring data in PostgreSQL. Analytics should consume curated tables rather than raw model responses. Monitoring should include infrastructure, application, model, and business metrics.
 
 The long-term platform should support multiple model versions, A/B evaluation, rollback, and parameter-level confidence thresholds. It should be possible to route certain audits to a 3B model for lower-risk parameters and a 7B model for more nuanced analysis if benchmarks support such a pattern. The system should also support batch processing and near-real-time processing where business need justifies it.
 
@@ -323,7 +322,7 @@ The strategy also supports incremental value realization. A narrow MVP can prove
 
 ### Technical Details
 
-The product architecture should be service-oriented. Key components include an ingestion service, preprocessing and PII masking service, audit orchestration service, vLLM inference service, output validation service, workflow API, reviewer UI or integration layer, PostgreSQL persistence, GCS artifact storage, Redis queueing, Superset semantic datasets, and Prometheus/Grafana monitoring. Kubernetes should manage service deployment, scaling, health checks, and resource isolation.
+The product architecture should be service-oriented. Key components include an ingestion service, preprocessing and PII masking service, audit orchestration service, vLLM inference service, output validation service, workflow API, reviewer UI or integration layer, PostgreSQL persistence, Azure Blob Storage artifact storage, Redis queueing, Superset semantic datasets, and Prometheus/Grafana monitoring. Kubernetes should manage service deployment, scaling, health checks, and resource isolation.
 
 Product configuration should include rubric definitions, prompt templates, model endpoints, threshold rules, queue routing, retry settings, and retention policies. These should be environment-specific but governed through controlled configuration management. The platform should support dev, test, staging, and production environments, with production changes requiring approval and rollback plans.
 
@@ -334,9 +333,9 @@ Decision table for model and infrastructure strategy:
 | Model size | 3B quantized | 7B quantized | Benchmark both | Optimize quality, latency, and GPU cost using evidence |
 | GPU type | L40 48GB | A100 80GB | Benchmark both | L40 may reduce cost; A100 may improve headroom |
 | Deployment | VM-based service | Kubernetes | Kubernetes-ready | Supports resilience, scaling, and enterprise operations |
-| Cloud | GCP | Other cloud | GCP preferred | Aligns with project preference and managed service fit |
+| Cloud | Microsoft Azure | Other cloud | Azure preferred | Aligns with project preference and managed service fit |
 | Review mode | Fully automated | Human override | Human override allowed | Preserves governance and trust |
-| Storage | Single relational store | PostgreSQL plus GCS | PostgreSQL plus GCS | Separates workflow data from large artifacts |
+| Storage | Single relational store | PostgreSQL plus Azure Blob Storage | PostgreSQL plus Azure Blob Storage | Separates workflow data from large artifacts |
 
 ### Best Practices
 
@@ -459,8 +458,7 @@ flowchart TB
     Ops --> Supervisors[Supervisors]
     Supervisors --> Agents[Customer Service Agents]
     Managers --> Superset[Superset Dashboards]
-    SRE --> Grafana[Prometheus / Grafana]
-```
+    SRE --> Grafana[Prometheus / Grafana]```
 
 ### Business Justification
 
@@ -512,7 +510,7 @@ This section documents the assumptions that shape the business case, product des
 
 ### Description
 
-Auto QRA planning assumes the enterprise will deploy a self-hosted LLM using vLLM, select a 3B or 7B quantized model after benchmarking, and operate on NVIDIA L40 48GB or A100 80GB GPUs. It assumes GCP is the preferred cloud platform and that the solution should be Docker and Kubernetes-ready. It assumes the initial target volume is 60,000 audits per month, about 2,000 per day, with each audit evaluating 30 QA parameters and consuming about 3,200 total tokens.
+Auto QRA planning assumes the enterprise will deploy a self-hosted LLM using vLLM, select a 3B or 7B quantized model after benchmarking, and operate on NVIDIA L40 48GB or A100 80GB GPUs. It assumes Azure is the preferred cloud platform and that the solution should be Docker deployed on AKS. It assumes the initial target volume is 60,000 audits per month, about 2,000 per day, with each audit evaluating 30 QA parameters and consuming about 3,200 total tokens.
 
 The plan also assumes the organization can provide access to representative historical conversations, current QA rubrics, human-reviewed labels or calibration data, and business subject matter experts. It assumes that PII masking can be implemented before model inference and that masked content remains sufficient for QA scoring. It assumes human override is allowed and expected.
 
@@ -524,7 +522,7 @@ By documenting assumptions early, the program can convert them into validation t
 
 ### Technical Details
 
-Technical assumptions include availability of Kubernetes-compatible deployment environments, enterprise identity integration for SSO, network connectivity between source systems and the Auto QRA platform, PostgreSQL availability, GCS storage, Redis deployment, monitoring through Prometheus/Grafana, and analytics through Superset. The design assumes encryption at rest and in transit can be implemented using standard enterprise tooling and that audit logging can be integrated with centralized log management or SIEM where required.
+Technical assumptions include availability of Kubernetes-compatible deployment environments, enterprise identity integration for SSO, network connectivity between source systems and the Auto QRA platform, PostgreSQL availability, Azure Blob Storage storage, Redis deployment, monitoring through Prometheus/Grafana, and analytics through Superset. The design assumes encryption at rest and in transit can be implemented using standard enterprise tooling and that audit logging can be integrated with centralized log management or SIEM where required.
 
 Model assumptions include adequate performance from a quantized 3B or 7B model, support for the target context length, compatibility with vLLM, and sufficient structured-output reliability. Workload assumptions include average token counts of 2,500 input and 700 output tokens, stable daily volume around 2,000 audits, and manageable retry rates.
 
@@ -538,7 +536,7 @@ Assumption register:
 | A4 | L40 or A100 capacity can meet latency and volume targets | Load test with vLLM | Enterprise Architecture | To validate |
 | A5 | PII masking preserves scoring-relevant context | Compare masked vs unmasked calibration results | Security / QA Governance | To validate |
 | A6 | Human override is permitted and operationally staffed | Workflow and policy approval | QA Operations | Accepted in project facts |
-| A7 | GCP is approved for target deployment | Cloud governance review | Enterprise Architecture | To validate |
+| A7 | Azure is approved for target deployment | Cloud governance review | Enterprise Architecture | To validate |
 
 ### Best Practices
 
@@ -641,7 +639,7 @@ This section defines what Auto QRA will include. It establishes the implementati
 
 The in-scope product is an AI-assisted quality review automation platform that processes customer conversations, masks PII, applies a 30-parameter QA rubric, produces structured audit results, supports human override, stores results and evidence, and provides operational and executive reporting. The target operating volume is 60,000 audits per month with approximately 2,000 audits per day. The platform should use a self-hosted vLLM deployment with a benchmarked 3B or 7B quantized model on NVIDIA L40 or A100 GPUs.
 
-The in-scope technical foundation includes GCP-preferred deployment, Docker and Kubernetes-ready services, PostgreSQL, Redis, GCS, Superset, Prometheus/Grafana, SSO, RBAC, encryption at rest and in transit, audit logging, and PII masking. The in-scope operating model includes human review, overrides, calibration, and phase-gated rollout.
+The in-scope technical foundation includes Azure-preferred deployment, Docker deployed on AKS services, PostgreSQL, Redis, Azure Blob Storage, Superset, Prometheus/Grafana, Microsoft Entra ID SSO, RBAC, encryption at rest and in transit, audit logging, and PII masking. The in-scope operating model includes human review, overrides, calibration, and phase-gated rollout.
 
 ### Business Justification
 
@@ -662,7 +660,7 @@ Scope matrix:
 | L40/A100 GPU deployment | Yes | Autoscaling optimization | Validate throughput and cost |
 | Human override workflow | Yes | Advanced calibration tooling | Required for governance |
 | PostgreSQL audit store | Yes | Data mart optimization | Stores workflow and scores |
-| GCS artifact storage | Yes | Retention tiering | Stores source artifacts and outputs |
+| Azure Blob Storage artifact storage | Yes | Retention tiering | Stores source artifacts and outputs |
 | Superset dashboards | Yes | Advanced analytics | Business reporting layer |
 | Prometheus/Grafana monitoring | Yes | SLO automation | Technical operations layer |
 | SSO/RBAC/encryption/audit logging | Yes | Continuous control improvements | Mandatory controls |

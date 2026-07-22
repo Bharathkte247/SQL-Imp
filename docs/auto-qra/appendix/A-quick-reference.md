@@ -30,14 +30,14 @@ Use this card during incident bridges, pilot ops, and stakeholder syncs to keep 
 
 | Layer | Technology |
 | --- | --- |
-| Cloud | GCP |
-| Containers | Docker → Kubernetes ready |
+| Cloud | Microsoft Azure |
+| Containers | Docker containers on AKS |
 | DB | PostgreSQL |
 | Queue | Redis |
-| Storage | GCS |
+| Storage | Azure Blob Storage |
 | BI | Apache Superset |
 | Telemetry | Prometheus + Grafana |
-| Security | SSO, RBAC, PII masking, encryption, audit logs |
+| Security | Microsoft Entra ID SSO, RBAC, PII masking, encryption, audit logs |
 
 Critical path:
 

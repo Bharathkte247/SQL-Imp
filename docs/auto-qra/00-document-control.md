@@ -1,6 +1,6 @@
 # Auto QRA — Document Control and Architecture Review Brief
 
-**Version:** 1.1  
+**Version:** 1.2  
 **Classification:** Internal — Confidential  
 **Date:** July 2026  
 **Program:** Auto Quality Review Automation (Auto QRA)  
@@ -36,7 +36,8 @@ The program expands QA coverage beyond sampling limits, improves scoring consist
 | Decision ID | Topic | Options | Recommendation | Status | Owner | Date |
 | --- | --- | --- | --- | --- | --- | --- |
 | ADR-001 | Model size | 3B vs 7B quantized | Benchmark then select | Open | AI/ML | TBD |
-| ADR-002 | GPU class | L40 vs A100 | L40 N+1 if latency met | Open | Infra | TBD |
+| ADR-002 | GPU class | L40 vs A100 | **A100 80GB locked** (single node within $5k/mo) | Approved | Infra | July 2026 |
+| ADR-006 | Monthly infra budget | Open vs capped | **USD $5,000 hard ceiling** | Approved | Finance / TPM | July 2026 |
 | ADR-003 | Automation threshold | Conservative vs aggressive | Conservative at launch | Proposed | Product / QA | TBD |
 | ADR-004 | Kubernetes platform | AKS from day one vs deferred Kubernetes | Deploy on AKS from production | Proposed | DevOps | TBD |
 | ADR-005 | Retrieval depth | Rubric-only vs RAG policies | Light RAG with rubric + examples | Proposed | AI/ML | TBD |
@@ -107,7 +108,7 @@ AKS provides enterprise Kubernetes operations, GPU node pool support for vLLM, p
 - Use dedicated AKS node pools: system, API/app, workers, and GPU inference.
 - Deploy with Helm charts and Azure Workload Identity for Blob/Key Vault access.
 - Keep vLLM GPU workloads on isolated GPU node pools with taints/tolerations.
-- Target NVIDIA GPU SKUs available on Azure (for example NC-series / A100-capable pools) sized to the 60,000 audits/month workload.
+- Use a single NVIDIA A100 80GB GPU node pool on AKS, sized for 60,000 audits/month within a USD $5,000 monthly Azure ceiling (N+1 GPU HA is out of budget).
 
 ### Best Practices
 
@@ -125,3 +126,31 @@ AKS provides enterprise Kubernetes operations, GPU node pool support for vLLM, p
 1. Treat **AKS on Azure** as the production standard (not deferred Kubernetes).
 2. Validate GPU node pool availability in the selected region during the benchmark sprint.
 3. Align SSO with Microsoft Entra ID and RBAC to AKS + application roles.
+
+
+---
+
+## Budget Lock ($5,000 / month)
+
+### Purpose
+Record the approved commercial constraint for Auto QRA cloud run-rate.
+
+### Description
+Monthly Azure infrastructure spend is capped at **USD $5,000**. Combined with the A100 decision, production will run on **one A100 GPU node** plus a lean supporting Azure footprint on AKS.
+
+### Business Justification
+Provides a predictable cost envelope for pilot/production while still delivering GPU-accelerated self-hosted inference.
+
+### Technical Details
+- GPU: 1x NVIDIA A100 80GB on AKS GPU node pool
+- Supporting services right-sized (PostgreSQL, Redis, Blob, ACR, monitoring)
+- Dual-GPU N+1 HA is explicitly deferred until budget expansion
+
+### Best Practices
+Treat any design change that would breach $5k/month as requiring an ADR and finance approval.
+
+### Risks
+Single GPU is a continuity risk; availability posture is budget-constrained.
+
+### Recommendations
+Approve the lean A100 architecture for launch; revisit N+1 GPU only with budget uplift.

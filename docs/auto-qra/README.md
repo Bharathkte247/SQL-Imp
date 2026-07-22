@@ -4,7 +4,7 @@
 | Field | Value |
 | --- | --- |
 | Document Title | Auto QRA Product and Technical Design Package |
-| Version | 1.1 |
+| Version | 1.2 |
 | Status | Architecture Review Ready |
 | Classification | Internal — Confidential |
 | Date | July 2026 |
@@ -64,7 +64,8 @@ Manual QA typically reviews a small sample of interactions, creating coverage ga
 | Target availability | 99.9% |
 | Target human agreement | > 90% |
 | Target hallucination rate | < 5% |
-| GPU candidates | NVIDIA L40 48GB / A100 80GB |
+| GPU (locked) | NVIDIA A100 80GB |
+| Monthly infra budget (locked) | USD $5,000 |
 | Data store | PostgreSQL |
 | Queue / cache | Redis |
 | Object storage | Azure Blob Storage |
@@ -233,10 +234,11 @@ To export for Word/PDF review:
 | Decision | Recommendation |
 | --- | --- |
 | Model class | Benchmark 3B vs 7B quantized on golden QA set; prefer quality-first if latency holds |
-| GPU class | Start with L40 N+1 if benchmarks meet p95 < 60s; keep A100 as upgrade path |
+| GPU class | NVIDIA A100 80GB (locked); single GPU node within $5k/month envelope |
 | Rollout mode | Shadow → Assisted review → High-confidence automation |
 | Automation policy | Auto-finalize only high-confidence, non-compliance-critical audits initially |
-| Platform path | Production on Azure AKS with Helm charts, ACR, and GPU node pools |
+| Platform path | Production on Azure AKS with Helm charts, ACR, and 1x A100 GPU node pool |
+| Cost envelope | ≤ USD $5,000 / month Azure run-rate |
 
 ### Document Control
 
@@ -264,3 +266,15 @@ To export for Word/PDF review:
 2. Approve pilot scope against Sections 11–12 and rollout gates in Section 47.
 3. Validate GPU and cost models in Sections 43–45 with a 2-week benchmark sprint.
 4. Require production readiness checklist (Section 63) sign-off before GA.
+
+
+---
+
+## Audience-Specific Word Packages (v1.2)
+
+| Package | File | Audience |
+| --- | --- | --- |
+| Internal | [`INTERNAL-Auto-QRA-Design-A100-5k.docx`](INTERNAL-Auto-QRA-Design-A100-5k.docx) | Leadership, Engineering, Finance, Security |
+| Client-facing | [`CLIENT-Auto-QRA-Solution-Overview.docx`](CLIENT-Auto-QRA-Solution-Overview.docx) | Client executives and stakeholders |
+
+**Locked platform decisions:** Microsoft Azure · AKS · NVIDIA A100 80GB · **$5,000/month** infrastructure ceiling.

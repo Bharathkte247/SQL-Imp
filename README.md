@@ -42,29 +42,24 @@ pip install -r requirements.txt
 
 ## Prepare the Excel file
 
-Create `students.xlsx` with a column named **USN**:
+Put your Excel file at **`D:\Students.xlsx`** with a column named **USN**:
 
 | USN         |
 |-------------|
 | 1XX21CS001  |
 | 1XX21CS002  |
 
-Or generate a sample file:
-
-```bash
-python create_sample_excel.py
-```
-
-Replace the sample USNs with real ones.
+The script is already configured for that path in `config.yaml`.  
+If your file is named `Students.xls` instead, change `input_excel` accordingly.
 
 ## Configure the portal URL
 
-Edit `config.yaml` and set the current results page URL:
+`config.yaml` is set to the May/June 2026 results page:
 
 ```yaml
-results_url: "https://results.vtu.ac.in/JJEcbcs24/index.php"
-input_excel: "students.xlsx"
-output_excel: "student_results.xlsx"
+results_url: "https://results.vtu.ac.in/MJ26cbcs/index.php"
+input_excel: "D:/Students.xlsx"
+output_excel: "D:/Student_Results.xlsx"
 max_page_retries: 5
 max_captcha_retries: 5
 ```
@@ -74,7 +69,7 @@ If the portal HTML changes, adjust the CSS selectors under `selectors`.
 ## Run
 
 ```bash
-# Process all USNs from Excel
+# Process all USNs from D:\Students.xlsx
 python fetch_student_results.py
 
 # Headless Chrome
@@ -83,14 +78,14 @@ python fetch_student_results.py --headless
 # Ask you to type captcha when OCR fails
 python fetch_student_results.py --manual-captcha
 
-# Override URL / files
-python fetch_student_results.py --url "https://results.vtu.ac.in/..." --input students.xlsx --output student_results.xlsx
+# Override URL / files if needed
+python fetch_student_results.py --url "https://results.vtu.ac.in/MJ26cbcs/index.php" --input "D:/Students.xlsx" --output "D:/Student_Results.xlsx"
 
 # Single USN quick test
 python fetch_student_results.py --usn 1XX21CS001 --manual-captcha
 ```
 
-Results are written to `student_results.xlsx` (configurable).
+Results are written to **`D:\Student_Results.xlsx`**.
 
 ## Output columns
 

@@ -1,11 +1,12 @@
 # VTU / university results portal settings.
 # Update `results_url` to the current semester results page.
 
-results_url: "https://results.vtu.ac.in/JJEcbcs24/index.php"
+results_url: "https://results.vtu.ac.in/MJ26cbcs/index.php"
 
 # Input Excel with a column named USN (or matching usn_column below)
-input_excel: "students.xlsx"
-output_excel: "student_results.xlsx"
+# Windows path example: D:\Students.xlsx
+input_excel: "D:/Students.xlsx"
+output_excel: "D:/Student_Results.xlsx"
 usn_column: "USN"
 
 # Browser
@@ -28,15 +29,15 @@ delay_between_students_seconds: 2
 selectors:
   usn_input: "input[name='lns']"
   captcha_input: "input[name='captchacode']"
-  captcha_image: "img[alt='CAPTCHA'], img#captchaimg, img[src*='captcha']"
-  submit_button: "input[type='submit'], button[type='submit']"
+  captcha_image: "img[alt='CAPTCHA code'], img[alt='CAPTCHA'], img[src*='captcha']"
+  submit_button: "input#submit, input[type='submit']"
   captcha_refresh: "img[onclick*='captcha'], a[onclick*='captcha'], #reload"
   result_table: "table"
   student_name: "td:contains('Student Name'), .student-name"
 
-# Captcha OCR tuning
+# Captcha OCR tuning (this portal requires exactly 6 characters)
 captcha:
   # Characters expected in captcha (helps OCR)
   whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-  min_length: 4
-  max_length: 8
+  min_length: 6
+  max_length: 6

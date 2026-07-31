@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.png
+!docs/**
+student_results.xlsx
+students.xlsx
+.captcha_debug/
+chromedriver
+*.log

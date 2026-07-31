@@ -1,0 +1,43 @@
+# VTU / university results portal settings.
+# Update `results_url` to the current semester results page.
+
+results_url: "https://results.vtu.ac.in/MJ26cbcs/index.php"
+
+# Input Excel with a column named USN (or matching usn_column below)
+# Windows path example: D:\Students.xlsx
+input_excel: "D:/Students.xlsx"
+output_excel: "D:/Student_Results.xlsx"
+usn_column: "USN"
+
+# Browser
+headless: false          # set true to run without a visible browser window
+page_load_timeout: 30    # seconds
+implicit_wait: 5         # seconds
+
+# Retries when the site fails to load / times out
+max_page_retries: 5
+page_retry_delay_seconds: 3
+
+# Captcha OCR retries (wrong captcha / unreadable image)
+max_captcha_retries: 5
+captcha_retry_delay_seconds: 1
+
+# Delay between students to reduce server load
+delay_between_students_seconds: 2
+
+# CSS / XPath selectors for the results form (adjust if the portal HTML changes)
+selectors:
+  usn_input: "input[name='lns']"
+  captcha_input: "input[name='captchacode']"
+  captcha_image: "img[alt='CAPTCHA code'], img[alt='CAPTCHA'], img[src*='captcha']"
+  submit_button: "input#submit, input[type='submit']"
+  captcha_refresh: "img[onclick*='captcha'], a[onclick*='captcha'], #reload"
+  result_table: "table"
+  student_name: "td:contains('Student Name'), .student-name"
+
+# Captcha OCR tuning (this portal requires exactly 6 characters)
+captcha:
+  # Characters expected in captcha (helps OCR)
+  whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+  min_length: 6
+  max_length: 6

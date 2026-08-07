@@ -88,6 +88,7 @@ FROM (
     call_interaction_id,
     call_date
 ) AS call_dims
+WHERE campaign IS NOT NULL
 GROUP BY
   call_date,
   campaign,

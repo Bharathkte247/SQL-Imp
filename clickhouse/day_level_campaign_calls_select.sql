@@ -56,6 +56,7 @@ FROM
         call_interaction_id,
         call_date
 ) AS call_dims
+WHERE campaign IS NOT NULL
 GROUP BY
     call_date,
     campaign,
@@ -125,6 +126,7 @@ FROM
     FROM default.node_level_interactions
     GROUP BY call_interaction_id, call_date
 ) AS call_dims
+WHERE campaign IS NOT NULL
 GROUP BY call_date, campaign, language, project_name, application_id, call_type
 ORDER BY call_date, campaign, language;
 */

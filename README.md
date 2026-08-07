@@ -17,7 +17,7 @@ ClickHouse / BigQuery SQL implementations.
 | Dimension | Source |
 |-----------|--------|
 | `call_date` | Day from `call_interaction_starttime` |
-| `campaign` | `Physical_CampaignStart` → PH Campaign; `Flu_CampaignStart` → FLU Campaign (latest by `node_sequence_number`) |
+| `campaign` | `Physical_CampaignStart` → PH Campaign; `Flu_CampaignStart` → FLU Campaign (latest by `node_sequence_number`); null campaigns excluded |
 | `language` | `Exit_EnglishSelected` → English; `Exit_SpanishSelected` → Spanish (latest wins if both present) |
 | `dnis` | `dnis` |
 | `caller_phonenumber` | `caller_phonenumber` |

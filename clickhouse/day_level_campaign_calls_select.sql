@@ -9,6 +9,7 @@ SELECT
     dnis,
     caller_phonenumber,
     project_name,
+    application_id,
     call_type,
     uniqExact(call_interaction_id) AS total_calls,
     uniqExactIf(call_interaction_id, is_opted_out = 1) AS opted_out_calls
@@ -20,6 +21,7 @@ FROM
         any(dnis) AS dnis,
         any(caller_phonenumber) AS caller_phonenumber,
         any(project_name) AS project_name,
+        any(application_id) AS application_id,
         any(call_type) AS call_type,
         argMaxIf(
             multiIf(
@@ -61,6 +63,7 @@ GROUP BY
     dnis,
     caller_phonenumber,
     project_name,
+    application_id,
     call_type
 ORDER BY
     call_date,
@@ -79,6 +82,7 @@ SELECT
     campaign,
     language,
     project_name,
+    application_id,
     call_type,
     uniqExact(call_interaction_id) AS total_calls,
     uniqExactIf(call_interaction_id, is_opted_out = 1) AS opted_out_calls
@@ -88,6 +92,7 @@ FROM
         call_interaction_id,
         toDate(strptime(substring(call_interaction_starttime, 1, 10), '%d-%m-%Y')) AS call_date,
         any(project_name) AS project_name,
+        any(application_id) AS application_id,
         any(call_type) AS call_type,
         argMaxIf(
             multiIf(
@@ -120,6 +125,6 @@ FROM
     FROM default.node_level_interactions
     GROUP BY call_interaction_id, call_date
 ) AS call_dims
-GROUP BY call_date, campaign, language, project_name, call_type
+GROUP BY call_date, campaign, language, project_name, application_id, call_type
 ORDER BY call_date, campaign, language;
 */

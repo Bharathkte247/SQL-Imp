@@ -1,7 +1,7 @@
 -- =============================================================================
 -- ClickHouse View: Day-level campaign call metrics (node-level source)
 -- =============================================================================
--- Grain: day + campaign + language + dnis + caller_phonenumber + project_name + call_type
+-- Grain: day + campaign + language + dnis + caller_phonenumber + project_name + application_id + call_type
 --
 -- Campaign dimension (from node_name):
 --   Physical_CampaignStart -> PH Campaign
@@ -30,6 +30,7 @@ SELECT
     dnis,
     caller_phonenumber,
     project_name,
+    application_id,
     call_type,
     uniqExact(call_interaction_id) AS total_calls,
     uniqExactIf(call_interaction_id, is_opted_out = 1) AS opted_out_calls,
@@ -47,6 +48,7 @@ FROM
         any(dnis) AS dnis,
         any(caller_phonenumber) AS caller_phonenumber,
         any(project_name) AS project_name,
+        any(application_id) AS application_id,
         any(call_type) AS call_type,
         argMaxIf(
             multiIf(
@@ -94,5 +96,6 @@ GROUP BY
     dnis,
     caller_phonenumber,
     project_name,
+    application_id,
     call_type
 ;

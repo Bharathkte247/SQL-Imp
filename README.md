@@ -22,6 +22,7 @@ ClickHouse / BigQuery SQL implementations.
 | `dnis` | `dnis` |
 | `caller_phonenumber` | `caller_phonenumber` |
 | `project_name` | `project_name` |
+| `application_id` | `application_id` |
 | `call_type` | `call_type` |
 
 ### Measures

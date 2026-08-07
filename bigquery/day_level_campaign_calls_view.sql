@@ -1,7 +1,7 @@
 -- =============================================================================
 -- BigQuery View: Day-level campaign call metrics (node-level source)
 -- =============================================================================
--- Grain: day + campaign + language + dnis + caller_phonenumber + project_name + call_type
+-- Grain: day + campaign + language + dnis + caller_phonenumber + project_name + application_id + call_type
 --
 -- Campaign dimension (from node_name):
 --   Physical_CampaignStart -> PH Campaign
@@ -30,6 +30,7 @@ SELECT
   dnis,
   caller_phonenumber,
   project_name,
+  application_id,
   call_type,
   COUNT(DISTINCT call_interaction_id) AS total_calls,
   COUNT(DISTINCT IF(is_opted_out, call_interaction_id, NULL)) AS opted_out_calls,
@@ -46,6 +47,7 @@ FROM (
     ANY_VALUE(dnis) AS dnis,
     ANY_VALUE(caller_phonenumber) AS caller_phonenumber,
     ANY_VALUE(project_name) AS project_name,
+    ANY_VALUE(application_id) AS application_id,
     ANY_VALUE(call_type) AS call_type,
     ARRAY_AGG(
       CASE
@@ -93,5 +95,6 @@ GROUP BY
   dnis,
   caller_phonenumber,
   project_name,
+  application_id,
   call_type
 ;

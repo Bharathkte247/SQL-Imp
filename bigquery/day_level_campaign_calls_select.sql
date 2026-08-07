@@ -9,6 +9,7 @@ SELECT
   dnis,
   caller_phonenumber,
   project_name,
+  application_id,
   call_type,
   COUNT(DISTINCT call_interaction_id) AS total_calls,
   COUNT(DISTINCT IF(is_opted_out, call_interaction_id, NULL)) AS opted_out_calls
@@ -19,6 +20,7 @@ FROM (
     ANY_VALUE(dnis) AS dnis,
     ANY_VALUE(caller_phonenumber) AS caller_phonenumber,
     ANY_VALUE(project_name) AS project_name,
+    ANY_VALUE(application_id) AS application_id,
     ANY_VALUE(call_type) AS call_type,
     ARRAY_AGG(
       CASE
@@ -60,6 +62,7 @@ GROUP BY
   dnis,
   caller_phonenumber,
   project_name,
+  application_id,
   call_type
 ORDER BY
   call_date,
@@ -78,6 +81,7 @@ SELECT
   campaign,
   language,
   project_name,
+  application_id,
   call_type,
   COUNT(DISTINCT call_interaction_id) AS total_calls,
   COUNT(DISTINCT IF(is_opted_out, call_interaction_id, NULL)) AS opted_out_calls
@@ -86,6 +90,7 @@ FROM (
     call_interaction_id,
     DATE(call_interaction_starttime) AS call_date,
     ANY_VALUE(project_name) AS project_name,
+    ANY_VALUE(application_id) AS application_id,
     ANY_VALUE(call_type) AS call_type,
     ARRAY_AGG(
       CASE
@@ -118,6 +123,6 @@ FROM (
   FROM `your_project.your_dataset.node_level_interactions`
   GROUP BY call_interaction_id, call_date
 ) AS call_dims
-GROUP BY call_date, campaign, language, project_name, call_type
+GROUP BY call_date, campaign, language, project_name, application_id, call_type
 ORDER BY call_date, campaign, language;
 */

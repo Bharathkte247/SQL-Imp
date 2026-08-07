@@ -14,6 +14,9 @@
 --   If both exist on the same call_interaction_id, take the latest by
 --   node_sequence_number (ascending sequence; latest = max sequence).
 --
+-- Filters:
+--   Exclude calls where campaign is NULL (no Physical/Flu campaign start node).
+--
 -- Measures:
 --   total_calls      = unique call_interaction_id
 --   opted_out_calls  = unique calls that hit any of the listed opt-out intent nodes

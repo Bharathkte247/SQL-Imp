@@ -1,11 +1,16 @@
 # SQL-Imp
 
-ClickHouse / SQL implementations.
+ClickHouse / BigQuery SQL implementations.
 
 ## Day-level campaign call view
 
-- `clickhouse/day_level_campaign_calls_view.sql` — `CREATE VIEW` for day-level metrics
-- `clickhouse/day_level_campaign_calls_select.sql` — same logic as a standalone `SELECT`
+### ClickHouse
+- `clickhouse/day_level_campaign_calls_view.sql` — `CREATE VIEW`
+- `clickhouse/day_level_campaign_calls_select.sql` — standalone `SELECT`
+
+### BigQuery
+- `bigquery/day_level_campaign_calls_view.sql` — `CREATE VIEW`
+- `bigquery/day_level_campaign_calls_select.sql` — standalone `SELECT`
 
 ### Dimensions
 
@@ -23,7 +28,7 @@ ClickHouse / SQL implementations.
 
 | Measure | Definition |
 |---------|------------|
-| `total_calls` | `uniqExact(call_interaction_id)` |
+| `total_calls` | Unique `call_interaction_id` |
 | `opted_out_calls` | Unique calls that hit any opt-out intent node listed below |
 
 Opt-out intent nodes:
@@ -35,4 +40,6 @@ Opt-out intent nodes:
 - `PH_OptOutDisconnect`
 - `PH_InOptOutNoDisconnect`
 
-Replace `default.node_level_interactions` with your source table name before running.
+Replace the placeholder source table before running:
+- ClickHouse: `default.node_level_interactions`
+- BigQuery: `your_project.your_dataset.node_level_interactions`

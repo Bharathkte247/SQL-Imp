@@ -42,7 +42,7 @@ SELECT
 FROM (
   SELECT
     call_interaction_id,
-    PARSE_DATE('%d-%m-%Y', SUBSTR(call_interaction_starttime, 1, 10)) AS call_date,
+    DATE(call_interaction_starttime) AS call_date,
     ANY_VALUE(dnis) AS dnis,
     ANY_VALUE(caller_phonenumber) AS caller_phonenumber,
     ANY_VALUE(project_name) AS project_name,

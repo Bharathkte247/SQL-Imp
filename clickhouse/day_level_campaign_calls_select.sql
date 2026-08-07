@@ -1,8 +1,18 @@
 -- ClickHouse SELECT: day-level unique calls + opt-out intents
--- Source columns expected from the node-level CSV / table.
+-- Nested subquery form (no CTE) for SQL Lab / parsers that reject WITH.
 -- Replace table name as needed.
 
-WITH call_dims AS
+SELECT
+    call_date,
+    campaign,
+    language,
+    dnis,
+    caller_phonenumber,
+    project_name,
+    call_type,
+    uniqExact(call_interaction_id) AS total_calls,
+    uniqExactIf(call_interaction_id, is_opted_out = 1) AS opted_out_calls
+FROM
 (
     SELECT
         call_interaction_id,
@@ -11,8 +21,6 @@ WITH call_dims AS
         any(caller_phonenumber) AS caller_phonenumber,
         any(project_name) AS project_name,
         any(call_type) AS call_type,
-
-        -- Campaign: latest Physical/Flu campaign start by node_sequence_number
         argMaxIf(
             multiIf(
                 node_name = 'Physical_CampaignStart', 'PH Campaign',
@@ -22,8 +30,6 @@ WITH call_dims AS
             node_sequence_number,
             node_name IN ('Physical_CampaignStart', 'Flu_CampaignStart')
         ) AS campaign,
-
-        -- Language: if both English & Spanish exits exist, take latest sequence
         argMaxIf(
             multiIf(
                 node_name = 'Exit_EnglishSelected', 'English',
@@ -33,7 +39,6 @@ WITH call_dims AS
             node_sequence_number,
             node_name IN ('Exit_EnglishSelected', 'Exit_SpanishSelected')
         ) AS language,
-
         max(
             node_name IN (
                 'PH_IBOptOutNoDisconnect',
@@ -48,18 +53,7 @@ WITH call_dims AS
     GROUP BY
         call_interaction_id,
         call_date
-)
-SELECT
-    call_date,
-    campaign,
-    language,
-    dnis,
-    caller_phonenumber,
-    project_name,
-    call_type,
-    uniqExact(call_interaction_id) AS total_calls,
-    uniqExactIf(call_interaction_id, is_opted_out = 1) AS opted_out_calls
-FROM call_dims
+) AS call_dims
 GROUP BY
     call_date,
     campaign,
@@ -80,7 +74,15 @@ ORDER BY
 -- Optional rollup: day + campaign + language only (no caller/DNIS grain)
 -- -----------------------------------------------------------------------------
 /*
-WITH call_dims AS
+SELECT
+    call_date,
+    campaign,
+    language,
+    project_name,
+    call_type,
+    uniqExact(call_interaction_id) AS total_calls,
+    uniqExactIf(call_interaction_id, is_opted_out = 1) AS opted_out_calls
+FROM
 (
     SELECT
         call_interaction_id,
@@ -117,16 +119,7 @@ WITH call_dims AS
         ) AS is_opted_out
     FROM default.node_level_interactions
     GROUP BY call_interaction_id, call_date
-)
-SELECT
-    call_date,
-    campaign,
-    language,
-    project_name,
-    call_type,
-    uniqExact(call_interaction_id) AS total_calls,
-    uniqExactIf(call_interaction_id, is_opted_out = 1) AS opted_out_calls
-FROM call_dims
+) AS call_dims
 GROUP BY call_date, campaign, language, project_name, call_type
 ORDER BY call_date, campaign, language;
 */

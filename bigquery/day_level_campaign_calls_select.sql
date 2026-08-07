@@ -1,8 +1,18 @@
 -- BigQuery SELECT: day-level unique calls + opt-out intents
--- Source columns expected from the node-level CSV / table.
+-- Nested subquery form (no CTE) for SQL Lab / parsers that reject WITH.
 -- Replace `your_project.your_dataset.node_level_interactions` as needed.
 
-WITH call_dims AS (
+SELECT
+  call_date,
+  campaign,
+  language,
+  dnis,
+  caller_phonenumber,
+  project_name,
+  call_type,
+  COUNT(DISTINCT call_interaction_id) AS total_calls,
+  COUNT(DISTINCT IF(is_opted_out, call_interaction_id, NULL)) AS opted_out_calls
+FROM (
   SELECT
     call_interaction_id,
     PARSE_DATE('%d-%m-%Y', SUBSTR(call_interaction_starttime, 1, 10)) AS call_date,
@@ -10,8 +20,6 @@ WITH call_dims AS (
     ANY_VALUE(caller_phonenumber) AS caller_phonenumber,
     ANY_VALUE(project_name) AS project_name,
     ANY_VALUE(call_type) AS call_type,
-
-    -- Campaign: latest Physical/Flu campaign start by node_sequence_number
     ARRAY_AGG(
       CASE
         WHEN node_name = 'Physical_CampaignStart' THEN 'PH Campaign'
@@ -21,8 +29,6 @@ WITH call_dims AS (
       ORDER BY node_sequence_number DESC
       LIMIT 1
     )[SAFE_OFFSET(0)] AS campaign,
-
-    -- Language: if both English & Spanish exits exist, take latest sequence
     ARRAY_AGG(
       CASE
         WHEN node_name = 'Exit_EnglishSelected' THEN 'English'
@@ -32,7 +38,6 @@ WITH call_dims AS (
       ORDER BY node_sequence_number DESC
       LIMIT 1
     )[SAFE_OFFSET(0)] AS language,
-
     LOGICAL_OR(
       node_name IN (
         'PH_IBOptOutNoDisconnect',
@@ -47,18 +52,7 @@ WITH call_dims AS (
   GROUP BY
     call_interaction_id,
     call_date
-)
-SELECT
-  call_date,
-  campaign,
-  language,
-  dnis,
-  caller_phonenumber,
-  project_name,
-  call_type,
-  COUNT(DISTINCT call_interaction_id) AS total_calls,
-  COUNT(DISTINCT IF(is_opted_out, call_interaction_id, NULL)) AS opted_out_calls
-FROM call_dims
+) AS call_dims
 GROUP BY
   call_date,
   campaign,
@@ -79,7 +73,15 @@ ORDER BY
 -- Optional rollup: day + campaign + language only (no caller/DNIS grain)
 -- -----------------------------------------------------------------------------
 /*
-WITH call_dims AS (
+SELECT
+  call_date,
+  campaign,
+  language,
+  project_name,
+  call_type,
+  COUNT(DISTINCT call_interaction_id) AS total_calls,
+  COUNT(DISTINCT IF(is_opted_out, call_interaction_id, NULL)) AS opted_out_calls
+FROM (
   SELECT
     call_interaction_id,
     PARSE_DATE('%d-%m-%Y', SUBSTR(call_interaction_starttime, 1, 10)) AS call_date,
@@ -115,16 +117,7 @@ WITH call_dims AS (
     ) AS is_opted_out
   FROM `your_project.your_dataset.node_level_interactions`
   GROUP BY call_interaction_id, call_date
-)
-SELECT
-  call_date,
-  campaign,
-  language,
-  project_name,
-  call_type,
-  COUNT(DISTINCT call_interaction_id) AS total_calls,
-  COUNT(DISTINCT IF(is_opted_out, call_interaction_id, NULL)) AS opted_out_calls
-FROM call_dims
+) AS call_dims
 GROUP BY call_date, campaign, language, project_name, call_type
 ORDER BY call_date, campaign, language;
 */

@@ -18,23 +18,35 @@
 --   total_calls      = unique call_interaction_id
 --   opted_out_calls  = unique calls that hit any of the listed opt-out intent nodes
 --
+-- Nested subquery form (no CTE) for SQL Lab / parsers that reject WITH.
 -- Replace `your_project.your_dataset.node_level_interactions` with your actual table.
 -- =============================================================================
 
 CREATE OR REPLACE VIEW `your_project.your_dataset.day_level_campaign_calls` AS
-WITH call_dims AS (
+SELECT
+  call_date,
+  campaign,
+  language,
+  dnis,
+  caller_phonenumber,
+  project_name,
+  call_type,
+  COUNT(DISTINCT call_interaction_id) AS total_calls,
+  COUNT(DISTINCT IF(is_opted_out, call_interaction_id, NULL)) AS opted_out_calls,
+  COUNT(DISTINCT IF(is_ph_ib_optout_no_disconnect, call_interaction_id, NULL)) AS ph_ib_optout_no_disconnect_calls,
+  COUNT(DISTINCT IF(is_ph_in_optout_disconnect, call_interaction_id, NULL)) AS ph_in_optout_disconnect_calls,
+  COUNT(DISTINCT IF(is_ph_optout_no_disconnect, call_interaction_id, NULL)) AS ph_optout_no_disconnect_calls,
+  COUNT(DISTINCT IF(is_ph_ob_optout_no_disconnect, call_interaction_id, NULL)) AS ph_ob_optout_no_disconnect_calls,
+  COUNT(DISTINCT IF(is_ph_optout_disconnect, call_interaction_id, NULL)) AS ph_optout_disconnect_calls,
+  COUNT(DISTINCT IF(is_ph_in_optout_no_disconnect, call_interaction_id, NULL)) AS ph_in_optout_no_disconnect_calls
+FROM (
   SELECT
     call_interaction_id,
-
-    -- Day from interaction start (source format: DD-MM-YYYY HH:MM)
     PARSE_DATE('%d-%m-%Y', SUBSTR(call_interaction_starttime, 1, 10)) AS call_date,
-
     ANY_VALUE(dnis) AS dnis,
     ANY_VALUE(caller_phonenumber) AS caller_phonenumber,
     ANY_VALUE(project_name) AS project_name,
     ANY_VALUE(call_type) AS call_type,
-
-    -- Latest campaign start node on the call
     ARRAY_AGG(
       CASE
         WHEN node_name = 'Physical_CampaignStart' THEN 'PH Campaign'
@@ -44,8 +56,6 @@ WITH call_dims AS (
       ORDER BY node_sequence_number DESC
       LIMIT 1
     )[SAFE_OFFSET(0)] AS campaign,
-
-    -- Latest language exit node on the call (English vs Spanish)
     ARRAY_AGG(
       CASE
         WHEN node_name = 'Exit_EnglishSelected' THEN 'English'
@@ -55,8 +65,6 @@ WITH call_dims AS (
       ORDER BY node_sequence_number DESC
       LIMIT 1
     )[SAFE_OFFSET(0)] AS language,
-
-    -- Opt-out intent flag (any of the listed intent nodes)
     LOGICAL_OR(
       node_name IN (
         'PH_IBOptOutNoDisconnect',
@@ -67,8 +75,6 @@ WITH call_dims AS (
         'PH_InOptOutNoDisconnect'
       )
     ) AS is_opted_out,
-
-    -- Optional per-intent flags (useful for breakdowns)
     LOGICAL_OR(node_name = 'PH_IBOptOutNoDisconnect') AS is_ph_ib_optout_no_disconnect,
     LOGICAL_OR(node_name = 'PH_InOptOutDisconnect') AS is_ph_in_optout_disconnect,
     LOGICAL_OR(node_name = 'PH_OptOutNoDisconnect') AS is_ph_optout_no_disconnect,
@@ -79,26 +85,7 @@ WITH call_dims AS (
   GROUP BY
     call_interaction_id,
     call_date
-)
-SELECT
-  call_date,
-  campaign,
-  language,
-  dnis,
-  caller_phonenumber,
-  project_name,
-  call_type,
-
-  COUNT(DISTINCT call_interaction_id) AS total_calls,
-  COUNT(DISTINCT IF(is_opted_out, call_interaction_id, NULL)) AS opted_out_calls,
-
-  COUNT(DISTINCT IF(is_ph_ib_optout_no_disconnect, call_interaction_id, NULL)) AS ph_ib_optout_no_disconnect_calls,
-  COUNT(DISTINCT IF(is_ph_in_optout_disconnect, call_interaction_id, NULL)) AS ph_in_optout_disconnect_calls,
-  COUNT(DISTINCT IF(is_ph_optout_no_disconnect, call_interaction_id, NULL)) AS ph_optout_no_disconnect_calls,
-  COUNT(DISTINCT IF(is_ph_ob_optout_no_disconnect, call_interaction_id, NULL)) AS ph_ob_optout_no_disconnect_calls,
-  COUNT(DISTINCT IF(is_ph_optout_disconnect, call_interaction_id, NULL)) AS ph_optout_disconnect_calls,
-  COUNT(DISTINCT IF(is_ph_in_optout_no_disconnect, call_interaction_id, NULL)) AS ph_in_optout_no_disconnect_calls
-FROM call_dims
+) AS call_dims
 GROUP BY
   call_date,
   campaign,

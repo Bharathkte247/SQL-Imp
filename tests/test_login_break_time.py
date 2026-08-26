@@ -171,10 +171,68 @@ def test_two_sessions_clip_independently():
     assert metrics["breakTime"] == 10, metrics
 
 
+def session_windows(events: list[StatusEvent]) -> list[tuple[int, int, int]]:
+    """Optimized conversation join shape: one [start, next_start) per login session."""
+    sns = session_number(events)
+    starts: dict[int, int] = {}
+    for e, sn in zip(events, sns):
+        if sn <= 0:
+            continue
+        starts[sn] = min(starts.get(sn, e.ts_ms), e.ts_ms)
+    ordered = sorted(starts.items())
+    windows: list[tuple[int, int, int]] = []
+    for i, (sn, start) in enumerate(ordered):
+        next_start = ordered[i + 1][1] if i + 1 < len(ordered) else start + 86_400_000
+        windows.append((sn, start, next_start))
+    return windows
+
+
+def assign_session(windows: list[tuple[int, int, int]], ts_ms: int) -> int | None:
+    for sn, start, end in windows:
+        if start <= ts_ms < end:
+            return sn
+    return None
+
+
+def test_session_window_join_matches_containing_session():
+    # Optimized path uses 1 window/session instead of CROSS JOIN on every status event.
+    events = [
+        StatusEvent(0_000, "Login"),
+        StatusEvent(10_000, "Active"),
+        StatusEvent(20_000, "Logout"),
+        StatusEvent(25_000, "offline"),
+        StatusEvent(40_000, "Login"),
+        StatusEvent(50_000, "Logout"),
+    ]
+    windows = session_windows(events)
+    assert assign_session(windows, 5_000) == 1
+    assert assign_session(windows, 24_000) == 1  # after logout, before next login
+    assert assign_session(windows, 45_000) == 2
+    assert assign_session(windows, 100_000) is None
+
+
+def test_early_cutoff_prunes_pre_cutoff_seconds_only():
+    # Seconds before cutoff must not count; in-window Offline still counts after cutoff.
+    events = [
+        StatusEvent(0_000, "Login"),
+        StatusEvent(10_000, "offline"),
+        StatusEvent(30_000, "Logout"),
+    ]
+    sns = session_number(events)
+    segs = status_segments(events, sns, 1)
+    seconds = expand_seconds(segs)
+    cutoff_sec = 20  # 20_000 ms
+    kept = [(s, st) for s, st in seconds if s >= cutoff_sec]
+    assert len({s for s, _ in kept}) == 10  # [20, 30)
+    assert len({s for s, st in kept if st == "offline"}) == 10
+
+
 if __name__ == "__main__":
     test_offline_between_login_and_logout_counts_for_both()
     test_offline_after_logout_excluded_from_login_and_break()
     test_offline_is_not_treated_as_logout()
     test_pre_login_offline_excluded()
     test_two_sessions_clip_independently()
+    test_session_window_join_matches_containing_session()
+    test_early_cutoff_prunes_pre_cutoff_seconds_only()
     print("All loginTime/breakTime tests passed.")

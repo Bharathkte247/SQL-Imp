@@ -7,9 +7,8 @@ ClickHouse SQL for agent utilization reporting.
 Complete 15-minute agent utilization metrics from `firstam.eg_assist_cw_distributed`
 (test filter: `2026-08-17`). Ready to run as-is for testing.
 
-For Airflow, replace:
-- `firstam` → `{{ params.client_schema }}`
-- `2026-08-17` → `{{ params.cutoff_date }}`
+For Airflow, replace `firstam` with the client schema and `2026-08-17` with the cutoff date.
+Do not leave Jinja-style braces in the SQL file (query runners treat them as required parameters).
 
 ### Login / break rules
 

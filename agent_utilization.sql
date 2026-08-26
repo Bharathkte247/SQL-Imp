@@ -1,4 +1,4 @@
--- Agent utilization metrics (15-minute buckets) — complete
+-- Agent utilization metrics (15-minute buckets) - complete
 -- Schema: firstam.eg_assist_cw_distributed  (swap schema/date for other tenants)
 --
 -- loginTime  = seconds between Login and Logout (inclusive of mid-session Offline)
@@ -9,13 +9,13 @@
 --
 -- Optimizations:
 -- 1) LIMIT 1 BY for event dedup
--- 2) One row per login session for conversation attribution (no status×event CROSS JOIN)
+-- 2) One row per login session for conversation attribution (no status x event CROSS JOIN)
 -- 3) Logout clipping folded into segment build
 -- 4) Early date prune before second-level ARRAY JOIN expansion
--- 5) Shared status×concurrency join for ByQueueRole + OverAll
+-- 5) Shared status x concurrency join for ByQueueRole + OverAll
 --
--- Airflow: replace firstam → {{ params.client_schema }}
---          replace 2026-08-17 → {{ params.cutoff_date }}
+-- For Airflow: swap firstam with the client schema param, and 2026-08-17 with cutoff_date.
+-- Do not put Jinja braces in this file; query runners treat them as required parameters.
 
 SELECT *
 FROM (

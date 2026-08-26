@@ -18,11 +18,31 @@ class StatusEvent:
     status: str
 
 
+LOGIN_STATUSES = {
+    "login",
+    "logged in",
+    "loggedin",
+    "logged_in",
+    "online",
+}
+LOGOUT_STATUSES = {
+    "logout",
+    "logged out",
+    "loggedout",
+    "logged_out",
+}
+BREAK_STATUSES = {"unavailable", "offline"}
+
+
+def _norm(status: str) -> str:
+    return status.strip().lower()
+
+
 def session_number(events: list[StatusEvent]) -> list[int]:
     n = 0
     out: list[int] = []
     for e in events:
-        if e.status in ("Login", "online"):
+        if _norm(e.status) in LOGIN_STATUSES:
             n += 1
         out.append(n)
     return out
@@ -32,15 +52,22 @@ def logout_epoch(events: list[StatusEvent], session_nums: list[int], session: in
     logout_ts = [
         e.ts_ms
         for e, sn in zip(events, session_nums)
-        if sn == session and e.status == "Logout"
+        if sn == session and _norm(e.status) in LOGOUT_STATUSES
     ]
     return min(logout_ts) if logout_ts else None
 
 
 def status_segments(
-    events: list[StatusEvent], session_nums: list[int], session: int
+    events: list[StatusEvent],
+    session_nums: list[int],
+    session: int,
+    *,
+    now_ms: int | None = None,
 ) -> list[tuple[int, int, str]]:
-    """Return (start_ms, end_ms, status) clipped to [Login, Logout)."""
+    """Return (start_ms, end_ms, status) clipped to [Login, Logout).
+
+    Open last segments (no logout / no next event) end at now_ms when provided.
+    """
     session_events = [(e, sn) for e, sn in zip(events, session_nums) if sn == session]
     if not session_events:
         return []
@@ -61,7 +88,14 @@ def status_segments(
             continue
         if logout is not None and (end == 0 or end > logout):
             end = logout
-        if end == 0:
+        elif end == 0:
+            if now_ms is None:
+                continue
+            end = now_ms
+        # Clip very long segments to 24h (mirror SQL least(...))
+        if end > start + 86_400_000:
+            end = start + 86_400_000
+        if end <= start:
             continue
         clipped.append((start, end, status))
     return clipped
@@ -72,24 +106,27 @@ def expand_seconds(segments: list[tuple[int, int, str]]) -> list[tuple[int, str]
     for start_ms, end_ms, status in segments:
         start_s = start_ms // 1000
         end_s = end_ms // 1000
-        if end_s - start_s >= 86400:
-            continue
+        # SQL clips to 24h upstream; still guard against unbounded expands.
+        if end_s - start_s > 86_400:
+            end_s = start_s + 86_400
         for s in range(start_s, end_s):
             seconds.append((s, status))
     return seconds
 
 
-def compute_metrics(events: list[StatusEvent]) -> dict[str, int]:
+def compute_metrics(
+    events: list[StatusEvent], *, now_ms: int | None = None
+) -> dict[str, int]:
     sns = session_number(events)
     # Only sessions after first login
     sessions = sorted({sn for sn in sns if sn > 0})
     all_seconds: list[tuple[int, str]] = []
     for sn in sessions:
-        segs = status_segments(events, sns, sn)
+        segs = status_segments(events, sns, sn, now_ms=now_ms)
         all_seconds.extend(expand_seconds(segs))
 
     login_time = len({s for s, _ in all_seconds})
-    break_time = len({s for s, st in all_seconds if st in ("Unavailable", "offline")})
+    break_time = len({s for s, st in all_seconds if _norm(st) in BREAK_STATUSES})
     return {"loginTime": login_time, "breakTime": break_time}
 
 
@@ -218,6 +255,42 @@ def test_session_window_join_matches_containing_session():
     assert assign_session(windows, 100_000) == 2
 
 
+def test_case_insensitive_login_logout_labels():
+    events = [
+        StatusEvent(0_000, "LOGIN"),
+        StatusEvent(10_000, "Offline"),
+        StatusEvent(20_000, "logged out"),
+        StatusEvent(30_000, "offline"),
+    ]
+    metrics = compute_metrics(events)
+    assert metrics["loginTime"] == 20, metrics
+    assert metrics["breakTime"] == 10, metrics
+
+
+def test_open_session_caps_at_now_instead_of_dropping():
+    # Login with no Logout and no later event must still produce seconds.
+    events = [
+        StatusEvent(0_000, "Login"),
+        StatusEvent(10_000, "Active"),
+    ]
+    metrics = compute_metrics(events, now_ms=40_000)
+    # [0,10) Active-start + [10,40) Active open = 40s login, 0 break
+    assert metrics["loginTime"] == 40, metrics
+    assert metrics["breakTime"] == 0, metrics
+
+
+def test_long_segment_clipped_not_dropped():
+    events = [
+        StatusEvent(0_000, "Login"),
+        StatusEvent(10_000, "offline"),
+        StatusEvent(200_000_000, "Logout"),  # >24h later
+    ]
+    metrics = compute_metrics(events)
+    # Segment Login [0,10) kept; offline [10, 10+86400000) clipped to 24h
+    assert metrics["loginTime"] == 10 + 86_400, metrics
+    assert metrics["breakTime"] == 86_400, metrics
+
+
 def test_early_cutoff_prunes_pre_cutoff_seconds_only():
     # Seconds before cutoff must not count; in-window Offline still counts after cutoff.
     events = [
@@ -231,7 +304,7 @@ def test_early_cutoff_prunes_pre_cutoff_seconds_only():
     cutoff_sec = 20  # 20_000 ms
     kept = [(s, st) for s, st in seconds if s >= cutoff_sec]
     assert len({s for s, _ in kept}) == 10  # [20, 30)
-    assert len({s for s, st in kept if st == "offline"}) == 10
+    assert len({s for s, st in kept if _norm(st) == "offline"}) == 10
 
 
 if __name__ == "__main__":
@@ -241,5 +314,8 @@ if __name__ == "__main__":
     test_pre_login_offline_excluded()
     test_two_sessions_clip_independently()
     test_session_window_join_matches_containing_session()
+    test_case_insensitive_login_logout_labels()
+    test_open_session_caps_at_now_instead_of_dropping()
+    test_long_segment_clipped_not_dropped()
     test_early_cutoff_prunes_pre_cutoff_seconds_only()
     print("All loginTime/breakTime tests passed.")

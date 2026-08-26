@@ -1,21 +1,18 @@
 -- Agent utilization metrics (15-minute buckets) - complete
--- Schema: firstam.eg_assist_cw_distributed  (swap schema/date for other tenants)
+-- Schema: firstam.eg_assist_cw_distributed  (swap schema for other tenants)
 --
 -- loginTime  = seconds between Login and Logout (inclusive of mid-session Offline)
 -- breakTime  = Unavailable/Offline seconds that fall strictly between Login and Logout
 -- Offline after Logout is excluded from both loginTime and breakTime.
 --
--- Only explicit Logout closes the login window (mid-session Offline is NOT logout).
+-- Only explicit Logout closes the login window (mid-session offline is NOT logout).
+-- Open sessions (no Logout yet) are capped at now() so the last status segment is kept.
 --
--- Optimizations:
--- 1) LIMIT 1 BY for event dedup
--- 2) One row per login session for conversation attribution (no status x event CROSS JOIN)
--- 3) Logout clipping folded into segment build
--- 4) Early date prune before second-level ARRAY JOIN expansion
--- 5) Shared status x concurrency join for ByQueueRole + OverAll
---
--- For Airflow: swap firstam with the client schema param, and 2026-08-17 with cutoff_date.
--- Do not put Jinja braces in this file; query runners treat them as required parameters.
+-- Fixes for empty results:
+-- 1) No hardcoded report-date filters (only a 60-day lookback on source events)
+-- 2) Case-insensitive login/logout/status matching
+-- 3) Open segments with no next event end at now() instead of being dropped
+-- 4) Segments longer than 24h are clipped (not dropped)
 
 SELECT *
 FROM (
@@ -34,13 +31,29 @@ FROM (
             EventValue7 AS agent_name,
             EventValue4 AS agent_email,
             EventValue5 AS agent_current_status,
+            lowerUTF8(trimBoth(ifNull(EventValue5, ''))) AS status_norm,
             EventValue12 AS agent_previous_status,
             EventValue9 AS team_name,
             EventValue8 AS team_id,
-            if(EventValue5 IN ('Login', 'online'), 1, 0) AS is_login,
-            if(EventValue5 = 'Logout', 1, 0) AS is_logout
+            -- Login starts a session. Include common label variants + online.
+            if(
+                lowerUTF8(trimBoth(ifNull(EventValue5, ''))) IN (
+                    'login', 'logged in', 'loggedin', 'logged_in', 'online'
+                ),
+                1,
+                0
+            ) AS is_login,
+            -- Only explicit logout ends the window (offline is NOT logout).
+            if(
+                lowerUTF8(trimBoth(ifNull(EventValue5, ''))) IN (
+                    'logout', 'logged out', 'loggedout', 'logged_out'
+                ),
+                1,
+                0
+            ) AS is_logout
         FROM firstam.eg_assist_cw_distributed
         WHERE EventName = 'AGENT_STATUS'
+          AND EventValue6 IS NOT NULL
           AND EventTimeStampEpoch >= (toUnixTimestamp(now() - toIntervalDay(60)) * 1000)
     ),
 
@@ -75,6 +88,7 @@ FROM (
             agent_name,
             agent_email,
             agent_current_status,
+            status_norm,
             agent_previous_status,
             team_name,
             team_id,
@@ -94,8 +108,7 @@ FROM (
         GROUP BY agent_session_id
     ),
 
-    -- One window per login session for conversation attribution:
-    -- [session_start, next_session_start). Replaces CROSS JOIN of every status event.
+    -- One window per login session for conversation attribution.
     agent_session_windows AS (
         SELECT
             agent_session_id,
@@ -120,7 +133,7 @@ FROM (
         )
     ),
 
-    -- Status segments clipped to [Login, Logout). Post-logout Offline excluded.
+    -- Status segments clipped to [Login, Logout). Open last segment ends at now().
     agent_status_segments_filtered AS (
         SELECT
             s.agent_session_id,
@@ -130,12 +143,17 @@ FROM (
             s.team_id,
             s.segment_start_epoch,
             multiIf(
+                -- Explicit logout: clip open/next ends at logout
                 lo.logout_epoch IS NOT NULL
                     AND (s.segment_end_epoch_raw = 0 OR s.segment_end_epoch_raw > lo.logout_epoch),
                 lo.logout_epoch,
+                -- Still open (no logout, no next event): cap at now so seconds expand
+                s.segment_end_epoch_raw = 0,
+                toUInt64(toUnixTimestamp(now()) * 1000),
                 s.segment_end_epoch_raw
             ) AS segment_end_epoch,
-            s.agent_current_status
+            s.agent_current_status,
+            s.status_norm
         FROM (
             SELECT
                 agent_session_id,
@@ -149,7 +167,8 @@ FROM (
                     ORDER BY event_timestamp_epoch ASC
                     ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
                 ) AS segment_end_epoch_raw,
-                agent_current_status
+                agent_current_status,
+                status_norm
             FROM agent_session_ids
         ) AS s
         LEFT JOIN agent_session_logout AS lo
@@ -158,13 +177,23 @@ FROM (
     ),
 
     agent_status_segments_valid AS (
-        SELECT *
+        SELECT
+            agent_session_id,
+            client_id,
+            account_id,
+            agent_id,
+            team_id,
+            segment_start_epoch,
+            -- Clip very long segments to 24h to bound ARRAY JOIN cost (do not drop)
+            least(
+                segment_end_epoch,
+                segment_start_epoch + toUInt64(86400 * 1000)
+            ) AS segment_end_epoch,
+            agent_current_status,
+            status_norm
         FROM agent_status_segments_filtered
         WHERE segment_end_epoch IS NOT NULL
-          AND segment_end_epoch != 0
           AND segment_end_epoch > segment_start_epoch
-          AND segment_end_epoch >= (toUnixTimestamp(toDateTime('2026-08-17')) * 1000)
-          AND ((segment_end_epoch - segment_start_epoch) / 1000) < 86400
     ),
 
     ------------------------------------------------------------------------
@@ -248,7 +277,11 @@ FROM (
             queue_name,
             team_id,
             interaction_start_epoch,
-            interaction_end_epoch,
+            -- Clip long interactions to 24h (do not drop)
+            least(
+                interaction_end_epoch,
+                interaction_start_epoch + toUInt64(86400 * 1000)
+            ) AS interaction_end_epoch,
             participant_role
         FROM (
             SELECT
@@ -291,9 +324,7 @@ FROM (
         )
         WHERE interaction_start_epoch IS NOT NULL
           AND interaction_end_epoch IS NOT NULL
-          AND interaction_end_epoch >= interaction_start_epoch
-          AND interaction_end_epoch >= (toUnixTimestamp(toDateTime('2026-08-17')) * 1000)
-          AND ((interaction_end_epoch - interaction_start_epoch) / 1000) < 86400
+          AND interaction_end_epoch > interaction_start_epoch
     ),
 
     ------------------------------------------------------------------------
@@ -307,6 +338,7 @@ FROM (
             agent_id,
             team_id,
             agent_current_status,
+            status_norm,
             second_epoch,
             intDiv(second_epoch, 900) * 900 AS time_bucket_start
         FROM agent_status_segments_valid
@@ -314,7 +346,6 @@ FROM (
             toUInt64(floor(segment_start_epoch / 1000)),
             toUInt64(floor(segment_end_epoch / 1000))
         ) AS second_epoch
-        WHERE second_epoch >= toUnixTimestamp(toDateTime('2026-08-17'))
     ),
 
     interaction_seconds AS (
@@ -335,7 +366,6 @@ FROM (
             toUInt64(floor(interaction_start_epoch / 1000)),
             toUInt64(floor(interaction_end_epoch / 1000))
         ) AS second_epoch
-        WHERE second_epoch >= toUnixTimestamp(toDateTime('2026-08-17'))
     ),
 
     interaction_concurrency AS (
@@ -373,6 +403,7 @@ FROM (
             ass.agent_id AS agent_id,
             ass.team_id AS team_id,
             ass.agent_current_status AS agent_current_status,
+            ass.status_norm AS status_norm,
             ass.second_epoch AS second_epoch,
             ass.time_bucket_start AS time_bucket,
             ic.queue_id AS queue_id,
@@ -396,9 +427,18 @@ FROM (
             ifNull(participant_role, 'N/A') AS role,
             time_bucket,
             uniqExact(second_epoch) AS login_time,
-            uniqExactIf(second_epoch, agent_current_status IN ('Unavailable', 'offline')) AS break_time,
-            uniqExactIf(second_epoch, agent_current_status IN ('busy', 'Passive')) AS busy_time,
-            uniqExactIf(second_epoch, agent_current_status IN ('online', 'Active')) AS active_time,
+            uniqExactIf(
+                second_epoch,
+                status_norm IN ('unavailable', 'offline')
+            ) AS break_time,
+            uniqExactIf(
+                second_epoch,
+                status_norm IN ('busy', 'passive')
+            ) AS busy_time,
+            uniqExactIf(
+                second_epoch,
+                status_norm IN ('online', 'active', 'login', 'logged in', 'loggedin', 'logged_in')
+            ) AS active_time,
             uniqExactIf(
                 second_epoch,
                 (concurrent_conversations > 0) AND (participant_role = 'OWNER')
@@ -409,12 +449,12 @@ FROM (
             max(concurrent_conversations) AS max_concurrency,
             uniqExactIf(
                 second_epoch,
-                (agent_current_status IN ('Unavailable', 'offline', 'busy', 'Passive'))
+                (status_norm IN ('unavailable', 'offline', 'busy', 'passive'))
                     AND (concurrent_conversations > 0)
             ) AS time_not_available_but_chatting,
             uniqExactIf(
                 second_epoch,
-                (agent_current_status IN ('online', 'Active'))
+                (status_norm IN ('online', 'active', 'login', 'logged in', 'loggedin', 'logged_in'))
                     AND (concurrent_conversations = 0)
             ) AS time_available_but_not_chatting
         FROM status_with_concurrency
@@ -440,9 +480,18 @@ FROM (
             'Overall' AS role,
             time_bucket,
             uniqExact(second_epoch) AS login_time,
-            uniqExactIf(second_epoch, agent_current_status IN ('Unavailable', 'offline')) AS break_time,
-            uniqExactIf(second_epoch, agent_current_status IN ('busy', 'Passive')) AS busy_time,
-            uniqExactIf(second_epoch, agent_current_status IN ('online', 'Active')) AS active_time,
+            uniqExactIf(
+                second_epoch,
+                status_norm IN ('unavailable', 'offline')
+            ) AS break_time,
+            uniqExactIf(
+                second_epoch,
+                status_norm IN ('busy', 'passive')
+            ) AS busy_time,
+            uniqExactIf(
+                second_epoch,
+                status_norm IN ('online', 'active', 'login', 'logged in', 'loggedin', 'logged_in')
+            ) AS active_time,
             uniqExactIf(
                 second_epoch,
                 (concurrent_conversations > 0) AND (participant_role = 'OWNER')
@@ -460,13 +509,13 @@ FROM (
             maxIf(concurrent_conversations, participant_role = 'OWNER') AS max_concurrency,
             uniqExactIf(
                 second_epoch,
-                (agent_current_status IN ('Unavailable', 'offline', 'busy', 'Passive'))
+                (status_norm IN ('unavailable', 'offline', 'busy', 'passive'))
                     AND (concurrent_conversations > 0)
                     AND (participant_role = 'OWNER')
             ) AS time_not_available_but_chatting,
             uniqExactIf(
                 second_epoch,
-                (agent_current_status IN ('online', 'Active'))
+                (status_norm IN ('online', 'active', 'login', 'logged in', 'loggedin', 'logged_in'))
                     AND (concurrent_conversations = 0)
             ) AS time_available_but_not_chatting,
             0 AS wrapup_time
@@ -543,6 +592,5 @@ FROM (
 
     SELECT *
     FROM all_utilization_metrics
-    WHERE toDate(fromUnixTimestamp(timeBucket)) = toDate('2026-08-17')
     ORDER BY timeBucket DESC
 )

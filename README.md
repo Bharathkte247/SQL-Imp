@@ -4,11 +4,8 @@ ClickHouse SQL for agent utilization reporting.
 
 ## `agent_utilization.sql`
 
-Complete 15-minute agent utilization metrics from `firstam.eg_assist_cw_distributed`
-(test filter: `2026-08-17`). Ready to run as-is for testing.
-
-For Airflow, replace `firstam` with the client schema and `2026-08-17` with the cutoff date.
-Do not leave Jinja-style braces in the SQL file (query runners treat them as required parameters).
+Complete 15-minute agent utilization metrics from `firstam.eg_assist_cw_distributed`.
+Source lookback is last 60 days. No hardcoded report-date filter.
 
 ### Login / break rules
 
@@ -20,6 +17,18 @@ Do not leave Jinja-style braces in the SQL file (query runners treat them as req
 - Mid-session `offline` counts toward both `loginTime` and `breakTime`.
 - `offline` after `Logout` (before the next Login) is excluded from both.
 - Only explicit `Logout` closes the login window (`offline` is not treated as logout).
+- Open sessions (no Logout yet) end at `now()`.
+
+### Empty-result checklist
+
+If the main query returns 0 rows, run `agent_utilization_diagnostics.sql`:
+
+1. Confirm `AGENT_STATUS` rows exist for the tenant.
+2. Inspect distinct `EventValue5` labels.
+3. Confirm `login_like_rows > 0` — otherwise sessions never start.
+
+Login matchers (case-insensitive): `login`, `logged in`, `loggedin`, `logged_in`, `online`  
+Logout matchers (case-insensitive): `logout`, `logged out`, `loggedout`, `logged_out`
 
 ### Field mapping (`AGENT_STATUS`)
 

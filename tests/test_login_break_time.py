@@ -171,8 +171,12 @@ def test_two_sessions_clip_independently():
     assert metrics["breakTime"] == 10, metrics
 
 
-def session_windows(events: list[StatusEvent]) -> list[tuple[int, int, int]]:
-    """Optimized conversation join shape: one [start, next_start) per login session."""
+def session_windows(events: list[StatusEvent]) -> list[tuple[int, int, int | None]]:
+    """Optimized conversation join shape: one [start, next_start) per login session.
+
+    next_start is None for the latest session — matching the SQL branch where
+    next_session_start_epoch = 0 makes the upper-bound check always true.
+    """
     sns = session_number(events)
     starts: dict[int, int] = {}
     for e, sn in zip(events, sns):
@@ -180,16 +184,18 @@ def session_windows(events: list[StatusEvent]) -> list[tuple[int, int, int]]:
             continue
         starts[sn] = min(starts.get(sn, e.ts_ms), e.ts_ms)
     ordered = sorted(starts.items())
-    windows: list[tuple[int, int, int]] = []
+    windows: list[tuple[int, int, int | None]] = []
     for i, (sn, start) in enumerate(ordered):
-        next_start = ordered[i + 1][1] if i + 1 < len(ordered) else start + 86_400_000
+        next_start = ordered[i + 1][1] if i + 1 < len(ordered) else None
         windows.append((sn, start, next_start))
     return windows
 
 
-def assign_session(windows: list[tuple[int, int, int]], ts_ms: int) -> int | None:
+def assign_session(windows: list[tuple[int, int, int | None]], ts_ms: int) -> int | None:
     for sn, start, end in windows:
-        if start <= ts_ms < end:
+        if ts_ms < start:
+            continue
+        if end is None or ts_ms < end:
             return sn
     return None
 
@@ -208,7 +214,8 @@ def test_session_window_join_matches_containing_session():
     assert assign_session(windows, 5_000) == 1
     assert assign_session(windows, 24_000) == 1  # after logout, before next login
     assert assign_session(windows, 45_000) == 2
-    assert assign_session(windows, 100_000) is None
+    # Latest session stays open (same as SQL next_session_start_epoch = 0)
+    assert assign_session(windows, 100_000) == 2
 
 
 def test_early_cutoff_prunes_pre_cutoff_seconds_only():

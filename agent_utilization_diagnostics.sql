@@ -21,7 +21,7 @@ SELECT
     count() AS cnt
 FROM firstam.eg_assist_cw_distributed
 WHERE EventName = 'AGENT_STATUS'
-  AND EventTimeStampEpoch >= (toUInt64(toUnixTimestamp(now() - toIntervalDay(60))) * 1000)
+  AND EventTimeStampEpoch >= (toInt64(toUnixTimestamp(now() - toIntervalDay(60))) * 1000)
 GROUP BY agent_current_status, agent_previous_status
 ORDER BY cnt DESC
 LIMIT 100;

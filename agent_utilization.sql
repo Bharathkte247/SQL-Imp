@@ -22,7 +22,8 @@ FROM (
         SELECT
             EventId AS event_id,
             EventUniqueId AS event_unique_id,
-            EventTimeStampEpoch AS event_timestamp_epoch,
+            -- Normalize epochs to Int64 so multiIf/least/lead defaults share one type
+            toInt64(EventTimeStampEpoch) AS event_timestamp_epoch,
             ClientOrg AS client_id,
             EventValue6 AS agent_id,
             ifNull(EventValue1, 'default') AS account_id,
@@ -36,7 +37,7 @@ FROM (
             EventValue8 AS team_id,
             -- Session start:
             --   1) explicit login labels
-            --   2) available/online/active when previous was offline/unavailable/empty
+            --   2) available/online/active when previous was offline/unavailable
             --      (firstam often emits available after offline without a login event)
             if(
                 lowerUTF8(trimBoth(ifNull(EventValue5, ''))) IN (
@@ -65,7 +66,7 @@ FROM (
         WHERE EventName = 'AGENT_STATUS'
           AND EventValue6 IS NOT NULL
           AND EventValue6 != ''
-          AND EventTimeStampEpoch >= (toUInt64(toUnixTimestamp(now() - toIntervalDay(60))) * 1000)
+          AND toInt64(EventTimeStampEpoch) >= toInt64(toUnixTimestamp(now() - toIntervalDay(60))) * 1000
     ),
 
     agent_status_events_dedup AS (
@@ -112,10 +113,11 @@ FROM (
     ),
 
     -- First Logout closes the login window for utilization seconds.
+    -- minIf returns 0 when no logout exists; nullIf so open sessions are not clipped to 0.
     agent_session_logout AS (
         SELECT
             agent_session_id,
-            minIf(event_timestamp_epoch, is_logout = 1) AS logout_epoch
+            nullIf(minIf(event_timestamp_epoch, is_logout = 1), toInt64(0)) AS logout_epoch
         FROM agent_session_ids
         GROUP BY agent_session_id
     ),
@@ -128,7 +130,7 @@ FROM (
             account_id,
             agent_id,
             session_start_epoch,
-            leadInFrame(session_start_epoch, 1, 0) OVER (
+            leadInFrame(session_start_epoch, 1, toInt64(0)) OVER (
                 PARTITION BY client_id, account_id, agent_id
                 ORDER BY session_start_epoch ASC
                 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
@@ -156,11 +158,10 @@ FROM (
             s.segment_start_epoch,
             multiIf(
                 lo.logout_epoch IS NOT NULL
-                    AND (s.segment_end_epoch_raw = 0 OR s.segment_end_epoch_raw > lo.logout_epoch),
+                    AND (s.segment_end_epoch_raw = toInt64(0) OR s.segment_end_epoch_raw > lo.logout_epoch),
                 lo.logout_epoch,
-                -- Cast seconds to UInt64 BEFORE *1000 to avoid UInt32 overflow
-                s.segment_end_epoch_raw = 0,
-                toUInt64(toUnixTimestamp(now())) * 1000,
+                s.segment_end_epoch_raw = toInt64(0),
+                toInt64(toUnixTimestamp(now())) * toInt64(1000),
                 s.segment_end_epoch_raw
             ) AS segment_end_epoch,
             s.agent_current_status,
@@ -173,7 +174,7 @@ FROM (
                 agent_id,
                 team_id,
                 event_timestamp_epoch AS segment_start_epoch,
-                leadInFrame(event_timestamp_epoch, 1, 0) OVER (
+                leadInFrame(event_timestamp_epoch, 1, toInt64(0)) OVER (
                     PARTITION BY agent_session_id
                     ORDER BY event_timestamp_epoch ASC
                     ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
@@ -197,7 +198,7 @@ FROM (
             segment_start_epoch,
             least(
                 segment_end_epoch,
-                segment_start_epoch + toUInt64(86400 * 1000)
+                segment_start_epoch + toInt64(86400000)
             ) AS segment_end_epoch,
             agent_current_status,
             status_norm
@@ -214,7 +215,7 @@ FROM (
             EventId AS event_id,
             EventUniqueId AS event_unique_id,
             EventName AS event_name,
-            EventTimeStampEpoch AS event_timestamp_epoch,
+            toInt64(EventTimeStampEpoch) AS event_timestamp_epoch,
             ClientOrg AS client_id,
             EventValue6 AS agent_id,
             ConversationId AS conversation_id,
@@ -234,7 +235,7 @@ FROM (
             )
           AND EventValue6 IS NOT NULL
           AND EventValue6 != ''
-          AND EventTimeStampEpoch >= (toUInt64(toUnixTimestamp(now() - toIntervalDay(60))) * 1000)
+          AND toInt64(EventTimeStampEpoch) >= toInt64(toUnixTimestamp(now() - toIntervalDay(60))) * 1000
     ),
 
     conversation_events_dedup AS (
@@ -266,8 +267,8 @@ FROM (
            AND c.agent_id = a.agent_id
            AND a.session_start_epoch <= c.event_timestamp_epoch
            AND c.event_timestamp_epoch < if(
-                a.next_session_start_epoch = 0,
-                c.event_timestamp_epoch + 86400000,
+                a.next_session_start_epoch = toInt64(0),
+                c.event_timestamp_epoch + toInt64(86400000),
                 a.next_session_start_epoch
             )
     ),
@@ -286,7 +287,7 @@ FROM (
             interaction_start_epoch,
             least(
                 interaction_end_epoch,
-                interaction_start_epoch + toUInt64(86400 * 1000)
+                interaction_start_epoch + toInt64(86400000)
             ) AS interaction_end_epoch,
             participant_role
         FROM (
@@ -349,8 +350,8 @@ FROM (
             intDiv(second_epoch, 900) * 900 AS time_bucket_start
         FROM agent_status_segments_valid
         ARRAY JOIN range(
-            toUInt64(floor(segment_start_epoch / 1000)),
-            toUInt64(floor(segment_end_epoch / 1000))
+            toUInt64(intDiv(segment_start_epoch, 1000)),
+            toUInt64(intDiv(segment_end_epoch, 1000))
         ) AS second_epoch
     ),
 
@@ -369,8 +370,8 @@ FROM (
             intDiv(second_epoch, 900) * 900 AS time_bucket_start
         FROM interaction_sessions_filtered
         ARRAY JOIN range(
-            toUInt64(floor(interaction_start_epoch / 1000)),
-            toUInt64(floor(interaction_end_epoch / 1000))
+            toUInt64(intDiv(interaction_start_epoch, 1000)),
+            toUInt64(intDiv(interaction_end_epoch, 1000))
         ) AS second_epoch
     ),
 

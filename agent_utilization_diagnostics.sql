@@ -12,7 +12,7 @@ SELECT
     toDateTime(intDiv(max(EventTimeStampEpoch), 1000)) AS max_ts
 FROM firstam.eg_assist_cw_distributed
 WHERE EventName = 'AGENT_STATUS'
-  AND EventTimeStampEpoch >= (toUInt64(toUnixTimestamp(now() - toIntervalDay(60))) * 1000);
+  AND EventTimeStampEpoch >= (toInt64(toUnixTimestamp(now() - toIntervalDay(60))) * 1000);
 
 -- 2) Exact EventValue5 / EventValue12 values (firstam sample: login, available, busy, offline)
 SELECT
@@ -49,6 +49,6 @@ SELECT
     count() AS total_status_rows
 FROM firstam.eg_assist_cw_distributed
 WHERE EventName = 'AGENT_STATUS'
-  AND EventTimeStampEpoch >= (toUInt64(toUnixTimestamp(now() - toIntervalDay(60))) * 1000);
+  AND EventTimeStampEpoch >= (toInt64(toUnixTimestamp(now() - toIntervalDay(60))) * 1000);
 
 -- 4) If session_start_rows = 0, utilization will be empty — update matchers from query (2).

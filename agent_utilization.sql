@@ -1,6 +1,10 @@
 -- Agent utilization metrics (15-minute buckets) - complete
 -- Schema: firstam.eg_assist_cw_distributed  (swap schema for other tenants)
 --
+-- Test filters:
+--   report_date = 2026-08-17
+--   agent_id    = asthompson@firstam.com
+--
 -- loginTime  = seconds between Login and Logout (inclusive of mid-session Offline)
 -- breakTime  = Unavailable/Offline seconds that fall strictly between Login and Logout
 -- Offline after Logout is excluded from both loginTime and breakTime.
@@ -8,7 +12,7 @@
 -- firstam status labels (from sample): login, available, busy, offline
 --   - Session starts on explicit login* OR available/online/active after offline
 --   - available counts as active (not online/Active)
---   - Only explicit logout* closes the window; open sessions end at now()
+--   - Only explicit logout* closes the window; open sessions end at report day end
 --
 -- Do not put Jinja braces in this file; query runners treat them as parameters.
 
@@ -64,9 +68,8 @@ FROM (
             ) AS is_logout
         FROM firstam.eg_assist_cw_distributed
         WHERE EventName = 'AGENT_STATUS'
-          AND EventValue6 IS NOT NULL
-          AND EventValue6 != ''
-          AND toInt64(EventTimeStampEpoch) >= toInt64(toUnixTimestamp(now() - toIntervalDay(60))) * 1000
+          AND EventValue6 = 'asthompson@firstam.com'
+          AND toDate(fromUnixTimestamp(intDiv(toInt64(EventTimeStampEpoch), 1000))) = toDate('2026-08-17')
     ),
 
     agent_status_events_dedup AS (
@@ -161,7 +164,8 @@ FROM (
                     AND (s.segment_end_epoch_raw = toInt64(0) OR s.segment_end_epoch_raw > lo.logout_epoch),
                 lo.logout_epoch,
                 s.segment_end_epoch_raw = toInt64(0),
-                toInt64(toUnixTimestamp(now())) * toInt64(1000),
+                -- Open session: cap at end of report day (2026-08-17 23:59:59 UTC)
+                toInt64(toUnixTimestamp(toDateTime('2026-08-17 23:59:59'))) * toInt64(1000),
                 s.segment_end_epoch_raw
             ) AS segment_end_epoch,
             s.agent_current_status,
@@ -233,9 +237,8 @@ FROM (
                     'CONVERSATION_ENDED'
                 )
             )
-          AND EventValue6 IS NOT NULL
-          AND EventValue6 != ''
-          AND toInt64(EventTimeStampEpoch) >= toInt64(toUnixTimestamp(now() - toIntervalDay(60))) * 1000
+          AND EventValue6 = 'asthompson@firstam.com'
+          AND toDate(fromUnixTimestamp(intDiv(toInt64(EventTimeStampEpoch), 1000))) = toDate('2026-08-17')
     ),
 
     conversation_events_dedup AS (
@@ -612,5 +615,7 @@ FROM (
 
     SELECT *
     FROM all_utilization_metrics
+    WHERE toDate(fromUnixTimestamp(timeBucket)) = toDate('2026-08-17')
+      AND agentId = 'asthompson@firstam.com'
     ORDER BY timeBucket DESC
 )

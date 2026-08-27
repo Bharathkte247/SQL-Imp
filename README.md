@@ -5,7 +5,10 @@ ClickHouse SQL for agent utilization reporting.
 ## `agent_utilization.sql`
 
 Complete 15-minute agent utilization metrics from `firstam.eg_assist_cw_distributed`.
-Source lookback is last 60 days. No hardcoded report-date filter.
+
+Current test filters in SQL:
+- Date: `2026-08-17`
+- Agent: `asthompson@firstam.com`
 
 ### firstam status vocabulary (from sample export)
 
@@ -27,7 +30,7 @@ There is often **no `Logout` event** in the sample. Open sessions are capped at 
 
 Session starts when:
 1. Status is `login` / `logged in` / …, or
-2. Status is `available` / `online` / `active` and previous status is `offline` / `unavailable` / empty
+2. Status is `available` / `online` / `active` and previous status is `offline` / `unavailable`
 
 ### Empty-result checklist
 

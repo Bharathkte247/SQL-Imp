@@ -1,6 +1,5 @@
--- Diagnostics for empty agent_utilization results.
+-- Diagnostics for empty agent_utilization results (firstam sample vocabulary).
 -- Run each block separately in your query tool.
--- Schema: firstam.eg_assist_cw_distributed
 
 -- 1) Source volume + status label inventory (last 60 days)
 SELECT
@@ -13,27 +12,35 @@ SELECT
     toDateTime(intDiv(max(EventTimeStampEpoch), 1000)) AS max_ts
 FROM firstam.eg_assist_cw_distributed
 WHERE EventName = 'AGENT_STATUS'
-  AND EventTimeStampEpoch >= (toUnixTimestamp(now() - toIntervalDay(60)) * 1000);
+  AND EventTimeStampEpoch >= (toUInt64(toUnixTimestamp(now() - toIntervalDay(60))) * 1000);
 
--- 2) Exact EventValue5 values seen (adjust login/logout sets from this)
+-- 2) Exact EventValue5 / EventValue12 values (firstam sample: login, available, busy, offline)
 SELECT
     EventValue5 AS agent_current_status,
-    lowerUTF8(trimBoth(ifNull(EventValue5, ''))) AS status_norm,
+    EventValue12 AS agent_previous_status,
     count() AS cnt
 FROM firstam.eg_assist_cw_distributed
 WHERE EventName = 'AGENT_STATUS'
-  AND EventTimeStampEpoch >= (toUnixTimestamp(now() - toIntervalDay(60)) * 1000)
-GROUP BY agent_current_status, status_norm
+  AND EventTimeStampEpoch >= (toUInt64(toUnixTimestamp(now() - toIntervalDay(60))) * 1000)
+GROUP BY agent_current_status, agent_previous_status
 ORDER BY cnt DESC
 LIMIT 100;
 
--- 3) How many events look like login / logout with current matchers
+-- 3) Session-start matches used by agent_utilization.sql
 SELECT
     countIf(
         lowerUTF8(trimBoth(ifNull(EventValue5, ''))) IN (
-            'login', 'logged in', 'loggedin', 'logged_in', 'online'
+            'login', 'logged in', 'loggedin', 'logged_in'
         )
-    ) AS login_like_rows,
+        OR (
+            lowerUTF8(trimBoth(ifNull(EventValue5, ''))) IN (
+                'available', 'online', 'active'
+            )
+            AND lowerUTF8(trimBoth(ifNull(EventValue12, ''))) IN (
+                'offline', 'unavailable'
+            )
+        )
+    ) AS session_start_rows,
     countIf(
         lowerUTF8(trimBoth(ifNull(EventValue5, ''))) IN (
             'logout', 'logged out', 'loggedout', 'logged_out'
@@ -42,7 +49,6 @@ SELECT
     count() AS total_status_rows
 FROM firstam.eg_assist_cw_distributed
 WHERE EventName = 'AGENT_STATUS'
-  AND EventTimeStampEpoch >= (toUnixTimestamp(now() - toIntervalDay(60)) * 1000);
+  AND EventTimeStampEpoch >= (toUInt64(toUnixTimestamp(now() - toIntervalDay(60))) * 1000);
 
--- 4) If login_like_rows = 0, sessions never start and utilization is empty.
---    Update is_login / is_logout sets in agent_utilization.sql from query (2).
+-- 4) If session_start_rows = 0, utilization will be empty — update matchers from query (2).

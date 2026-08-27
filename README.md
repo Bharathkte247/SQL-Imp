@@ -7,44 +7,36 @@ ClickHouse SQL for agent utilization reporting.
 Complete 15-minute agent utilization metrics from `firstam.eg_assist_cw_distributed`.
 Source lookback is last 60 days. No hardcoded report-date filter.
 
+### firstam status vocabulary (from sample export)
+
+| EventValue5 | Meaning in this query |
+| --- | --- |
+| `login` | Session start |
+| `available` | Active / ready (also session start when previous is `offline`) |
+| `busy` | Busy time |
+| `offline` | Break time when current status (not logout) |
+
+There is often **no `Logout` event** in the sample. Open sessions are capped at `now()`.
+
 ### Login / break rules
 
 | Metric | Rule |
 | --- | --- |
-| `loginTime` | Seconds between **Login** and **Logout** for the agent session |
-| `breakTime` | `Unavailable` / `offline` seconds that fall **between Login and Logout** |
+| `loginTime` | Seconds between session start and Logout |
+| `breakTime` | `unavailable` / `offline` seconds inside that window |
 
-- Mid-session `offline` counts toward both `loginTime` and `breakTime`.
-- `offline` after `Logout` (before the next Login) is excluded from both.
-- Only explicit `Logout` closes the login window (`offline` is not treated as logout).
-- Open sessions (no Logout yet) end at `now()`.
+Session starts when:
+1. Status is `login` / `logged in` / …, or
+2. Status is `available` / `online` / `active` and previous status is `offline` / `unavailable` / empty
 
 ### Empty-result checklist
 
-If the main query returns 0 rows, run `agent_utilization_diagnostics.sql`:
-
-1. Confirm `AGENT_STATUS` rows exist for the tenant.
-2. Inspect distinct `EventValue5` labels.
-3. Confirm `login_like_rows > 0` — otherwise sessions never start.
-
-Login matchers (case-insensitive): `login`, `logged in`, `loggedin`, `logged_in`, `online`  
-Logout matchers (case-insensitive): `logout`, `logged out`, `loggedout`, `logged_out`
-
-### Field mapping (`AGENT_STATUS`)
-
-| Alias | Source |
-| --- | --- |
-| `agent_id` | `EventValue6` |
-| `account_id` | `EventValue1` |
-| `agent_name` | `EventValue7` |
-| `agent_email` | `EventValue4` |
-| `agent_current_status` | `EventValue5` |
-| `agent_previous_status` | `EventValue12` |
-| `team_name` | `EventValue9` |
-| `team_id` | `EventValue8` |
+Run `agent_utilization_diagnostics.sql`. If `session_start_rows = 0`, update matchers from the distinct status list.
 
 ### Tests
 
 ```bash
 python3 tests/test_login_break_time.py
 ```
+
+Includes a fixture replay of the firstam sample CSV (`tests/fixtures/firstam_sample_events.csv`).

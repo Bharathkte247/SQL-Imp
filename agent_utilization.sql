@@ -5,14 +5,12 @@
 -- breakTime  = Unavailable/Offline seconds that fall strictly between Login and Logout
 -- Offline after Logout is excluded from both loginTime and breakTime.
 --
--- Only explicit Logout closes the login window (mid-session offline is NOT logout).
--- Open sessions (no Logout yet) are capped at now() so the last status segment is kept.
+-- firstam status labels (from sample): login, available, busy, offline
+--   - Session starts on explicit login* OR available/online/active after offline
+--   - available counts as active (not online/Active)
+--   - Only explicit logout* closes the window; open sessions end at now()
 --
--- Fixes for empty results:
--- 1) No hardcoded report-date filters (only a 60-day lookback on source events)
--- 2) Case-insensitive login/logout/status matching
--- 3) Open segments with no next event end at now() instead of being dropped
--- 4) Segments longer than 24h are clipped (not dropped)
+-- Do not put Jinja braces in this file; query runners treat them as parameters.
 
 SELECT *
 FROM (
@@ -33,12 +31,24 @@ FROM (
             EventValue5 AS agent_current_status,
             lowerUTF8(trimBoth(ifNull(EventValue5, ''))) AS status_norm,
             EventValue12 AS agent_previous_status,
+            lowerUTF8(trimBoth(ifNull(EventValue12, ''))) AS previous_status_norm,
             EventValue9 AS team_name,
             EventValue8 AS team_id,
-            -- Login starts a session. Include common label variants + online.
+            -- Session start:
+            --   1) explicit login labels
+            --   2) available/online/active when previous was offline/unavailable/empty
+            --      (firstam often emits available after offline without a login event)
             if(
                 lowerUTF8(trimBoth(ifNull(EventValue5, ''))) IN (
-                    'login', 'logged in', 'loggedin', 'logged_in', 'online'
+                    'login', 'logged in', 'loggedin', 'logged_in'
+                )
+                OR (
+                    lowerUTF8(trimBoth(ifNull(EventValue5, ''))) IN (
+                        'available', 'online', 'active'
+                    )
+                    AND lowerUTF8(trimBoth(ifNull(EventValue12, ''))) IN (
+                        'offline', 'unavailable'
+                    )
                 ),
                 1,
                 0
@@ -54,7 +64,8 @@ FROM (
         FROM firstam.eg_assist_cw_distributed
         WHERE EventName = 'AGENT_STATUS'
           AND EventValue6 IS NOT NULL
-          AND EventTimeStampEpoch >= (toUnixTimestamp(now() - toIntervalDay(60)) * 1000)
+          AND EventValue6 != ''
+          AND EventTimeStampEpoch >= (toUInt64(toUnixTimestamp(now() - toIntervalDay(60))) * 1000)
     ),
 
     agent_status_events_dedup AS (
@@ -75,7 +86,7 @@ FROM (
         FROM agent_status_events_dedup
     ),
 
-    -- Drop pre-login rows. Login window starts at first Login/online.
+    -- Drop pre-login rows. Login window starts at first session-start event.
     agent_session_ids AS (
         SELECT
             concat(client_id, '-', account_id, '-', agent_id, '-', toString(session_number)) AS agent_session_id,
@@ -90,6 +101,7 @@ FROM (
             agent_current_status,
             status_norm,
             agent_previous_status,
+            previous_status_norm,
             team_name,
             team_id,
             is_login,
@@ -143,13 +155,12 @@ FROM (
             s.team_id,
             s.segment_start_epoch,
             multiIf(
-                -- Explicit logout: clip open/next ends at logout
                 lo.logout_epoch IS NOT NULL
                     AND (s.segment_end_epoch_raw = 0 OR s.segment_end_epoch_raw > lo.logout_epoch),
                 lo.logout_epoch,
-                -- Still open (no logout, no next event): cap at now so seconds expand
+                -- Cast seconds to UInt64 BEFORE *1000 to avoid UInt32 overflow
                 s.segment_end_epoch_raw = 0,
-                toUInt64(toUnixTimestamp(now()) * 1000),
+                toUInt64(toUnixTimestamp(now())) * 1000,
                 s.segment_end_epoch_raw
             ) AS segment_end_epoch,
             s.agent_current_status,
@@ -184,7 +195,6 @@ FROM (
             agent_id,
             team_id,
             segment_start_epoch,
-            -- Clip very long segments to 24h to bound ARRAY JOIN cost (do not drop)
             least(
                 segment_end_epoch,
                 segment_start_epoch + toUInt64(86400 * 1000)
@@ -206,11 +216,7 @@ FROM (
             EventName AS event_name,
             EventTimeStampEpoch AS event_timestamp_epoch,
             ClientOrg AS client_id,
-            coalesce(
-                EventValue6,
-                JSONExtractString(data, 'AgentId'),
-                JSONExtractString(data, 'assignee', 'id')
-            ) AS agent_id,
+            EventValue6 AS agent_id,
             ConversationId AS conversation_id,
             InteractionId AS interaction_id,
             ifNull(EventValue1, 'default') AS account_id,
@@ -227,7 +233,8 @@ FROM (
                 )
             )
           AND EventValue6 IS NOT NULL
-          AND EventTimeStampEpoch >= (toUnixTimestamp(now() - toIntervalDay(60)) * 1000)
+          AND EventValue6 != ''
+          AND EventTimeStampEpoch >= (toUInt64(toUnixTimestamp(now() - toIntervalDay(60))) * 1000)
     ),
 
     conversation_events_dedup AS (
@@ -277,7 +284,6 @@ FROM (
             queue_name,
             team_id,
             interaction_start_epoch,
-            -- Clip long interactions to 24h (do not drop)
             least(
                 interaction_end_epoch,
                 interaction_start_epoch + toUInt64(86400 * 1000)
@@ -435,9 +441,13 @@ FROM (
                 second_epoch,
                 status_norm IN ('busy', 'passive')
             ) AS busy_time,
+            -- firstam uses "available" (not online/Active)
             uniqExactIf(
                 second_epoch,
-                status_norm IN ('online', 'active', 'login', 'logged in', 'loggedin', 'logged_in')
+                status_norm IN (
+                    'available', 'online', 'active',
+                    'login', 'logged in', 'loggedin', 'logged_in'
+                )
             ) AS active_time,
             uniqExactIf(
                 second_epoch,
@@ -454,7 +464,10 @@ FROM (
             ) AS time_not_available_but_chatting,
             uniqExactIf(
                 second_epoch,
-                (status_norm IN ('online', 'active', 'login', 'logged in', 'loggedin', 'logged_in'))
+                (status_norm IN (
+                    'available', 'online', 'active',
+                    'login', 'logged in', 'loggedin', 'logged_in'
+                ))
                     AND (concurrent_conversations = 0)
             ) AS time_available_but_not_chatting
         FROM status_with_concurrency
@@ -490,7 +503,10 @@ FROM (
             ) AS busy_time,
             uniqExactIf(
                 second_epoch,
-                status_norm IN ('online', 'active', 'login', 'logged in', 'loggedin', 'logged_in')
+                status_norm IN (
+                    'available', 'online', 'active',
+                    'login', 'logged in', 'loggedin', 'logged_in'
+                )
             ) AS active_time,
             uniqExactIf(
                 second_epoch,
@@ -515,7 +531,10 @@ FROM (
             ) AS time_not_available_but_chatting,
             uniqExactIf(
                 second_epoch,
-                (status_norm IN ('online', 'active', 'login', 'logged in', 'loggedin', 'logged_in'))
+                (status_norm IN (
+                    'available', 'online', 'active',
+                    'login', 'logged in', 'loggedin', 'logged_in'
+                ))
                     AND (concurrent_conversations = 0)
             ) AS time_available_but_not_chatting,
             0 AS wrapup_time

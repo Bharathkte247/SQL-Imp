@@ -79,7 +79,7 @@ def build_combined_chat_log(events: list[tuple[int, str | None, str]]) -> str:
         text = clean_text(payload)
         if not is_usable(text):
             continue
-        speaker = "User" if event_name == "MESSAGE_RECEIVED" else "Bot"
+        speaker = "visitor" if event_name == "MESSAGE_RECEIVED" else "Brand"
         rows.append(f"{speaker}: {text}")
     return "\n".join(rows)
 
@@ -152,11 +152,11 @@ class HtmlJsonStripTests(unittest.TestCase):
             blob,
             "\n".join(
                 [
-                    "Bot: 👋 Welcome to First Tech",
-                    "Bot: Accounts with accept no transaction",
-                    "User: Main Menu",
-                    "User: Online Banking",
-                    "Bot: I'm happy to help with your online banking needs.",
+                    "Brand: 👋 Welcome to First Tech",
+                    "Brand: Accounts with accept no transaction",
+                    "visitor: Main Menu",
+                    "visitor: Online Banking",
+                    "Brand: I'm happy to help with your online banking needs.",
                 ]
             ),
         )

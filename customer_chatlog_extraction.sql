@@ -1,10 +1,10 @@
--- ClickHouse: human-readable user + bot transcript as a single text blob
+-- ClickHouse: human-readable visitor + Brand transcript as a single text blob
 -- Source: {{ params.client_schema }}.eg_agentic_runtime_distributed
 -- Grain: one row per ConversationId
 --
 -- Role mapping on the customer channel (EventValue2 = 'customer'):
---   User = MESSAGE_RECEIVED  (visitor → system), e.g. menu picks like "Online Banking"
---   Bot  = MESSAGE_SENT      (concierge/bot → visitor), e.g. HTML <p> replies from HAL-E
+--   visitor = MESSAGE_RECEIVED  (visitor → system), e.g. menu picks like "Online Banking"
+--   Brand   = MESSAGE_SENT      (brand/concierge → visitor), e.g. HTML <p> replies from HAL-E
 --
 -- Cleaning (EventValue1 often has HTML and/or JSON wrappers):
 --   1) if payload is JSON, pull text/message/content/body/value first
@@ -16,8 +16,8 @@
 --   7) drop empty / system noise lines
 --
 -- Single blob column `combined_chat_log` (newline-separated):
---   User: ...
---   Bot: ...
+--   visitor: ...
+--   Brand: ...
 --
 -- Messages stay ordered by EventTimeStampEpoch (timestamp not shown in blob).
 -- Airflow/Jinja: set params.client_schema (e.g. ftbank).
@@ -153,7 +153,7 @@ usable AS (
         EventTimeStampEpoch,
         event_ts,
         clean_text,
-        if(EventName = 'MESSAGE_RECEIVED', 'User', 'Bot') AS speaker
+        if(EventName = 'MESSAGE_RECEIVED', 'visitor', 'Brand') AS speaker
     FROM messages
     WHERE length(clean_text) > 0
       AND clean_text NOT IN ('HAL-E', 'Employee Information:', 'Employee')
@@ -310,7 +310,7 @@ messages AS (
         EventTimeStampEpoch,
         event_ts,
         trimBoth(replaceRegexpAll(clean_text_raw, '\\s+', ' ')) AS clean_text,
-        if(EventName = 'MESSAGE_RECEIVED', 'User', 'Bot') AS speaker
+        if(EventName = 'MESSAGE_RECEIVED', 'visitor', 'Brand') AS speaker
     FROM stripped
     WHERE length(trimBoth(replaceRegexpAll(clean_text_raw, '\\s+', ' '))) > 0
       AND trimBoth(replaceRegexpAll(clean_text_raw, '\\s+', ' ')) NOT IN ('HAL-E', 'Employee Information:')

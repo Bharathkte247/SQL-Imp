@@ -105,16 +105,21 @@ stripped AS (
                         replaceRegexpAll(
                             replaceRegexpAll(
                                 replaceRegexpAll(
-                                    decoded_text,
-                                    -- complete HTML tags (two passes for nesting leftovers)
+                                    replaceRegexpAll(
+                                        decoded_text,
+                                        -- complete HTML tags (two passes for nesting leftovers)
+                                        '(?i)<[^>]*>',
+                                        ''
+                                    ),
                                     '(?i)<[^>]*>',
                                     ''
                                 ),
-                                '(?i)<[^>]*>',
+                                -- leftover incomplete tag names after pass 1/2, e.g. "<ter"
+                                '(?i)</?[A-Za-z][A-Za-z0-9]*',
                                 ''
                             ),
-                            -- truncated / unclosed tags: <div class=...  or <ter
-                            '(?i)<[A-Za-z/!][^\\n<]{0,500}',
+                            -- orphan HTML attributes left after truncated open-tags
+                            '(?i)\\s*(?:class|version|style|id|href|src|type|role|aria-[A-Za-z0-9-]+)\\s*=\\s*("[^"]*"|\'[^\']*\'|[^\\s<>]+)',
                             ''
                         ),
                         -- JSON object / array blobs
@@ -287,18 +292,21 @@ stripped AS (
                                 '(?i)<[^>]*>',
                                 ''
                             ),
-                            '(?i)<[A-Za-z/!][^\\n<]{0,500}',
+                            '(?i)</?[A-Za-z][A-Za-z0-9]*',
                             ''
                         ),
-                        '\\{[^\\n]*\\}|\\[[^\\n]*\\]',
-                        ' '
+                        '(?i)\\s*(?:class|version|style|id|href|src|type|role|aria-[A-Za-z0-9-]+)\\s*=\\s*("[^"]*"|\'[^\']*\'|[^\\s<>]+)',
+                        ''
                     ),
-                    '(?i)"[A-Za-z_][A-Za-z0-9_]*"\\s*:\\s*',
+                    '\\{[^\\n]*\\}|\\[[^\\n]*\\]',
                     ' '
                 ),
-                '[\\{\\}\\[\\]<>"]+',
+                '(?i)"[A-Za-z_][A-Za-z0-9_]*"\\s*:\\s*',
                 ' '
-            )
+            ),
+            '[\\{\\}\\[\\]<>"]+',
+            ' '
+        )
         ) AS clean_text_raw
     FROM amp_fixed
 ),

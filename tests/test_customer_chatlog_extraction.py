@@ -10,7 +10,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 COMPLETE_TAG = re.compile(r"(?i)<[^>]*>")
-TRUNCATED_TAG = re.compile(r"(?i)<[A-Za-z/!][^\n<]{0,500}")
+LEFTOVER_TAG_NAME = re.compile(r"(?i)</?[A-Za-z][A-Za-z0-9]*")
+ORPHAN_ATTR = re.compile(
+    r"(?i)\s*(?:class|version|style|id|href|src|type|role|aria-[A-Za-z0-9-]+)\s*=\s*"
+    r"""(?:"[^"]*"|'[^']*'|[^\s<>]+)"""
+)
 JSON_BLOB = re.compile(r"\{[^\n]*\}|\[[^\n]*\]")
 JSON_KEY = re.compile(r'(?i)"[A-Za-z_][A-Za-z0-9_]*"\s*:\s*')
 MARKUP_PUNCT = re.compile(r'[\{\}\[\]<>"]+')
@@ -47,7 +51,8 @@ def clean_text(payload: str | None) -> str:
     )
     text = COMPLETE_TAG.sub("", text)
     text = COMPLETE_TAG.sub("", text)
-    text = TRUNCATED_TAG.sub("", text)
+    text = LEFTOVER_TAG_NAME.sub("", text)
+    text = ORPHAN_ATTR.sub("", text)
     text = JSON_BLOB.sub(" ", text)
     text = JSON_KEY.sub(" ", text)
     text = MARKUP_PUNCT.sub(" ", text)
@@ -93,7 +98,7 @@ class HtmlJsonStripTests(unittest.TestCase):
         self.assertIn("JSONExtractString", live)
         self.assertIn("&lt;", live)
         self.assertIn("<[^>]*>", live)
-        self.assertIn("<[A-Za-z/!]", live)
+        self.assertIn("</?[A-Za-z][A-Za-z0-9]*", live)
         self.assertIn("combined_chat_log", live)
         self.assertNotIn("user_chat_log", live)
 

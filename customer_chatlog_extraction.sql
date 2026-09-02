@@ -6,11 +6,14 @@
 --   User = MESSAGE_RECEIVED  (visitor → system), e.g. menu picks like "Online Banking"
 --   Bot  = MESSAGE_SENT      (concierge/bot → visitor), e.g. HTML <p> replies from HAL-E
 --
--- Cleaning (matches raw EventValue1 samples with <div class="hxelement"> / <p> wrappers):
---   1) strip HTML tags
---   2) decode a few common entities
---   3) collapse whitespace
---   4) drop empty / noise lines (/f commands, intent cards, bare bot-name chips)
+-- Cleaning (EventValue1 often has HTML and/or JSON wrappers):
+--   1) if payload is JSON, pull text/message/content/body/value first
+--   2) decode HTML entities (&nbsp; &#39; &apos; &quot; &lt; &gt; &amp;)
+--   3) strip complete HTML tags (<div ...>, <p>, <br>, …) — two passes
+--   4) strip truncated/open tags (e.g. "<div class=..." or leftover "<ter")
+--   5) strip JSON object/array fragments and "key": noise
+--   6) strip leftover < > { } [ ] " chars; collapse whitespace
+--   7) drop empty / system noise lines
 --
 -- Single blob column `combined_chat_log` (newline-separated):
 --   [YYYY-MM-DD HH:MM:SS] User: ...
@@ -20,11 +23,12 @@
 -- Airflow/Jinja: set params.client_schema (e.g. ftbank).
 
 WITH
-messages AS (
+raw_messages AS (
     SELECT
         ConversationId,
         EventName,
         EventTimeStampEpoch,
+        ifNull(EventValue1, '') AS raw_payload,
         coalesce(
             parseDateTimeBestEffortOrNull(EventTimeStampISO),
             if(
@@ -32,33 +36,110 @@ messages AS (
                 toDateTime(intDiv(toUInt64OrZero(toString(EventTimeStampEpoch)), 1000)),
                 toDateTime(toUInt64OrZero(toString(EventTimeStampEpoch)))
             )
-        ) AS event_ts,
-        trimBoth(
-            replaceRegexpAll(
+        ) AS event_ts
+    FROM {{ params.client_schema }}.eg_agentic_runtime_distributed
+    WHERE EventName IN ('MESSAGE_RECEIVED', 'MESSAGE_SENT')
+      AND EventValue2 = 'customer'
+),
+json_text AS (
+    SELECT
+        ConversationId,
+        EventName,
+        EventTimeStampEpoch,
+        event_ts,
+        multiIf(
+            isValidJSON(raw_payload) AND JSONHas(raw_payload, 'text'),
+                JSONExtractString(raw_payload, 'text'),
+            isValidJSON(raw_payload) AND JSONHas(raw_payload, 'message'),
+                JSONExtractString(raw_payload, 'message'),
+            isValidJSON(raw_payload) AND JSONHas(raw_payload, 'content'),
+                JSONExtractString(raw_payload, 'content'),
+            isValidJSON(raw_payload) AND JSONHas(raw_payload, 'body'),
+                JSONExtractString(raw_payload, 'body'),
+            isValidJSON(raw_payload) AND JSONHas(raw_payload, 'value'),
+                JSONExtractString(raw_payload, 'value'),
+            raw_payload
+        ) AS payload_text
+    FROM raw_messages
+),
+decoded AS (
+    SELECT
+        ConversationId,
+        EventName,
+        EventTimeStampEpoch,
+        event_ts,
+        -- Decode &amp; first so &amp;lt; becomes &lt; then <.
+        -- Then decode remaining entities BEFORE HTML strip so &lt;p&gt;…&lt;/p&gt;
+        -- becomes <p>…</p> and is removed (not left as literal tags).
+        replaceAll(
+            replaceAll(
                 replaceAll(
                     replaceAll(
                         replaceAll(
                             replaceAll(
-                                replaceRegexpAll(ifNull(EventValue1, ''), '<[^>]*>', ''),
-                                '&nbsp;',
-                                ' '
+                                replaceAll(payload_text, '&amp;', '&'),
+                                '&nbsp;', ' '
                             ),
-                            '&amp;',
-                            '&'
+                            '&#39;', '\''
                         ),
-                        '&lt;',
-                        '<'
+                        '&apos;', '\''
                     ),
-                    '&gt;',
-                    '>'
+                    '&quot;', '"'
                 ),
-                '\\s+',
+                '&lt;', '<'
+            ),
+            '&gt;', '>'
+        ) AS decoded_text
+    FROM json_text
+),
+stripped AS (
+    SELECT
+        ConversationId,
+        EventName,
+        EventTimeStampEpoch,
+        event_ts,
+        trimBoth(
+            replaceRegexpAll(
+                replaceRegexpAll(
+                    replaceRegexpAll(
+                        replaceRegexpAll(
+                            replaceRegexpAll(
+                                replaceRegexpAll(
+                                    decoded_text,
+                                    -- complete HTML tags (two passes for nesting leftovers)
+                                    '(?i)<[^>]*>',
+                                    ''
+                                ),
+                                '(?i)<[^>]*>',
+                                ''
+                            ),
+                            -- truncated / unclosed tags: <div class=...  or <ter
+                            '(?i)<[A-Za-z/!][^\\n<]{0,500}',
+                            ''
+                        ),
+                        -- JSON object / array blobs
+                        '\\{[^\\n]*\\}|\\[[^\\n]*\\]',
+                        ' '
+                    ),
+                    -- JSON "key": noise (quoted keys only, avoid eating plain "Note: …")
+                    '(?i)"[A-Za-z_][A-Za-z0-9_]*"\\s*:\\s*',
+                    ' '
+                ),
+                -- leftover markup / JSON punctuation
+                '[\\{\\}\\[\\]<>"]+',
                 ' '
             )
-        ) AS clean_text
-    FROM {{ params.client_schema }}.eg_agentic_runtime_distributed
-    WHERE EventName IN ('MESSAGE_RECEIVED', 'MESSAGE_SENT')
-      AND EventValue2 = 'customer'
+        ) AS clean_text_raw
+    FROM decoded
+),
+messages AS (
+    SELECT
+        ConversationId,
+        EventName,
+        EventTimeStampEpoch,
+        event_ts,
+        trimBoth(replaceRegexpAll(clean_text_raw, '\\s+', ' ')) AS clean_text
+    FROM stripped
 ),
 usable AS (
     SELECT
@@ -70,9 +151,11 @@ usable AS (
         if(EventName = 'MESSAGE_RECEIVED', 'User', 'Bot') AS speaker
     FROM messages
     WHERE length(clean_text) > 0
-      AND clean_text NOT IN ('HAL-E', 'Employee Information:')
+      AND clean_text NOT IN ('HAL-E', 'Employee Information:', 'Employee')
       AND NOT startsWith(clean_text, '/f ')
       AND positionCaseInsensitive(clean_text, 'card submitted Intent:') = 0
+      AND positionCaseInsensitive(clean_text, 'Intent: HAL_E') = 0
+      AND NOT match(clean_text, '(?i)^(div|span|p|br|strong|hxelement|version)(\\s|$)')
 ),
 bot_info AS (
     SELECT
@@ -111,11 +194,12 @@ ORDER BY interaction_id
 -- -----------------------------------------------------------------------------
 /*
 WITH
-messages AS (
+raw_messages AS (
     SELECT
         ConversationId,
         EventName,
         EventTimeStampEpoch,
+        ifNull(EventValue1, '') AS raw_payload,
         coalesce(
             parseDateTimeBestEffortOrNull(EventTimeStampISO),
             if(
@@ -123,30 +207,7 @@ messages AS (
                 toDateTime(intDiv(toUInt64OrZero(toString(EventTimeStampEpoch)), 1000)),
                 toDateTime(toUInt64OrZero(toString(EventTimeStampEpoch)))
             )
-        ) AS event_ts,
-        trimBoth(
-            replaceRegexpAll(
-                replaceAll(
-                    replaceAll(
-                        replaceAll(
-                            replaceAll(
-                                replaceRegexpAll(ifNull(EventValue1, ''), '<[^>]*>', ''),
-                                '&nbsp;',
-                                ' '
-                            ),
-                            '&amp;',
-                            '&'
-                        ),
-                        '&lt;',
-                        '<'
-                    ),
-                    '&gt;',
-                    '>'
-                ),
-                '\\s+',
-                ' '
-            )
-        ) AS clean_text
+        ) AS event_ts
     FROM __CLIENT_SCHEMA__.eg_agentic_runtime_distributed
     WHERE EventName IN ('MESSAGE_RECEIVED', 'MESSAGE_SENT')
       AND EventValue2 = 'customer'
@@ -156,19 +217,103 @@ messages AS (
           'fa3f2424-7ba4-4cc5-8089-0d92efd00b27'
       )
 ),
-usable AS (
+json_text AS (
     SELECT
         ConversationId,
         EventName,
         EventTimeStampEpoch,
         event_ts,
-        clean_text,
+        multiIf(
+            isValidJSON(raw_payload) AND JSONHas(raw_payload, 'text'),
+                JSONExtractString(raw_payload, 'text'),
+            isValidJSON(raw_payload) AND JSONHas(raw_payload, 'message'),
+                JSONExtractString(raw_payload, 'message'),
+            isValidJSON(raw_payload) AND JSONHas(raw_payload, 'content'),
+                JSONExtractString(raw_payload, 'content'),
+            isValidJSON(raw_payload) AND JSONHas(raw_payload, 'body'),
+                JSONExtractString(raw_payload, 'body'),
+            isValidJSON(raw_payload) AND JSONHas(raw_payload, 'value'),
+                JSONExtractString(raw_payload, 'value'),
+            raw_payload
+        ) AS payload_text
+    FROM raw_messages
+),
+decoded AS (
+    SELECT
+        ConversationId,
+        EventName,
+        EventTimeStampEpoch,
+        event_ts,
+        replaceAll(
+            replaceAll(
+                replaceAll(
+                    replaceAll(
+                        replaceAll(
+                            replaceAll(payload_text, '&nbsp;', ' '),
+                            '&#39;', '\''
+                        ),
+                        '&apos;', '\''
+                    ),
+                    '&quot;', '"'
+                ),
+                '&lt;', '<'
+            ),
+            '&gt;', '>'
+        ) AS angled_text
+    FROM json_text
+),
+amp_fixed AS (
+    SELECT
+        ConversationId,
+        EventName,
+        EventTimeStampEpoch,
+        event_ts,
+        replaceAll(angled_text, '&amp;', '&') AS decoded_text
+    FROM decoded
+),
+stripped AS (
+    SELECT
+        ConversationId,
+        EventName,
+        EventTimeStampEpoch,
+        event_ts,
+        trimBoth(
+            replaceRegexpAll(
+                replaceRegexpAll(
+                    replaceRegexpAll(
+                        replaceRegexpAll(
+                            replaceRegexpAll(
+                                replaceRegexpAll(decoded_text, '(?i)<[^>]*>', ''),
+                                '(?i)<[^>]*>',
+                                ''
+                            ),
+                            '(?i)<[A-Za-z/!][^\\n<]{0,500}',
+                            ''
+                        ),
+                        '\\{[^\\n]*\\}|\\[[^\\n]*\\]',
+                        ' '
+                    ),
+                    '(?i)"[A-Za-z_][A-Za-z0-9_]*"\\s*:\\s*',
+                    ' '
+                ),
+                '[\\{\\}\\[\\]<>"]+',
+                ' '
+            )
+        ) AS clean_text_raw
+    FROM amp_fixed
+),
+messages AS (
+    SELECT
+        ConversationId,
+        EventName,
+        EventTimeStampEpoch,
+        event_ts,
+        trimBoth(replaceRegexpAll(clean_text_raw, '\\s+', ' ')) AS clean_text,
         if(EventName = 'MESSAGE_RECEIVED', 'User', 'Bot') AS speaker
-    FROM messages
-    WHERE length(clean_text) > 0
-      AND clean_text NOT IN ('HAL-E', 'Employee Information:')
-      AND NOT startsWith(clean_text, '/f ')
-      AND positionCaseInsensitive(clean_text, 'card submitted Intent:') = 0
+    FROM stripped
+    WHERE length(trimBoth(replaceRegexpAll(clean_text_raw, '\\s+', ' '))) > 0
+      AND trimBoth(replaceRegexpAll(clean_text_raw, '\\s+', ' ')) NOT IN ('HAL-E', 'Employee Information:')
+      AND NOT startsWith(trimBoth(replaceRegexpAll(clean_text_raw, '\\s+', ' ')), '/f ')
 )
 SELECT
     ConversationId AS interaction_id,
@@ -189,7 +334,7 @@ SELECT
         ),
         '\n'
     ) AS combined_chat_log
-FROM usable
+FROM messages
 GROUP BY ConversationId
 ORDER BY ConversationId
 ;

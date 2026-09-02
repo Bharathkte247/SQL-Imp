@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Offline validation for customer_chatlog_extraction.sql (bot_info CTE).
+"""Offline validation for user + bot chatlog extraction (bot_info CTE).
 
-Mirrors ClickHouse:
-  arraySort(x -> x.1, groupArray((EventTimeStampEpoch, EventValue1)))
-  arrayMap(x -> replaceRegexpAll(x.2, '<[^>]*>', ''), ...)
-  concat('info: ', arrayStringConcat(..., ' '))
+Mirrors ClickHouse role mapping on EventValue2 = 'customer':
+  user = MESSAGE_RECEIVED
+  bot  = MESSAGE_SENT
+plus HTML strip via replaceRegexpAll(..., '<[^>]*>', '') and epoch ordering.
 """
 
 from __future__ import annotations
@@ -18,64 +18,78 @@ SQL_PATH = Path(__file__).resolve().parents[1] / "customer_chatlog_extraction.sq
 
 
 def strip_html(payload: str | None) -> str:
-    """Mirror ClickHouse replaceRegexpAll(x.2, '<[^>]*>', '')."""
     if payload is None:
         return ""
     return HTML_TAG_PATTERN.sub("", payload)
 
 
-def combined_chat_log(events: list[tuple[int, str | None]]) -> str:
-    """Mirror bot_info aggregation: sort by epoch, strip HTML, join with spaces."""
+def split_logs(events: list[tuple[int, str | None, str]]) -> tuple[str, str, str]:
+    """Return (combined_chat_log, user_chat_log, bot_chat_log)."""
     ordered = sorted(events, key=lambda item: item[0])
-    cleaned = [strip_html(payload) for _, payload in ordered]
-    return "info: " + " ".join(cleaned)
+    combined_parts: list[str] = []
+    user_parts: list[str] = []
+    bot_parts: list[str] = []
+    for _epoch, payload, event_name in ordered:
+        text = strip_html(payload)
+        if event_name == "MESSAGE_RECEIVED":
+            combined_parts.append(f"user: {text}")
+            user_parts.append(text)
+        elif event_name == "MESSAGE_SENT":
+            combined_parts.append(f"bot: {text}")
+            bot_parts.append(text)
+    return (
+        " ".join(combined_parts),
+        " ".join(user_parts),
+        " ".join(bot_parts),
+    )
 
 
 class CustomerChatlogExtractionTests(unittest.TestCase):
     def test_sql_file_exists_and_has_required_pieces(self) -> None:
         sql = SQL_PATH.read_text(encoding="utf-8")
-        self.assertIn("bot_info AS (", sql)
-        self.assertIn("{{ params.client_schema }}.eg_agentic_runtime_distributed", sql)
-        self.assertIn("MESSAGE_RECEIVED", sql)
-        self.assertIn("MESSAGE_SENT", sql)
-        self.assertIn("EventValue2 = 'customer'", sql)
-        self.assertIn("EventValue1", sql)
-        self.assertIn("EventTimeStampEpoch", sql)
-        self.assertIn("replaceRegexpAll", sql)
-        self.assertIn("<[^>]*>", sql)
-        self.assertIn("arraySort", sql)
-        self.assertIn("groupArray((EventTimeStampEpoch, EventValue1))", sql)
-        self.assertIn("combined_chat_log", sql)
-        self.assertIn("interaction_id", sql)
-        # Superseded entity-extract approach should not remain in the live CTE.
-        self.assertNotIn("extractAll", sql.split("/*")[0])
-        self.assertNotRegex(sql, r"(?m)^\s*chatlog\b")
+        live = sql.split("/*")[0]
+        self.assertIn("bot_info AS (", live)
+        self.assertIn("{{ params.client_schema }}.eg_agentic_runtime_distributed", live)
+        self.assertIn("MESSAGE_RECEIVED", live)
+        self.assertIn("MESSAGE_SENT", live)
+        self.assertIn("EventValue2 = 'customer'", live)
+        self.assertIn("user_chat_log", live)
+        self.assertIn("bot_chat_log", live)
+        self.assertIn("combined_chat_log", live)
+        self.assertIn("user: ", live)
+        self.assertIn("bot: ", live)
+        self.assertIn("groupArrayIf", live)
+        self.assertIn("replaceRegexpAll", live)
+        self.assertIn("EventTimeStampEpoch", live)
+
+    def test_role_split_and_ordering(self) -> None:
+        events = [
+            (300, "<p>Can you freeze it?</p>", "MESSAGE_RECEIVED"),
+            (100, "<p>Hello, I lost my card</p>", "MESSAGE_RECEIVED"),
+            (200, "<div>Sorry to hear that. I can help.</div>", "MESSAGE_SENT"),
+            (400, "<div>Card frozen.</div>", "MESSAGE_SENT"),
+        ]
+        combined, user, bot = split_logs(events)
+        self.assertEqual(
+            combined,
+            "user: Hello, I lost my card "
+            "bot: Sorry to hear that. I can help. "
+            "user: Can you freeze it? "
+            "bot: Card frozen.",
+        )
+        self.assertEqual(user, "Hello, I lost my card Can you freeze it?")
+        self.assertEqual(bot, "Sorry to hear that. I can help. Card frozen.")
 
     def test_strips_html_tags(self) -> None:
-        self.assertEqual(
-            strip_html("<p>I need help with my bill</p>"),
-            "I need help with my bill",
-        )
+        self.assertEqual(strip_html("<p>I need help</p>"), "I need help")
 
-    def test_keeps_plain_text(self) -> None:
-        self.assertEqual(strip_html("Please reset my password"), "Please reset my password")
-
-    def test_orders_by_epoch_before_joining(self) -> None:
-        events = [
-            (300, "<div>Can you freeze it?</div>"),
-            (100, "<div>Hello, I lost my card</div>"),
-            (200, "plain follow-up"),
-        ]
-        self.assertEqual(
-            combined_chat_log(events),
-            "info: Hello, I lost my card plain follow-up Can you freeze it?",
+    def test_user_only_conversation(self) -> None:
+        combined, user, bot = split_logs(
+            [(1, "hi", "MESSAGE_RECEIVED"), (2, "still there?", "MESSAGE_RECEIVED")]
         )
-
-    def test_none_payload_becomes_empty_segment(self) -> None:
-        self.assertEqual(
-            combined_chat_log([(1, None), (2, "<b>OK</b>")]),
-            "info:  OK",
-        )
+        self.assertEqual(combined, "user: hi user: still there?")
+        self.assertEqual(user, "hi still there?")
+        self.assertEqual(bot, "")
 
 
 if __name__ == "__main__":

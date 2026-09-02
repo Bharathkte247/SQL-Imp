@@ -1,10 +1,14 @@
--- ClickHouse: customer chatlog extraction (bot_info CTE)
+-- ClickHouse: user + bot chatlog extraction (bot_info CTE)
 -- Source: {{ params.client_schema }}.eg_agentic_runtime_distributed
 -- Grain: one row per ConversationId
 --
--- Builds combined_chat_log from customer MESSAGE_RECEIVED / MESSAGE_SENT
--- payloads (EventValue1), ordered by EventTimeStampEpoch, with HTML tags
--- stripped via replaceRegexpAll(..., '<[^>]*>', '').
+-- Role mapping on the customer channel (EventValue2 = 'customer'):
+--   user = MESSAGE_RECEIVED  (visitor → system)
+--   bot  = MESSAGE_SENT      (concierge/bot → visitor)
+--
+-- Text cleanup: strip HTML tags from EventValue1 via
+--   replaceRegexpAll(..., '<[^>]*>', '')
+-- Ordering: EventTimeStampEpoch ascending.
 --
 -- Airflow/Jinja: set params.client_schema (e.g. ftbank). For ad-hoc runs,
 -- replace {{ params.client_schema }} with the target schema name.
@@ -13,23 +17,51 @@ WITH
 bot_info AS (
     SELECT
         ConversationId AS interaction_id,
-        concat(
-            'info: ',
-            arrayStringConcat(
-                arrayMap(
-                    x -> replaceRegexpAll(
-                        x.2,
-                        '<[^>]*>',
-                        ''
-                    ),
-                    arraySort(
-                        x -> x.1,
-                        groupArray((EventTimeStampEpoch, EventValue1))
-                    )
+
+        -- Interleaved transcript with role labels, time-ordered
+        arrayStringConcat(
+            arrayMap(
+                x -> concat(
+                    if(x.3 = 'MESSAGE_RECEIVED', 'user: ', 'bot: '),
+                    replaceRegexpAll(ifNull(x.2, ''), '<[^>]*>', '')
                 ),
-                ' '
-            )
-        ) AS combined_chat_log
+                arraySort(
+                    x -> x.1,
+                    groupArray((EventTimeStampEpoch, EventValue1, EventName))
+                )
+            ),
+            ' '
+        ) AS combined_chat_log,
+
+        -- User-only text (MESSAGE_RECEIVED), time-ordered
+        arrayStringConcat(
+            arrayMap(
+                x -> replaceRegexpAll(ifNull(x.2, ''), '<[^>]*>', ''),
+                arraySort(
+                    x -> x.1,
+                    groupArrayIf(
+                        (EventTimeStampEpoch, EventValue1),
+                        EventName = 'MESSAGE_RECEIVED'
+                    )
+                )
+            ),
+            ' '
+        ) AS user_chat_log,
+
+        -- Bot-only text (MESSAGE_SENT), time-ordered
+        arrayStringConcat(
+            arrayMap(
+                x -> replaceRegexpAll(ifNull(x.2, ''), '<[^>]*>', ''),
+                arraySort(
+                    x -> x.1,
+                    groupArrayIf(
+                        (EventTimeStampEpoch, EventValue1),
+                        EventName = 'MESSAGE_SENT'
+                    )
+                )
+            ),
+            ' '
+        ) AS bot_chat_log
     FROM {{ params.client_schema }}.eg_agentic_runtime_distributed
     WHERE EventName IN ('MESSAGE_RECEIVED', 'MESSAGE_SENT')
       AND EventValue2 = 'customer'
@@ -37,7 +69,9 @@ bot_info AS (
 )
 SELECT
     interaction_id,
-    combined_chat_log
+    combined_chat_log,
+    user_chat_log,
+    bot_chat_log
 FROM bot_info
 ORDER BY interaction_id
 ;
@@ -50,23 +84,45 @@ ORDER BY interaction_id
 /*
 SELECT
     ConversationId AS interaction_id,
-    concat(
-        'info: ',
-        arrayStringConcat(
-            arrayMap(
-                x -> replaceRegexpAll(
-                    x.2,
-                    '<[^>]*>',
-                    ''
-                ),
-                arraySort(
-                    x -> x.1,
-                    groupArray((EventTimeStampEpoch, EventValue1))
-                )
+    arrayStringConcat(
+        arrayMap(
+            x -> concat(
+                if(x.3 = 'MESSAGE_RECEIVED', 'user: ', 'bot: '),
+                replaceRegexpAll(ifNull(x.2, ''), '<[^>]*>', '')
             ),
-            ' '
-        )
-    ) AS combined_chat_log
+            arraySort(
+                x -> x.1,
+                groupArray((EventTimeStampEpoch, EventValue1, EventName))
+            )
+        ),
+        ' '
+    ) AS combined_chat_log,
+    arrayStringConcat(
+        arrayMap(
+            x -> replaceRegexpAll(ifNull(x.2, ''), '<[^>]*>', ''),
+            arraySort(
+                x -> x.1,
+                groupArrayIf(
+                    (EventTimeStampEpoch, EventValue1),
+                    EventName = 'MESSAGE_RECEIVED'
+                )
+            )
+        ),
+        ' '
+    ) AS user_chat_log,
+    arrayStringConcat(
+        arrayMap(
+            x -> replaceRegexpAll(ifNull(x.2, ''), '<[^>]*>', ''),
+            arraySort(
+                x -> x.1,
+                groupArrayIf(
+                    (EventTimeStampEpoch, EventValue1),
+                    EventName = 'MESSAGE_SENT'
+                )
+            )
+        ),
+        ' '
+    ) AS bot_chat_log
 FROM __CLIENT_SCHEMA__.eg_agentic_runtime_distributed
 WHERE EventName IN ('MESSAGE_RECEIVED', 'MESSAGE_SENT')
   AND EventValue2 = 'customer'

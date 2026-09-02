@@ -87,14 +87,20 @@ def build_combined_chat_log(events: list[tuple[int, str | None, str]]) -> str:
 class HtmlJsonStripTests(unittest.TestCase):
     def test_sql_has_html_and_json_strip_steps(self) -> None:
         live = SQL_PATH.read_text(encoding="utf-8").split("/*")[0]
-        self.assertIn("isValidJSON", live)
         self.assertIn("JSONExtractString", live)
+        self.assertIn("nullIf(JSONExtractString", live)
+        self.assertNotRegex(live, r"\bisValidJSON\s*\(")
+        self.assertNotRegex(live, r"\bparseDateTimeBestEffortOrNull\s*\(")
         self.assertIn("&lt;", live)
         self.assertIn("<[^>]*>", live)
         self.assertIn("</?[A-Za-z][A-Za-z0-9]*", live)
         self.assertIn("combined_chat_log", live)
+        self.assertIn("'visitor'", live)
+        self.assertIn("'Brand'", live)
         self.assertNotIn("user_chat_log", live)
         self.assertNotIn("formatDateTime", live)
+        # Optimized shape: two CTEs, not a long pipeline
+        self.assertEqual(live.count(" AS ("), 2)
 
     def test_strips_hxelement_html(self) -> None:
         raw = (

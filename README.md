@@ -10,6 +10,6 @@ All required SQLs
   - Blob format:
 
 ```text
-[YYYY-MM-DD HH:MM:SS] User: Main Menu
-[YYYY-MM-DD HH:MM:SS] Bot: I'm happy to help with your online banking needs.
+[HH:MM:SS] User: Main Menu
+[HH:MM:SS] Bot: I'm happy to help with your online banking needs.
 ```

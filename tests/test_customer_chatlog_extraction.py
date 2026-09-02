@@ -77,7 +77,7 @@ def is_usable(text: str) -> bool:
 def format_ts(epoch: int) -> str:
     if epoch > 1_000_000_000_000:
         epoch = epoch // 1000
-    return datetime.fromtimestamp(epoch, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    return datetime.fromtimestamp(epoch, tz=timezone.utc).strftime("%H:%M:%S")
 
 
 def build_combined_chat_log(events: list[tuple[int, str | None, str]]) -> str:
@@ -158,11 +158,11 @@ class HtmlJsonStripTests(unittest.TestCase):
             blob,
             "\n".join(
                 [
-                    "[2024-03-09 16:01:40] Bot: 👋 Welcome to First Tech",
-                    "[2024-03-09 16:02:30] Bot: Accounts with accept no transaction",
-                    "[2024-03-09 16:03:20] User: Main Menu",
-                    "[2024-03-09 16:04:10] User: Online Banking",
-                    "[2024-03-09 16:05:00] Bot: I'm happy to help with your online banking needs.",
+                    "[16:01:40] Bot: 👋 Welcome to First Tech",
+                    "[16:02:30] Bot: Accounts with accept no transaction",
+                    "[16:03:20] User: Main Menu",
+                    "[16:04:10] User: Online Banking",
+                    "[16:05:00] Bot: I'm happy to help with your online banking needs.",
                 ]
             ),
         )

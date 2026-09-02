@@ -16,8 +16,8 @@
 --   7) drop empty / system noise lines
 --
 -- Single blob column `combined_chat_log` (newline-separated):
---   [YYYY-MM-DD HH:MM:SS] User: ...
---   [YYYY-MM-DD HH:MM:SS] Bot: ...
+--   [HH:MM:SS] User: ...
+--   [HH:MM:SS] Bot: ...
 --
 -- Timestamp: prefer EventTimeStampISO; else EventTimeStampEpoch (auto ms vs sec).
 -- Airflow/Jinja: set params.client_schema (e.g. ftbank).
@@ -169,7 +169,7 @@ bot_info AS (
             arrayMap(
                 x -> concat(
                     '[',
-                    formatDateTime(x.1, '%Y-%m-%d %H:%M:%S'),
+                    formatDateTime(x.1, '%H:%M:%S'),
                     '] ',
                     x.2,
                     ': ',
@@ -329,7 +329,7 @@ SELECT
         arrayMap(
             x -> concat(
                 '[',
-                formatDateTime(x.1, '%Y-%m-%d %H:%M:%S'),
+                formatDateTime(x.1, '%H:%M:%S'),
                 '] ',
                 x.2,
                 ': ',

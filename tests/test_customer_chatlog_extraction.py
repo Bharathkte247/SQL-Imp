@@ -6,7 +6,6 @@ from __future__ import annotations
 import json
 import re
 import unittest
-from datetime import datetime, timezone
 from pathlib import Path
 
 COMPLETE_TAG = re.compile(r"(?i)<[^>]*>")
@@ -74,20 +73,14 @@ def is_usable(text: str) -> bool:
     return True
 
 
-def format_ts(epoch: int) -> str:
-    if epoch > 1_000_000_000_000:
-        epoch = epoch // 1000
-    return datetime.fromtimestamp(epoch, tz=timezone.utc).strftime("%H:%M:%S")
-
-
 def build_combined_chat_log(events: list[tuple[int, str | None, str]]) -> str:
     rows: list[str] = []
-    for epoch, payload, event_name in sorted(events, key=lambda e: e[0]):
+    for _epoch, payload, event_name in sorted(events, key=lambda e: e[0]):
         text = clean_text(payload)
         if not is_usable(text):
             continue
         speaker = "User" if event_name == "MESSAGE_RECEIVED" else "Bot"
-        rows.append(f"[{format_ts(epoch)}] {speaker}: {text}")
+        rows.append(f"{speaker}: {text}")
     return "\n".join(rows)
 
 
@@ -101,6 +94,7 @@ class HtmlJsonStripTests(unittest.TestCase):
         self.assertIn("</?[A-Za-z][A-Za-z0-9]*", live)
         self.assertIn("combined_chat_log", live)
         self.assertNotIn("user_chat_log", live)
+        self.assertNotIn("formatDateTime", live)
 
     def test_strips_hxelement_html(self) -> None:
         raw = (
@@ -158,14 +152,15 @@ class HtmlJsonStripTests(unittest.TestCase):
             blob,
             "\n".join(
                 [
-                    "[16:01:40] Bot: 👋 Welcome to First Tech",
-                    "[16:02:30] Bot: Accounts with accept no transaction",
-                    "[16:03:20] User: Main Menu",
-                    "[16:04:10] User: Online Banking",
-                    "[16:05:00] Bot: I'm happy to help with your online banking needs.",
+                    "Bot: 👋 Welcome to First Tech",
+                    "Bot: Accounts with accept no transaction",
+                    "User: Main Menu",
+                    "User: Online Banking",
+                    "Bot: I'm happy to help with your online banking needs.",
                 ]
             ),
         )
+        self.assertNotRegex(blob, r"\[\d{2}:\d{2}:\d{2}\]")
         self.assertNotRegex(blob, r"<[^>\n]*>")
         self.assertNotIn("{", blob)
         self.assertNotIn("}", blob)

@@ -16,10 +16,10 @@
 --   7) drop empty / system noise lines
 --
 -- Single blob column `combined_chat_log` (newline-separated):
---   [HH:MM:SS] User: ...
---   [HH:MM:SS] Bot: ...
+--   User: ...
+--   Bot: ...
 --
--- Timestamp: prefer EventTimeStampISO; else EventTimeStampEpoch (auto ms vs sec).
+-- Messages stay ordered by EventTimeStampEpoch (timestamp not shown in blob).
 -- Airflow/Jinja: set params.client_schema (e.g. ftbank).
 
 WITH
@@ -167,17 +167,10 @@ bot_info AS (
         ConversationId AS interaction_id,
         arrayStringConcat(
             arrayMap(
-                x -> concat(
-                    '[',
-                    formatDateTime(x.1, '%H:%M:%S'),
-                    '] ',
-                    x.2,
-                    ': ',
-                    x.3
-                ),
+                x -> concat(x.2, ': ', x.3),
                 arraySort(
-                    x -> x.4,
-                    groupArray((event_ts, speaker, clean_text, EventTimeStampEpoch))
+                    x -> x.1,
+                    groupArray((EventTimeStampEpoch, speaker, clean_text))
                 )
             ),
             '\n'
@@ -327,17 +320,10 @@ SELECT
     ConversationId AS interaction_id,
     arrayStringConcat(
         arrayMap(
-            x -> concat(
-                '[',
-                formatDateTime(x.1, '%H:%M:%S'),
-                '] ',
-                x.2,
-                ': ',
-                x.3
-            ),
+            x -> concat(x.2, ': ', x.3),
             arraySort(
-                x -> x.4,
-                groupArray((event_ts, speaker, clean_text, EventTimeStampEpoch))
+                x -> x.1,
+                groupArray((EventTimeStampEpoch, speaker, clean_text))
             )
         ),
         '\n'

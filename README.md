@@ -1,2 +1,16 @@
 # SQL-Imp
 All required SQLs
+
+## ClickHouse queries
+
+- `customer_chatlog_extraction.sql` — One row per `ConversationId` with a **single text blob** `combined_chat_log` from `{{ params.client_schema }}.eg_agentic_runtime_distributed`.
+  - **visitor** = `MESSAGE_RECEIVED` + `EventValue2 = 'customer'`
+  - **Brand** = `MESSAGE_SENT` + `EventValue2 = 'customer'`
+  - Optimized: 2 CTEs, no ISO datetime parse, `coalesce(nullIf(JSONExtractString…))` instead of `isValidJSON`, single markup-strip regex
+  - Add a date/partition filter in production for Distributed tables
+  - Blob format:
+
+```text
+visitor: Main Menu
+Brand: I'm happy to help with your online banking needs.
+```

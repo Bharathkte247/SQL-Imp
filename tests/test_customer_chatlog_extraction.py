@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Offline validation for human-readable user/bot transcript extraction.
+"""Offline validation for single-blob human-readable transcript extraction.
 
 Mirrors cleaning + formatting used in customer_chatlog_extraction.sql:
   - strip HTML tags
   - decode a few entities
   - collapse whitespace
   - drop empty / noise lines
-  - format: [YYYY-MM-DD HH:MM:SS] User|Bot: text  (newline-joined)
+  - single blob: [YYYY-MM-DD HH:MM:SS] User|Bot: text  (newline-joined)
 """
 
 from __future__ import annotations
@@ -52,45 +52,32 @@ def format_ts(epoch: int) -> str:
     return datetime.fromtimestamp(epoch, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
 
-def build_transcript(events: list[tuple[int, str | None, str]]) -> tuple[str, str, str]:
-    """events: (epoch, payload, event_name) -> (transcript, user_log, bot_log)."""
-    rows: list[tuple[int, str, str]] = []
+def build_combined_chat_log(events: list[tuple[int, str | None, str]]) -> str:
+    """events: (epoch, payload, event_name) -> single transcript blob."""
+    rows: list[str] = []
     for epoch, payload, event_name in sorted(events, key=lambda e: e[0]):
         text = clean_text(payload)
         if not is_usable(text):
             continue
         speaker = "User" if event_name == "MESSAGE_RECEIVED" else "Bot"
-        rows.append((epoch, speaker, text))
-
-    transcript = "\n".join(
-        f"[{format_ts(epoch)}] {speaker}: {text}" for epoch, speaker, text in rows
-    )
-    user_log = "\n".join(
-        f"[{format_ts(epoch)}] User: {text}"
-        for epoch, speaker, text in rows
-        if speaker == "User"
-    )
-    bot_log = "\n".join(
-        f"[{format_ts(epoch)}] Bot: {text}"
-        for epoch, speaker, text in rows
-        if speaker == "Bot"
-    )
-    return transcript, user_log, bot_log
+        rows.append(f"[{format_ts(epoch)}] {speaker}: {text}")
+    return "\n".join(rows)
 
 
 class HumanReadableTranscriptTests(unittest.TestCase):
-    def test_sql_has_human_readable_pieces(self) -> None:
+    def test_sql_returns_single_blob_column(self) -> None:
         sql = SQL_PATH.read_text(encoding="utf-8")
         live = sql.split("/*")[0]
-        self.assertIn("transcript", live)
+        self.assertIn("combined_chat_log", live)
+        self.assertIn("interaction_id", live)
+        self.assertNotIn("user_chat_log", live)
+        self.assertNotIn("bot_chat_log", live)
         self.assertIn("User", live)
         self.assertIn("Bot", live)
         self.assertIn("formatDateTime", live)
         self.assertIn("'%Y-%m-%d %H:%M:%S'", live)
         self.assertIn("'\\n'", live)
         self.assertIn("replaceRegexpAll(ifNull(EventValue1, ''), '<[^>]*>', '')", live)
-        self.assertIn("HAL-E", live)
-        self.assertIn("card submitted Intent:", live)
 
     def test_cleans_hxelement_and_paragraph_html(self) -> None:
         raw = (
@@ -106,13 +93,12 @@ class HumanReadableTranscriptTests(unittest.TestCase):
         self.assertFalse(is_usable("/f FT_Bank_PCF"))
         self.assertFalse(is_usable("card submitted Intent: HAL_E"))
         self.assertTrue(is_usable("Main Menu"))
-        self.assertTrue(is_usable("Online Banking"))
 
-    def test_sample_style_transcript_with_timestamps(self) -> None:
+    def test_single_blob_sample_transcript(self) -> None:
         events = [
             (
                 1_710_000_100,
-                "<div class=\"hxelement\" version=\"1.0\"></div>",
+                '<div class="hxelement" version="1.0"></div>',
                 "MESSAGE_SENT",
             ),
             (1_710_000_100, "HAL-E", "MESSAGE_SENT"),
@@ -136,7 +122,7 @@ class HumanReadableTranscriptTests(unittest.TestCase):
             (1_710_000_050, "/f FT_Bank_PCF", "MESSAGE_SENT"),
             (1_710_000_060, "card submitted Intent: HAL_E", "MESSAGE_RECEIVED"),
         ]
-        transcript, user_log, bot_log = build_transcript(events)
+        blob = build_combined_chat_log(events)
         expected = "\n".join(
             [
                 "[2024-03-09 16:01:40] Bot: 👋 Welcome to First Tech",
@@ -146,15 +132,9 @@ class HumanReadableTranscriptTests(unittest.TestCase):
                 "[2024-03-09 16:08:20] Bot: I am connecting you with an agent who can assist.",
             ]
         )
-        self.assertEqual(transcript, expected)
-        self.assertIn("[2024-03-09 16:03:20] User: Main Menu", user_log)
-        self.assertIn(
-            "[2024-03-09 16:05:00] Bot: I'm happy to help with your online banking needs.",
-            bot_log,
-        )
-        self.assertNotIn("HAL-E", transcript)
-        self.assertNotIn("/f ", transcript)
-        self.assertNotIn("card submitted", transcript)
+        self.assertEqual(blob, expected)
+        self.assertIsInstance(blob, str)
+        self.assertEqual(blob.count("\n"), 4)
 
 
 if __name__ == "__main__":

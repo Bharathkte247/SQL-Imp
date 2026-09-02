@@ -1,4 +1,4 @@
--- ClickHouse: human-readable user + bot transcript (bot_info CTE)
+-- ClickHouse: human-readable user + bot transcript as a single text blob
 -- Source: {{ params.client_schema }}.eg_agentic_runtime_distributed
 -- Grain: one row per ConversationId
 --
@@ -12,7 +12,7 @@
 --   3) collapse whitespace
 --   4) drop empty / noise lines (/f commands, intent cards, bare bot-name chips)
 --
--- Transcript format (newline-separated):
+-- Single blob column `combined_chat_log` (newline-separated):
 --   [YYYY-MM-DD HH:MM:SS] User: ...
 --   [YYYY-MM-DD HH:MM:SS] Bot: ...
 --
@@ -25,7 +25,6 @@ messages AS (
         ConversationId,
         EventName,
         EventTimeStampEpoch,
-        ifNull(EventValue1, '') AS raw_payload,
         coalesce(
             parseDateTimeBestEffortOrNull(EventTimeStampISO),
             if(
@@ -78,8 +77,6 @@ usable AS (
 bot_info AS (
     SELECT
         ConversationId AS interaction_id,
-
-        -- Full human-readable transcript with timestamps
         arrayStringConcat(
             arrayMap(
                 x -> concat(
@@ -96,55 +93,13 @@ bot_info AS (
                 )
             ),
             '\n'
-        ) AS transcript,
-
-        -- User-only lines (with timestamps)
-        arrayStringConcat(
-            arrayMap(
-                x -> concat(
-                    '[',
-                    formatDateTime(x.1, '%Y-%m-%d %H:%M:%S'),
-                    '] User: ',
-                    x.2
-                ),
-                arraySort(
-                    x -> x.3,
-                    groupArrayIf(
-                        (event_ts, clean_text, EventTimeStampEpoch),
-                        speaker = 'User'
-                    )
-                )
-            ),
-            '\n'
-        ) AS user_chat_log,
-
-        -- Bot-only lines (with timestamps)
-        arrayStringConcat(
-            arrayMap(
-                x -> concat(
-                    '[',
-                    formatDateTime(x.1, '%Y-%m-%d %H:%M:%S'),
-                    '] Bot: ',
-                    x.2
-                ),
-                arraySort(
-                    x -> x.3,
-                    groupArrayIf(
-                        (event_ts, clean_text, EventTimeStampEpoch),
-                        speaker = 'Bot'
-                    )
-                )
-            ),
-            '\n'
-        ) AS bot_chat_log
+        ) AS combined_chat_log
     FROM usable
     GROUP BY ConversationId
 )
 SELECT
     interaction_id,
-    transcript,
-    user_chat_log,
-    bot_chat_log
+    combined_chat_log
 FROM bot_info
 ORDER BY interaction_id
 ;
@@ -233,7 +188,7 @@ SELECT
             )
         ),
         '\n'
-    ) AS transcript
+    ) AS combined_chat_log
 FROM usable
 GROUP BY ConversationId
 ORDER BY ConversationId

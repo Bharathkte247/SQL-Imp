@@ -7,7 +7,7 @@ below is reproducible with `tests/report.sh`.
 ## Headline
 
 The query does not compile against a schema where `EventTimeStampEpoch` is
-unsigned, and once that single line is patched so it can run, **24 of 29
+unsigned, and once that single line is patched so it can run, **23 of 29
 assertions over a hand-built fixture come back wrong**. Two of the failures lose
 or invent output rows; the rest are wrong values in columns that look populated,
 which is the more dangerous category because nothing downstream can detect them.
@@ -266,15 +266,19 @@ reports `''` rather than `visitor_leave`.
 The commented-out version directly above reads the request events and looks like
 the intended logic.
 
-### F12 — The agent's mailbox is written to the consumer `email` column
+### F12 — The consumer `email` column reads the agent-side JSON path
 
 ```sql
 any(JSONExtractString(..., 'WorkerAttributes', 'email')) AS email
 ```
 
-`WorkerAttributes` describes the agent. Every fixture row reports
-`bob@ex.com` in a column named `email` on a consumer-facing session record.
-Worth checking whether this feeds anything customer-facing.
+`WorkerAttributes` describes the agent, and the CTE is restricted to
+`CONVERSATION_CREATED` events, where no agent is assigned yet. So the column
+returns either the agent's mailbox or nothing — never the consumer's address.
+The fixture carries `TaskAttributes.email = alice@customer.example` on I1's
+`CONVERSATION_CREATED`; the original reports `''`. In an earlier fixture
+revision that put the agent block on every event, it reported `bob@ex.com` for
+every row, so both failure modes are reachable depending on the producer.
 
 ### F13 — Epoch 0 is emitted as a real timestamp
 

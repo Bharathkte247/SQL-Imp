@@ -71,14 +71,14 @@ base_events AS (
 
     -- --- agent / queue identity, normalised per event type ----------------
     coalesce(
-      multiIf(event_name = 'AGENT_ASSIGNED',      nullIf(EventValue3, ''),
-              event_name = 'RESERVATION_ACCEPTED', nullIf(EventValue6, ''),
+      multiIf(event_name = 'RESERVATION_ACCEPTED', nullIf(EventValue6, ''),
+              event_name = 'AGENT_ASSIGNED' OR event_name LIKE 'CONVERSATION%', nullIf(EventValue3, ''),
               NULL),
       nullIf(JSONExtractString(payload, 'TaskAttributes', 'queueId'), '')
     )                                            AS queue_id,
 
     coalesce(
-      if(event_name = 'AGENT_ASSIGNED', nullIf(EventValue4, ''), NULL),
+      if(event_name = 'AGENT_ASSIGNED' OR event_name LIKE 'CONVERSATION%', nullIf(EventValue4, ''), NULL),
       nullIf(JSONExtractString(payload, 'TaskAttributes', 'queueName'), '')
     )                                            AS queue_name,
 
@@ -988,13 +988,15 @@ with_previous_values AS (
     lagInFrame(interaction_id, 1) OVER conv_window                AS previous_interaction_id,
     lagInFrame(last_connected_agent_id, 1) OVER conv_window       AS previous_interaction_agent_id,
     lagInFrame(last_connected_queue_id, 1) OVER conv_window       AS previous_queue_id,
+    -- Cast so that "no predecessor" reads as NULL rather than '', matching
+    -- previous_interaction_id.
     lagInFrame(
-      multiIf(
+      CAST(multiIf(
         is_canceled, 'canceled',
         agent_interaction_terminated_time IS NOT NULL, 'terminated',
         agent_interaction_end_time IS NOT NULL, 'resolved',
         'unknown'
-      ), 1) OVER conv_window                                      AS previous_interaction_end_state,
+      ) AS Nullable(String)), 1) OVER conv_window                 AS previous_interaction_end_state,
     lagInFrame(agent_interaction_termination_reason_text, 1) OVER conv_window
                                                                   AS previous_interaction_wrapup_note,
 

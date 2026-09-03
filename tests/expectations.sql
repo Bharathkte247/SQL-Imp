@@ -98,8 +98,8 @@ WITH checks AS (
          ifNull(toString((SELECT any(first_requested_queue_id) FROM mock.orig  WHERE interaction_id = 'I1')), 'NULL'),
          ifNull(toString((SELECT any(first_requested_queue_id) FROM mock.fixed WHERE interaction_id = 'I1')), 'NULL')),
 
-        -- F12: agent mailbox landing in the consumer email column
-        ('F12', 'I1 email', 'NULL',
+        -- F12: the consumer email column reads the agent-side JSON path
+        ('F12', 'I1 email', 'alice@customer.example',
          ifNull(toString((SELECT any(email) FROM mock.orig  WHERE interaction_id = 'I1')), 'NULL'),
          ifNull(toString((SELECT any(email) FROM mock.fixed WHERE interaction_id = 'I1')), 'NULL')),
 

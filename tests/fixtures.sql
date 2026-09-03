@@ -93,7 +93,7 @@ INSERT INTO mock.raw (off, iid, euid, name, cuid, ev, key16, ta, wa_ta, vi) VALU
 (0,      'I1', 'E-I1-001', 'CONVERSATION_CREATED',        'visitor-alice',
  ['ACCT-1','CONV-1','Q-100','Sales Queue','','','','TEAM-1','Team One','','','Alice','','','','','','','',''],
  '',
- '{"accountId":"ACCT-1","chatConversationId":"CONV-1","queueId":"Q-100","queueName":"Sales Queue","interactionSourceType":"web","isPremiumVisitor":"true","url":"https://ex.com/pricing","country":"US","city":"Boston","customField01":"CF-ONE","accountName":"Acme","interactionId":"I1","buttonName":"chat-now","ruleId":"RULE-TA"}',
+ '{"accountId":"ACCT-1","chatConversationId":"CONV-1","queueId":"Q-100","queueName":"Sales Queue","interactionSourceType":"web","isPremiumVisitor":"true","url":"https://ex.com/pricing","country":"US","city":"Boston","customField01":"CF-ONE","accountName":"Acme","interactionId":"I1","buttonName":"chat-now","ruleId":"RULE-TA","email":"alice@customer.example"}',
  '{"chatInteractionType":"SYNC","conversationId":"CONV-1","repeatVisitorCount":"2","isVisitorVerified":"true","sourceServiceChannel":"web-chat"}',
  '{"url":"https://ex.com/from-visitorinfo","geoCountry":"US","geoCity":"New York","geoWorldRegion":"NA","geoPostalCode":"10001","ipAddress":"1.2.3.4","operatingSystem":"macOS","browser":"Chrome","deviceId":"DEV-9","ruleId":"RULE-VI","tpId":"TP-3"}'),
 
@@ -196,7 +196,7 @@ INSERT INTO mock.raw (off, iid, euid, name, cuid, ev, key16, ta, wa_ta, vi) VALU
 
 (801000, '',   'E-I6-002', 'CONVERSATION_ENDED',          'visitor-ivan',
  ['ACCT-5','CONV-7','Q-500','Winback Queue','resolved','','','','','','','','','','','','','','',''],
- '', '{"chatConversationId":"CONV-7"}', '{}', ''),
+ '', '{"chatConversationId":"CONV-7","interactionId":"I6"}', '{}', ''),
 
 -- ---- I7: a second, unrelated interaction whose InteractionId is also blank
 (900000, '',   'E-I7-001', 'CONVERSATION_CREATED',        'visitor-judy',
@@ -207,11 +207,11 @@ INSERT INTO mock.raw (off, iid, euid, name, cuid, ev, key16, ta, wa_ta, vi) VALU
 
 (901000, '',   'E-I7-002', 'AGENT_ASSIGNED',              'visitor-judy',
  ['ACCT-6','CONV-8','Q-600','Loyalty Queue','','AGT-99','Kyle Agent','TEAM-6','Team Six','','','Judy','','','assigned','','','','',''],
- '', '{"queueId":"Q-600"}', '{"WorkerName":"AGT-99","full_name":"Kyle Agent","email":"kyle@ex.com"}', ''),
+ '', '{"queueId":"Q-600","interactionId":"I7"}', '{"WorkerName":"AGT-99","full_name":"Kyle Agent","email":"kyle@ex.com"}', ''),
 
 (902000, '',   'E-I7-003', 'CONVERSATION_ENDED',          'visitor-judy',
  ['ACCT-6','CONV-8','Q-600','Loyalty Queue','resolved','','','','','','','','','','','','','','',''],
- '', '{"chatConversationId":"CONV-8"}', '{}', ''),
+ '', '{"chatConversationId":"CONV-8","interactionId":"I7"}', '{}', ''),
 
 -- ---- I8: connected via RESERVATION_ACCEPTED only. That event carries the
 --          agent in the layout last_agent_started expects (ev2=agent id,
@@ -267,9 +267,15 @@ SELECT
         '{"string":',
         toJSONString(concat(
             '{"TaskAttributes":', ta,
-            ',"WorkerAttributes":{"TaskAttributes":',
-            if(vi = '', wa_ta, concat(substring(wa_ta, 1, length(wa_ta) - 1), ',"visitorInfo":', toJSONString(vi), '}')),
-            ',"WorkerName":"AGT-77","full_name":"Bob Agent","email":"bob@ex.com"}',
+            ',"WorkerAttributes":',
+            -- On connect events `wa_ta` carries the WorkerAttributes-level
+            -- agent identity; elsewhere it is WorkerAttributes.TaskAttributes.
+            if(position(wa_ta, '"WorkerName"') > 0,
+               concat(substring(wa_ta, 1, length(wa_ta) - 1), ',"TaskAttributes":{}}'),
+               concat('{"TaskAttributes":',
+                      if(vi = '', wa_ta,
+                         concat(substring(wa_ta, 1, length(wa_ta) - 1), ',"visitorInfo":', toJSONString(vi), '}')),
+                      '}')),
             ',"WorkerSid":"WS-', euid, '"',
             ',"participantRole":"OWNER"',
             ',"status":"queued"}'

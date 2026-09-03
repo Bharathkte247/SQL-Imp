@@ -1,3 +1,11 @@
+-- =============================================================================
+-- assist_chatsession__original.sql with ONE change, so that it can be executed
+-- and its output inspected: `event_time_epoch` is cast to Int64 inside
+-- additional_timestamps.start_time (finding F1 in REVIEW.md).
+--
+-- Nothing else is modified. Every value-level finding in REVIEW.md is
+-- reproduced against this file by tests/report.sh.
+-- =============================================================================
 SELECT * FROM (
 WITH 
 base_events AS (

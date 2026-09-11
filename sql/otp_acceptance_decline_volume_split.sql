@@ -1,7 +1,5 @@
 -- OTP Acceptance & Decline Details — ClickHouse volume split
--- Avoids code 288 by NOT using IN/JOIN subqueries on distributed tables.
--- Calls are scoped with HAVING hasAny(...) after path aggregation.
--- Replace <db>.voice_node_report with your actual database.table
+-- Replace YOUR_DB.voice_node_report with the real database.table from Superset.
 
 WITH
 newbase AS (
@@ -11,7 +9,7 @@ newbase AS (
             PARTITION BY call_interaction_id
             ORDER BY node_sequence_number
         ) AS newnodesequence
-    FROM <db>.voice_node_report
+    FROM YOUR_DB.voice_node_report
     WHERE node_state IN ('finalized')
       AND toDate(date) > toDate('2026-05-31')
 ),
@@ -48,12 +46,14 @@ classified AS (
     SELECT
         call_interaction_id,
         node_names,
+        return_events,
 
         has(node_names, 'ESP1_U1PremierReservations')  AS hit_l1a,
         has(node_names, 'ESP1_U1PremierReservations2') AS hit_l1b,
         indexOf(node_names, 'ESP1_U1PremierReservations')  AS idx_l1a,
         indexOf(node_names, 'ESP1_U1PremierReservations2') AS idx_l1b,
 
+        -- use trimBoth(), NOT trim(BOTH ' ' FROM ...) — causes parse error
         if(
             indexOf(node_names, 'ESP1_U1PremierReservationsLogic') > 0,
             lowerUTF8(trimBoth(return_events[indexOf(node_names, 'ESP1_U1PremierReservationsLogic')])),
@@ -66,8 +66,23 @@ classified AS (
             ''
         ) AS l1b_offer_return,
 
-        if(idx_l1a > 0, has(arraySlice(node_names, idx_l1a), 'ESP1_U1PremierResNM'), 0) AS l1a_has_nm_after,
-        if(idx_l1b > 0, has(arraySlice(node_names, idx_l1b), 'ESP1_U1PremierMPNM'), 0) AS l1b_has_nm_after,
+        if(
+            indexOf(node_names, 'ESP1_U1PremierReservations') > 0,
+            has(
+                arraySlice(node_names, indexOf(node_names, 'ESP1_U1PremierReservations')),
+                'ESP1_U1PremierResNM'
+            ),
+            0
+        ) AS l1a_has_nm_after,
+
+        if(
+            indexOf(node_names, 'ESP1_U1PremierReservations2') > 0,
+            has(
+                arraySlice(node_names, indexOf(node_names, 'ESP1_U1PremierReservations2')),
+                'ESP1_U1PremierMPNM'
+            ),
+            0
+        ) AS l1b_has_nm_after,
 
         has(node_names, 'ESP1_U1OTPDeclinePremierRes')     AS has_decline_res,
         has(node_names, 'ESP1_U1OTPFailPremierRes')        AS has_fail_res,
@@ -83,7 +98,22 @@ classified AS (
 
 journey AS (
     SELECT
-        *,
+        call_interaction_id,
+        hit_l1a,
+        hit_l1b,
+        l1a_offer_return,
+        l1b_offer_return,
+        l1a_has_nm_after,
+        l1b_has_nm_after,
+        has_decline_res,
+        has_fail_res,
+        has_transfer_res,
+        has_jump_res,
+        has_decline_mp,
+        has_fail_mp,
+        has_transfer_mp,
+        has_jump_mp,
+
         multiIf(
             hit_l1a AND l1a_offer_return = 'yes',   'L1.a.1 OTP Offer Accept',
             hit_l1a AND l1a_offer_return = 'no',    'L1.a.2 OTP Offer Reject',

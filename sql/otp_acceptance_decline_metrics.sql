@@ -1,6 +1,5 @@
 -- OTP Acceptance & Decline Details (ClickHouse)
--- Grain: date + primary_node_name (L1 offer node)
--- primary_node_name = ESP1_U1PremierReservations | ESP1_U1PremierReservations2
+-- Grain: date only (day-level aggregation)
 
 WITH nodes AS (
     SELECT
@@ -46,29 +45,7 @@ WITH nodes AS (
                 'OTP Transfer',
 
             'Unknown'
-        ) AS outcome_identifier,
-
-        multiIf(
-            v.node_name IN (
-                'ESP1_U1PremierReservations',
-                'ESP1_U1PremierReservationsLogic',
-                'ESP1_U1PremierResNM',
-                'ESP1_U1OTPDeclinePremierRes',
-                'ESP1_U1OTPFailPremierRes',
-                'ESP1_U1PreOTPFlowResPreTransfer',
-                'ESP1_U1PreOTPFlowResPreJump'
-            ), 'ESP1_U1PremierReservations',
-            v.node_name IN (
-                'ESP1_U1PremierReservations2',
-                'ESP1_U1PremierMPLogic',
-                'ESP1_U1PremierMPNM',
-                'ESP1_U1OTPDeclinePremierMP',
-                'ESP1_U1OTPFailPremierMP',
-                'ESP1_U1PreOTPFlowMPPreTransfer',
-                'ESP1_U1PreOTPFlowMPPreJump'
-            ), 'ESP1_U1PremierReservations2',
-            'Unknown'
-        ) AS primary_node_name
+        ) AS outcome_identifier
     FROM ua.voice_node_report AS v
     WHERE v.node_state = 'finalized'
       AND v.node_name IN (
@@ -103,8 +80,7 @@ final_rows AS (
     SELECT
         date,
         call_interaction_id,
-        outcome_identifier,
-        primary_node_name
+        outcome_identifier
     FROM with_prev
     WHERE prev_node_group IS NULL
        OR node_group != prev_node_group
@@ -113,7 +89,6 @@ final_rows AS (
 otp_metrics AS (
     SELECT
         date,
-        primary_node_name,
 
         uniqExact(call_interaction_id) AS otp_offer_calls,
 
@@ -128,9 +103,7 @@ otp_metrics AS (
         uniqExactIf(call_interaction_id, outcome_identifier = 'OTP Transfer')        AS otp_transfer_calls,
         uniqExactIf(call_interaction_id, outcome_identifier = 'OTP Res')             AS otp_res_calls
     FROM final_rows
-    GROUP BY
-        date,
-        primary_node_name
+    GROUP BY date
 ),
 
 overall_volume AS (
@@ -142,8 +115,7 @@ overall_volume AS (
 )
 
 SELECT
-    coalesce(m.date, o.date) AS date,
-    m.primary_node_name,
+    coalesce(o.date, m.date) AS date,
     coalesce(o.overall_call_volume, 0) AS overall_call_volume,
     coalesce(m.otp_offer_calls, 0) AS otp_offer_calls,
     coalesce(m.offer_presented_calls, 0) AS offer_presented_calls,
@@ -155,9 +127,7 @@ SELECT
     coalesce(m.otp_unauthorized_calls, 0) AS otp_unauthorized_calls,
     coalesce(m.otp_transfer_calls, 0) AS otp_transfer_calls,
     coalesce(m.otp_res_calls, 0) AS otp_res_calls
-FROM otp_metrics AS m
-LEFT JOIN overall_volume AS o
-    ON m.date = o.date
-ORDER BY
-    date,
-    primary_node_name;
+FROM overall_volume AS o
+FULL OUTER JOIN otp_metrics AS m
+    ON o.date = m.date
+ORDER BY date;

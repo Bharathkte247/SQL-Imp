@@ -1,7 +1,6 @@
 -- OTP Acceptance & Decline Details — ClickHouse volume split
--- Source: ua.voice_node_report
--- Scope: calls that hit ESP1_U1PremierReservations or ESP1_U1PremierReservations2
---         with finalized nodes, date > 2026-05-31
+-- Code 288 fix: use GLOBAL IN for distributed-table call_id filter.
+-- Replace <db>.voice_node_report with your actual database.table
 
 WITH
 newbase AS (
@@ -11,17 +10,18 @@ newbase AS (
             PARTITION BY call_interaction_id
             ORDER BY node_sequence_number
         ) AS newnodesequence
-    FROM ua.voice_node_report
+    FROM <db>.voice_node_report
     WHERE node_state IN ('finalized')
-      AND call_interaction_id IN (
+      AND toDate(date) > toDate('2026-05-31')
+      AND call_interaction_id GLOBAL IN (
             SELECT call_interaction_id
-            FROM ua.voice_node_report
+            FROM <db>.voice_node_report
             WHERE node_name IN (
                 'ESP1_U1PremierReservations',
                 'ESP1_U1PremierReservations2'
             )
+              AND toDate(date) > toDate('2026-05-31')
         )
-      AND toDate(date) > toDate('2026-05-31')
 ),
 
 call_paths AS (
@@ -58,7 +58,6 @@ classified AS (
         indexOf(node_names, 'ESP1_U1PremierReservations')  AS idx_l1a,
         indexOf(node_names, 'ESP1_U1PremierReservations2') AS idx_l1b,
 
-        -- IMPORTANT: use trimBoth(), not trim(BOTH ' ' FROM ...) — CH parse error
         if(
             indexOf(node_names, 'ESP1_U1PremierReservationsLogic') > 0,
             lowerUTF8(trimBoth(return_events[indexOf(node_names, 'ESP1_U1PremierReservationsLogic')])),

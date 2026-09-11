@@ -1,5 +1,5 @@
--- OTP Offer volume + accept/reject/agent (ClickHouse)
--- Joins total_volume and otp_offer at date + primary_node_name
+-- OTP Offer volume + accept/reject/agent/no-match (ClickHouse)
+-- Grain: date + primary_node_name
 -- Note: if schema ua fails, swap to united.voice_node_report
 
 WITH newbase AS (
@@ -43,7 +43,6 @@ WITH newbase AS (
       )
 ),
 
-/* Map each funnel node to its L1 primary offer node */
 mapped AS (
     SELECT
         report_date,
@@ -72,62 +71,44 @@ mapped AS (
             'Unknown'
         ) AS primary_node_name
     FROM newbase
-),
-
-/* Total volume = distinct calls that hit the L1 offer prompt */
-total_volume AS (
-    SELECT
-        report_date,
-        primary_node_name,
-        uniqExact(call_interaction_id) AS total_calls
-    FROM mapped
-    WHERE node_name IN (
-        'ESP1_U1PremierReservations',
-        'ESP1_U1PremierReservations2'
-    )
-    GROUP BY
-        report_date,
-        primary_node_name
-),
-
-/* Offer decision comes from Logic nodes' return_event */
-otp_offer AS (
-    SELECT
-        report_date,
-        primary_node_name,
-        uniqExactIf(
-            call_interaction_id,
-            lowerUTF8(trimBoth(ifNull(return_event, ''))) = 'yes'
-        ) AS otp_offer_accept,
-        uniqExactIf(
-            call_interaction_id,
-            lowerUTF8(trimBoth(ifNull(return_event, ''))) = 'no'
-        ) AS otp_offer_reject,
-        uniqExactIf(
-            call_interaction_id,
-            lowerUTF8(trimBoth(ifNull(return_event, ''))) = 'agent'
-        ) AS otp_offer_agent
-    FROM mapped
-    WHERE node_name IN (
-        'ESP1_U1PremierReservationsLogic',
-        'ESP1_U1PremierMPLogic'
-    )
-    GROUP BY
-        report_date,
-        primary_node_name
 )
 
 SELECT
-    coalesce(t.report_date, o.report_date) AS date,
-    coalesce(t.primary_node_name, o.primary_node_name) AS primary_node_name,
-    coalesce(t.total_calls, 0) AS total_calls,
-    coalesce(o.otp_offer_accept, 0) AS otp_offer_accept,
-    coalesce(o.otp_offer_reject, 0) AS otp_offer_reject,
-    coalesce(o.otp_offer_agent, 0) AS otp_offer_agent
-FROM total_volume AS t
-FULL OUTER JOIN otp_offer AS o
-    ON t.report_date = o.report_date
-   AND t.primary_node_name = o.primary_node_name
+    report_date AS date,
+    primary_node_name,
+
+    uniqExactIf(
+        call_interaction_id,
+        node_name IN ('ESP1_U1PremierReservations', 'ESP1_U1PremierReservations2')
+    ) AS total_calls,
+
+    uniqExactIf(
+        call_interaction_id,
+        node_name IN ('ESP1_U1PremierReservationsLogic', 'ESP1_U1PremierMPLogic')
+            AND lowerUTF8(trimBoth(ifNull(return_event, ''))) = 'yes'
+    ) AS otp_offer_accept,
+
+    uniqExactIf(
+        call_interaction_id,
+        node_name IN ('ESP1_U1PremierReservationsLogic', 'ESP1_U1PremierMPLogic')
+            AND lowerUTF8(trimBoth(ifNull(return_event, ''))) = 'no'
+    ) AS otp_offer_reject,
+
+    uniqExactIf(
+        call_interaction_id,
+        node_name IN ('ESP1_U1PremierReservationsLogic', 'ESP1_U1PremierMPLogic')
+            AND lowerUTF8(trimBoth(ifNull(return_event, ''))) = 'agent'
+    ) AS otp_offer_agent,
+
+    uniqExactIf(
+        call_interaction_id,
+        node_name IN ('ESP1_U1PremierResNM', 'ESP1_U1PremierMPNM')
+    ) AS otp_offer_no_match
+
+FROM mapped
+GROUP BY
+    report_date,
+    primary_node_name
 ORDER BY
     date,
     primary_node_name;

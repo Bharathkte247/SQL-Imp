@@ -1,5 +1,6 @@
 -- OTP Acceptance & Decline Details — ClickHouse volume split
--- Code 288 fix: use GLOBAL IN for distributed-table call_id filter.
+-- Avoids code 288 by NOT using IN/JOIN subqueries on distributed tables.
+-- Calls are scoped with HAVING hasAny(...) after path aggregation.
 -- Replace <db>.voice_node_report with your actual database.table
 
 WITH
@@ -13,15 +14,6 @@ newbase AS (
     FROM <db>.voice_node_report
     WHERE node_state IN ('finalized')
       AND toDate(date) > toDate('2026-05-31')
-      AND call_interaction_id GLOBAL IN (
-            SELECT call_interaction_id
-            FROM <db>.voice_node_report
-            WHERE node_name IN (
-                'ESP1_U1PremierReservations',
-                'ESP1_U1PremierReservations2'
-            )
-              AND toDate(date) > toDate('2026-05-31')
-        )
 ),
 
 call_paths AS (
@@ -46,6 +38,10 @@ call_arrays AS (
         arrayMap(x -> x.2, evts) AS node_names,
         arrayMap(x -> x.3, evts) AS return_events
     FROM call_paths
+    WHERE hasAny(
+        arrayMap(x -> x.2, evts),
+        ['ESP1_U1PremierReservations', 'ESP1_U1PremierReservations2']
+    )
 ),
 
 classified AS (
@@ -83,7 +79,6 @@ classified AS (
         has(node_names, 'ESP1_U1PreOTPFlowMPPreTransfer')  AS has_transfer_mp,
         has(node_names, 'ESP1_U1PreOTPFlowMPPreJump')      AS has_jump_mp
     FROM call_arrays
-    WHERE hit_l1a OR hit_l1b
 ),
 
 journey AS (

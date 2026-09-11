@@ -60,14 +60,14 @@ classified AS (
 
         if(
             indexOf(node_names, 'ESP1_U1PremierReservationsLogic') > 0,
-            lowerUTF8(trim(BOTH ' ' FROM return_events[indexOf(node_names, 'ESP1_U1PremierReservationsLogic')])),
-            ''
+            lowerUTF8(trimBoth(return_events[indexOf(node_names, 'ESP1_U1PremierReservationsLogic')])),
+            toString('')
         ) AS l1a_offer_return,
 
         if(
             indexOf(node_names, 'ESP1_U1PremierMPLogic') > 0,
-            lowerUTF8(trim(BOTH ' ' FROM return_events[indexOf(node_names, 'ESP1_U1PremierMPLogic')])),
-            ''
+            lowerUTF8(trimBoth(return_events[indexOf(node_names, 'ESP1_U1PremierMPLogic')])),
+            toString('')
         ) AS l1b_offer_return,
 
         if(idx_l1a > 0, has(arraySlice(node_names, idx_l1a), 'ESP1_U1PremierResNM'), 0) AS l1a_has_nm_after,

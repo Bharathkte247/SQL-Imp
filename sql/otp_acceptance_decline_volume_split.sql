@@ -32,7 +32,7 @@ call_paths AS (
                 tuple(
                     toUInt32(newnodesequence),
                     node_name,
-                    ifNull(return_event, '')
+                    coalesce(toString(return_event), '')
                 )
             )
         ) AS evts
@@ -58,16 +58,17 @@ classified AS (
         indexOf(node_names, 'ESP1_U1PremierReservations')  AS idx_l1a,
         indexOf(node_names, 'ESP1_U1PremierReservations2') AS idx_l1b,
 
+        -- IMPORTANT: use trimBoth(), not trim(BOTH ' ' FROM ...) — CH parse error
         if(
             indexOf(node_names, 'ESP1_U1PremierReservationsLogic') > 0,
             lowerUTF8(trimBoth(return_events[indexOf(node_names, 'ESP1_U1PremierReservationsLogic')])),
-            toString('')
+            ''
         ) AS l1a_offer_return,
 
         if(
             indexOf(node_names, 'ESP1_U1PremierMPLogic') > 0,
             lowerUTF8(trimBoth(return_events[indexOf(node_names, 'ESP1_U1PremierMPLogic')])),
-            toString('')
+            ''
         ) AS l1b_offer_return,
 
         if(idx_l1a > 0, has(arraySlice(node_names, idx_l1a), 'ESP1_U1PremierResNM'), 0) AS l1a_has_nm_after,
@@ -115,7 +116,7 @@ journey AS (
             hit_l1b AND l1b_offer_return = 'yes' AND has_jump_mp     = 1, 'L1.b.1.iv OTP Res',
             hit_l1b AND l1b_offer_return = 'yes' AND has_transfer_mp = 1, 'L1.b.1.iii OTP Transfer',
             hit_l1b AND l1b_offer_return = 'yes',                          'L1.b.1 Accept (incomplete/other)',
-            NULL
+            CAST(NULL AS Nullable(String))
         ) AS accept_sub_journey,
 
         multiIf(hit_l1a, 'L1.a', hit_l1b, 'L1.b', 'none') AS offer_variant

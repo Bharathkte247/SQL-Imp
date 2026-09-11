@@ -3,7 +3,7 @@
 
 WITH nodes AS (
     SELECT
-        v.date,
+        toDate(v.date) AS date,
         v.call_interaction_id,
         v.node_sequence_number,
         v.node_name AS node_group,
@@ -108,10 +108,10 @@ otp_metrics AS (
 
 overall_volume AS (
     SELECT
-        date,
+        toDate(date) AS date,
         uniqExact(call_interaction_id) AS overall_call_volume
     FROM ua.voice_interaction_view
-    GROUP BY date
+    GROUP BY toDate(date)
 )
 
 SELECT

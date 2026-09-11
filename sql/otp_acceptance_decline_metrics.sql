@@ -1,9 +1,10 @@
 -- OTP Acceptance & Decline Details (ClickHouse)
--- Grain: date only (day-level aggregation)
+-- Grain: calendar day (toDate)
+-- Schema: united.voice_node_report, united.voice_interaction_view
 
 WITH nodes AS (
     SELECT
-        toDate(v.date) AS date,
+        toDate(v.date) AS report_date,
         v.call_interaction_id,
         v.node_sequence_number,
         v.node_name AS node_group,
@@ -46,7 +47,7 @@ WITH nodes AS (
 
             'Unknown'
         ) AS outcome_identifier
-    FROM ua.voice_node_report AS v
+    FROM united.voice_node_report AS v
     WHERE v.node_state = 'finalized'
       AND v.node_name IN (
           'ESP1_U1PremierReservations',
@@ -78,7 +79,7 @@ with_prev AS (
 
 final_rows AS (
     SELECT
-        date,
+        report_date,
         call_interaction_id,
         outcome_identifier
     FROM with_prev
@@ -88,7 +89,7 @@ final_rows AS (
 
 otp_metrics AS (
     SELECT
-        date,
+        report_date,
 
         uniqExact(call_interaction_id) AS otp_offer_calls,
 
@@ -103,19 +104,25 @@ otp_metrics AS (
         uniqExactIf(call_interaction_id, outcome_identifier = 'OTP Transfer')        AS otp_transfer_calls,
         uniqExactIf(call_interaction_id, outcome_identifier = 'OTP Res')             AS otp_res_calls
     FROM final_rows
-    GROUP BY date
+    GROUP BY report_date
 ),
 
 overall_volume AS (
     SELECT
-        toDate(date) AS date,
+        report_date,
         uniqExact(call_interaction_id) AS overall_call_volume
-    FROM ua.voice_interaction_view
-    GROUP BY toDate(date)
+    FROM
+    (
+        SELECT
+            toDate(date) AS report_date,
+            call_interaction_id
+        FROM united.voice_interaction_view
+    )
+    GROUP BY report_date
 )
 
 SELECT
-    coalesce(o.date, m.date) AS date,
+    coalesce(o.report_date, m.report_date) AS date,
     coalesce(o.overall_call_volume, 0) AS overall_call_volume,
     coalesce(m.otp_offer_calls, 0) AS otp_offer_calls,
     coalesce(m.offer_presented_calls, 0) AS offer_presented_calls,
@@ -129,5 +136,5 @@ SELECT
     coalesce(m.otp_res_calls, 0) AS otp_res_calls
 FROM overall_volume AS o
 FULL OUTER JOIN otp_metrics AS m
-    ON o.date = m.date
+    ON o.report_date = m.report_date
 ORDER BY date;

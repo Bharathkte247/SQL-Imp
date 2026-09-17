@@ -1,0 +1,24 @@
+-- ORIGINAL (user-supplied) Chat + AIVA digital interactions query
+-- Kept for reference. Prefer sql/chat_and_aiva_interactions.sql which:
+--   - scans the view once via a period CTE
+--   - replaces NOT IN with LEFT ANTI JOIN (NULL-safe, typically faster in CH)
+--   - centralizes the date window in a bounds CTE
+--
+-- SELECT *
+-- FROM ftbank.digital_interaction_view
+-- WHERE chat_interaction_id IS NOT NULL
+--   AND toDate(session_start_time) BETWEEN '2026-08-01' AND '2026-08-31'
+--
+-- UNION ALL
+--
+-- SELECT *
+-- FROM ftbank.digital_interaction_view d
+-- WHERE d.aiva_interaction_id NOT IN
+-- (
+--     SELECT DISTINCT aiva_interaction_id
+--     FROM ftbank.digital_interaction_view
+--     WHERE chat_interaction_id IS NOT NULL
+--       AND toDate(session_start_time) BETWEEN '2026-08-01' AND '2026-08-31'
+--       AND aiva_interaction_id IS NOT NULL
+-- )
+-- AND toDate(d.session_start_time) BETWEEN '2026-08-01' AND '2026-08-31'

@@ -1,0 +1,17 @@
+SELECT
+    a.date,
+    a.client_id,
+    a.call_interaction_start_time,
+    a.call_interaction_id,
+    a.intent_name,
+    a.intent_type,
+    a.intent_identification_user_input_text,
+    a.is_intent_escalated,
+    b.name,
+    DATE(b.node_time) AS node_date
+FROM ua.voice_interaction_intent_view a
+LEFT JOIN brahmos.node_metrics_table b
+    ON a.call_interaction_id = b.channel_session_id
+   AND b.client_id = 'ua'
+   AND b.type = 'f'
+WHERE DATE(a.date) >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)

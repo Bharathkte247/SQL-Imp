@@ -1,4 +1,4 @@
-/* AutoQRA wireframe integrated with Conversation Insights UI patterns */
+/* AutoQRA × Conversation Insights — extended wireframe */
 
 const FEATURES = [
   { id: "audit-forms", name: "Audit forms", tier: "core", view: "interactions" },
@@ -7,30 +7,30 @@ const FEATURES = [
   { id: "transcript-viewer", name: "Transcript viewer", tier: "core", view: "interactions" },
   { id: "assist-mode", name: "Auto QRA assist mode", tier: "core", view: "interactions" },
   { id: "ai-rationale", name: "AI rationale generation", tier: "core", view: "interactions" },
-  { id: "reporting-basics", name: "Reporting basics", tier: "core", view: "analytics" },
+  { id: "reporting-basics", name: "Reporting basics", tier: "core", view: "reporting" },
   { id: "multi-lob", name: "Multi-LOB support", tier: "core", view: "sampling" },
   { id: "audit-trail", name: "Audit Trail and Log", tier: "core", view: "interactions" },
   { id: "human-override", name: "Human override workflow", tier: "core", view: "interactions" },
-  { id: "crm-docs", name: "Access to CRM and Documentation", tier: "advanced", view: "interactions" },
-  { id: "calibration", name: "Calibration sessions", tier: "advanced", view: "analytics" },
+  { id: "crm-docs", name: "Access to CRM and Documentation", tier: "advanced", view: "admin" },
+  { id: "calibration", name: "Calibration sessions", tier: "advanced", view: "calibration" },
   { id: "compliance-alerts", name: "Compliance Detection and Alerts", tier: "advanced", view: "interactions" },
   { id: "tech-ingestion", name: "Technology Client — Data ingestion", tier: "advanced", view: "data-import" },
   { id: "autonomous-scoring", name: "Fully autonomous scoring", tier: "advanced", view: "sampling" },
-  { id: "advanced-dashboards", name: "Advanced dashboards", tier: "advanced", view: "analytics" },
+  { id: "advanced-dashboards", name: "Advanced dashboards", tier: "advanced", view: "reporting" },
   { id: "cloud-integrations", name: "Cloud integrations", tier: "advanced", view: "data-import" },
   { id: "csv-ingestion", name: "CSV ingestion", tier: "advanced", view: "data-import" },
   { id: "queue-mapping", name: "Queue mapping", tier: "advanced", view: "admin" },
-  { id: "sentiment", name: "Sentiment analysis", tier: "advanced", view: "interactions" },
-  { id: "coaching", name: "Agent coaching recommendations", tier: "insight", view: "analytics" },
+  { id: "sentiment", name: "Sentiment analysis", tier: "advanced", view: "advanced" },
+  { id: "coaching", name: "Agent coaching recommendations", tier: "insight", view: "coaching" },
   { id: "rbac", name: "RBAC", tier: "insight", view: "admin" },
   { id: "self-serve", name: "Self-serve Capabilities (Based on RBAC)", tier: "insight", view: "admin" },
   { id: "multi-language", name: "Multi-language QA", tier: "insight", view: "interactions" },
   { id: "realtime", name: "Real-time auditing", tier: "insight", view: "interactions" },
   { id: "monitoring-form", name: "New / Modification of the Monitoring Form", tier: "insight", view: "admin" },
-  { id: "anomaly", name: "AI anomaly detection", tier: "insight", view: "analytics" },
+  { id: "anomaly", name: "AI anomaly detection", tier: "insight", view: "calibration" },
   { id: "genai-summaries", name: "GenAI summaries", tier: "insight", view: "interactions" },
-  { id: "intent", name: "Intent analytics", tier: "insight", view: "analytics" },
-  { id: "predictive", name: "Predictive QA insights", tier: "insight", view: "analytics" },
+  { id: "intent", name: "Intent analytics", tier: "insight", view: "advanced" },
+  { id: "predictive", name: "Predictive QA insights", tier: "insight", view: "advanced" },
   { id: "behavioral", name: "Behavioral scoring", tier: "insight", view: "interactions" },
 ];
 
@@ -39,6 +39,7 @@ const INTERACTIONS = [
     id: "0459517b-4e6d-4d1f-a8a8-8ca18a4601fe",
     short: "0459517b…601fe",
     agent: "qa",
+    agentName: "QA Bot Handoff",
     duration: "3m 29s",
     queue: "patelco_Web_Chat",
     lob: "Test_Lob",
@@ -48,11 +49,14 @@ const INTERACTIONS = [
     sentiment: "neutral",
     escalated: true,
     status: "COMPLETED",
+    score: "92",
+    date: "2026-09-10",
   },
   {
     id: "1a82c0ee-91b2-4a11-9c44-77f0aa001122",
     short: "1a82c0ee…1122",
     agent: "m.chen",
+    agentName: "M. Chen",
     duration: "5m 12s",
     queue: "patelco_Web_Chat",
     lob: "Retail",
@@ -62,11 +66,14 @@ const INTERACTIONS = [
     sentiment: "positive",
     escalated: false,
     status: "COMPLETED",
+    score: "88",
+    date: "2026-09-09",
   },
   {
     id: "9f33d4aa-2201-4e55-bb19-55aa99112233",
     short: "9f33d4aa…2233",
     agent: "r.patel",
+    agentName: "R. Patel",
     duration: "2m 05s",
     queue: "UHC_Rx_Refill_Chat",
     lob: "Commercial Pharmacy",
@@ -76,8 +83,47 @@ const INTERACTIONS = [
     sentiment: "neutral",
     escalated: false,
     status: "IN_REVIEW",
+    score: "—",
+    date: "2026-09-10",
+  },
+  {
+    id: "c7e21b90-aa12-4f01-88cc-001122334455",
+    short: "c7e21b90…4455",
+    agent: "a.nguyen",
+    agentName: "A. Nguyen",
+    duration: "6m 40s",
+    queue: "patelco_Web_Chat",
+    lob: "Retail",
+    channel: "ude",
+    source: "api_pull",
+    intent: "payment_arrangement",
+    sentiment: "negative",
+    escalated: false,
+    status: "COMPLETED",
+    score: "71",
+    date: "2026-09-08",
+  },
+  {
+    id: "d decl0f11e-3344-4aa0-9b12-aabbccddeeff",
+    short: "dd0f11e…eeff",
+    agent: "r.patel",
+    agentName: "R. Patel",
+    duration: "4m 18s",
+    queue: "UHC_Refill_Status",
+    lob: "Medicaid Pharmacy",
+    channel: "ude",
+    source: "csv",
+    intent: "rx_refill_request",
+    sentiment: "positive",
+    escalated: false,
+    status: "COMPLETED",
+    score: "95",
+    date: "2026-09-07",
   },
 ];
+
+// fix typo in last id
+INTERACTIONS[4].id = "dd0f11e-3344-4aa0-9b12-aabbccddeeff";
 
 const AUDIT_QUESTIONS = [
   {
@@ -112,23 +158,78 @@ const AUDIT_QUESTIONS = [
   },
 ];
 
+const COACHING = [
+  {
+    agent: "R. Patel",
+    audits: 48,
+    fails: 11,
+    severity: "high",
+    opportunity: "Disclosure completeness failing on 23% of audited chats. Focus coaching on promo / refill disclosure script.",
+    theme: "Disclosures",
+  },
+  {
+    agent: "M. Chen",
+    audits: 36,
+    fails: 6,
+    severity: "med",
+    opportunity: "Empathy / rapport misses on escalated fraud intents. Pair with soft-skills calibration pack.",
+    theme: "Soft skills",
+  },
+  {
+    agent: "A. Nguyen",
+    audits: 29,
+    fails: 9,
+    severity: "high",
+    opportunity: "Payment arrangement closure language incomplete on 9 of 29 audits. Recommend guided close checklist.",
+    theme: "Resolution",
+  },
+  {
+    agent: "Team Cards-B",
+    audits: 120,
+    fails: 14,
+    severity: "med",
+    opportunity: "Team-level hold-time empathy dips after minute 4. Share best-call examples from Patelco Web Chat.",
+    theme: "Team pattern",
+  },
+  {
+    agent: "S. Okonkwo",
+    audits: 22,
+    fails: 2,
+    severity: "low",
+    opportunity: "Strong scores; nominate as calibration peer reviewer for Soft Skills section.",
+    theme: "Peer coach",
+  },
+];
+
+const CRMS = [
+  { id: "salesforce", name: "Salesforce Service Cloud", type: "CRM", status: "Connected", endpoint: "https://example.my.salesforce.com" },
+  { id: "dynamics", name: "Microsoft Dynamics 365", type: "CRM", status: "Available", endpoint: "—" },
+  { id: "zendesk", name: "Zendesk", type: "CRM", status: "Available", endpoint: "—" },
+  { id: "genesys", name: "Genesys Cloud CX", type: "CRM", status: "Available", endpoint: "—" },
+  { id: "kb-confluence", name: "Confluence Knowledge Base", type: "KB", status: "Connected", endpoint: "space: CX-KB" },
+  { id: "kb-sharepoint", name: "SharePoint / Docs", type: "KB", status: "Available", endpoint: "—" },
+  { id: "kb-internal", name: "Internal Policy KB", type: "KB", status: "Connected", endpoint: "kb://patelco-policies" },
+];
+
 const workspace = document.getElementById("workspace");
 const quotaBox = document.getElementById("quotaBox");
 const sideNav = document.getElementById("sideNav");
+const crmPane = document.getElementById("crmPane");
+const crmPaneBody = document.getElementById("crmPaneBody");
 
 let currentView = "interactions";
-let selectedIx = INTERACTIONS[0].id;
+let selectedIx = null; // null = list view
 let ixSideTab = "audit";
 let dataTab = "ingest";
 let samplingTab = "new";
 let selectedIngestJob = "ing_340ceb2fe31747c8b771e871a15ec2356";
+let selectedCrm = "salesforce";
 
-function tenantRow(extra = "") {
+function tenantRow() {
   return `
     <div class="tenant-row">
       <code>techclient / test / ude</code>
       <button class="link-btn" type="button">Change</button>
-      ${extra}
     </div>`;
 }
 
@@ -158,39 +259,68 @@ function renderOverview() {
 
   return `
     <h1 class="page-title">AutoQRA feature map</h1>
-    <p class="page-sub">All 31 capabilities mapped onto Conversation Insights screens: Interactions, Data Import, Sampling, Admin, Analytics.</p>
+    <p class="page-sub">31 capabilities across Interactions, Data Import, Sampling, Coaching, Reporting, Calibration, Advanced Insights, and Admin.</p>
     <div class="stat-row">
       <div class="stat"><div class="label">Total</div><div class="value">31</div></div>
       <div class="stat"><div class="label">Core</div><div class="value">${core.length}</div></div>
       <div class="stat"><div class="label">Advanced</div><div class="value">${advanced.length}</div></div>
       <div class="stat"><div class="label">Insights</div><div class="value">${insight.length}</div></div>
     </div>
-    <div class="card">
-      <h3>Core QA</h3>
-      <div class="feature-grid">${core.map(tile).join("")}</div>
-    </div>
-    <div class="card">
-      <h3>Advanced / Integration</h3>
-      <div class="feature-grid">${advanced.map(tile).join("")}</div>
-    </div>
-    <div class="card">
-      <h3>Insights / Admin</h3>
-      <div class="feature-grid">${insight.map(tile).join("")}</div>
+    <div class="card"><h3>Core QA</h3><div class="feature-grid">${core.map(tile).join("")}</div></div>
+    <div class="card"><h3>Advanced / Integration</h3><div class="feature-grid">${advanced.map(tile).join("")}</div></div>
+    <div class="card"><h3>Insights / Admin</h3><div class="feature-grid">${insight.map(tile).join("")}</div></div>`;
+}
+
+function renderInteractionsList() {
+  const rows = INTERACTIONS.map(
+    (i) => `
+    <tr class="clickable" data-open-ix="${i.id}">
+      <td>${i.short}</td>
+      <td>${i.date}</td>
+      <td>${i.queue}</td>
+      <td>${i.lob}</td>
+      <td>${i.agentName}</td>
+      <td>${i.intent}</td>
+      <td><span class="status ${i.status === "COMPLETED" ? "ok" : "warn"}">${i.status}</span></td>
+      <td>${i.score}</td>
+      <td>${i.duration}</td>
+    </tr>`
+  ).join("");
+
+  return `
+    <div class="ix-list-page">
+      <h1 class="page-title">Interactions</h1>
+      <p class="page-sub">Browse audited conversations. Select a row to open transcript, monitoring form scoring, and GenAI summary.</p>
+      ${tenantRow()}
+      <div class="list-toolbar">
+        <div class="filters-inline">
+          <div class="field"><label>Date from</label><input value="09/01/2026" /></div>
+          <div class="field"><label>Date to</label><input value="09/10/2026" /></div>
+          <div class="field"><label>Queue</label><select><option>All queues</option><option>patelco_Web_Chat</option><option>UHC_Rx_Refill_Chat</option></select></div>
+          <div class="field"><label>LOB</label><select><option>All LOBs</option><option>Retail</option><option>Test_Lob</option></select></div>
+          <div class="field"><label>Agent</label><select><option>All agents</option></select></div>
+          <div class="field"><label>Intent</label><select><option>All intents</option></select></div>
+          <div class="field"><label>AutoQRA status</label><select><option>All</option><option>COMPLETED</option><option>IN_REVIEW</option></select></div>
+          <div class="field"><label>Source</label><select><option>All sources</option><option>api_pull</option><option>csv</option></select></div>
+        </div>
+        <button class="btn primary" type="button">Apply filters</button>
+      </div>
+      <div class="ix-table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Conversation</th><th>Date</th><th>Queue</th><th>LOB</th>
+              <th>Agent</th><th>Intent</th><th>Status</th><th>Score</th><th>Duration</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <p class="hint" style="margin-top:0.65rem;color:var(--muted);font-size:0.85rem">${INTERACTIONS.length} interactions · click a row to open detail</p>
     </div>`;
 }
 
-function renderInteractions() {
-  const ix = INTERACTIONS.find((i) => i.id === selectedIx) || INTERACTIONS[0];
-
-  const list = INTERACTIONS.map(
-    (i) => `
-    <button class="ix-item ${i.id === ix.id ? "active" : ""}" type="button" data-ix="${i.id}">
-      <div class="id">${i.short}</div>
-      <div class="meta">${i.queue}</div>
-      <div class="sub">${i.agent} · ${i.duration} · ${i.intent}</div>
-    </button>`
-  ).join("");
-
+function renderInteractionDetail(ix) {
   const details = `
     <h3 style="margin:0 0 0.55rem;font-size:0.95rem">Conversation details</h3>
     <dl class="kv">
@@ -201,18 +331,16 @@ function renderInteractions() {
       <dt>Duration</dt><dd>${ix.duration}</dd>
       <dt>Queue</dt><dd>${ix.queue}</dd>
       <dt>LOB</dt><dd>${ix.lob}</dd>
-      <dt>Agent</dt><dd>${ix.agent}</dd>
+      <dt>Agent</dt><dd>${ix.agentName}</dd>
     </dl>
     <div class="insight-block">
       <h4>Intents</h4>
       <p><span class="chip">${ix.intent}</span></p>
     </div>
     <div class="insight-block">
-      <h4>AI Insights</h4>
-      <p><strong>Sentiment:</strong> ${ix.sentiment}</p>
-      <p style="margin-top:0.35rem"><strong>Primary intent:</strong> Member reported an unauthorized charge and requested verification.</p>
-      <p style="margin-top:0.35rem"><strong>Resolution:</strong> Concierge verified identity and routed to fraud review.</p>
-      <p style="margin-top:0.35rem"><strong>GenAI summary:</strong> Short fraud verification chat; soft-skills section scored 20/20.</p>
+      <h4>CRM / KB context</h4>
+      <p><strong>CRM:</strong> Salesforce · Case #88214</p>
+      <p style="margin-top:0.3rem"><strong>KB:</strong> ADR-221 Fraud verification script</p>
     </div>`;
 
   const auditQs = AUDIT_QUESTIONS.map(
@@ -233,7 +361,20 @@ function renderInteractions() {
   const audit = `
     <div class="audit-form">
       <h3>Patelco's Chat Quality Assurance Monitoring Form</h3>
-      <p class="hint" style="margin:0 0 0.55rem">Identity (from interaction) — copied from CSV / API pull. Not edited on AutoQRA submit.</p>
+      <p class="hint" style="margin:0 0 0.55rem">Monitoring form scoring + GenAI summary · identity from CSV / API pull</p>
+
+      <div class="genai-box">
+        <strong>GenAI summary</strong>
+        Member reported an unauthorized charge. Bot verified identity, apologized, and escalated to fraud review with confirmation of next steps. Soft-skills section scored 20/20; no disclosure defects on this interaction.
+      </div>
+
+      <div class="score-summary">
+        <div class="score-chip"><b>${ix.score === "—" ? "…" : ix.score}</b>Overall</div>
+        <div class="score-chip"><b>20/20</b>Soft skills</div>
+        <div class="score-chip"><b>Pass</b>Compliance</div>
+        <div class="score-chip"><b>v3</b>Form version</div>
+      </div>
+
       <div class="audit-meta">
         <div class="field"><label>Agent EmpId</label><input value="A10482" readonly /></div>
         <div class="field"><label>Manager Name</label><input value="S. Miles" readonly /></div>
@@ -242,14 +383,13 @@ function renderInteractions() {
         <div class="field"><label>Evaluator</label><input value="ci_autoqra" readonly /></div>
         <div class="field"><label>Audit Type</label><select><option>Auto QA</option><option>Manual QA</option></select></div>
       </div>
-      <p style="font-size:0.82rem;margin:0 0 0.55rem">AutoQRA status: <strong>${ix.status}</strong> · v3
+      <p style="font-size:0.82rem;margin:0 0 0.55rem">AutoQRA status: <strong>${ix.status}</strong> · monitoring form scoring active
         <button class="btn" type="button" style="margin-left:0.5rem">▶ Start timer</button>
       </p>
       <div class="ack-box">
         <span class="status ok">Acknowledged</span>
         <strong>Agent acknowledgment</strong><br/>
-        Agent decision: <strong>Accept</strong><br/>
-        Agent comments: <strong>Looks Good</strong>
+        Agent decision: <strong>Accept</strong> · Comments: <strong>Looks Good</strong>
       </div>
       <div class="section-block">
         <div class="section-head">
@@ -270,10 +410,10 @@ function renderInteractions() {
     <table class="table">
       <thead><tr><th>When</th><th>Event</th></tr></thead>
       <tbody>
-        <tr><td>08:11</td><td>Autonomous scoring · scorecard Patelco Chat v3</td></tr>
-        <tr><td>08:12</td><td>AI rationale generated for Soft Skills Q1–Q5</td></tr>
+        <tr><td>08:11</td><td>Autonomous scoring · Patelco Chat v3</td></tr>
+        <tr><td>08:12</td><td>GenAI summary generated</td></tr>
+        <tr><td>08:12</td><td>Monitoring form scoring · Soft Skills 20/20</td></tr>
         <tr><td>09:18</td><td>Agent acknowledgment · Accept</td></tr>
-        <tr><td>09:40</td><td>QA Lead viewed evidence highlight</td></tr>
       </tbody>
     </table>`;
 
@@ -282,33 +422,29 @@ function renderInteractions() {
   return `
     <div class="ix-layout">
       <section class="ix-list">
-        <div class="ix-list-head"><h2>Interactions</h2></div>
-        <div class="filter-stack">
-          <div class="field"><label>Date range</label><input type="text" value="09/01/2026 – 09/10/2026" /></div>
-          <div class="field"><label>Queue</label>
-            <div class="chip-select"><span class="chip">patelco_Web_Chat <button type="button">×</button></span></div>
-          </div>
-          <div class="field"><label>LOB</label>
-            <div class="chip-select"><span class="chip">Test_Lob <button type="button">×</button></span></div>
-          </div>
-          <div class="field"><label>Agent</label><select><option>All agents</option><option>qa</option><option>m.chen</option></select></div>
-          <div class="field"><label>Intent</label>
-            <div class="chip-select"><span class="chip">fraud-unauthorized-charges <button type="button">×</button></span></div>
-          </div>
-          <div class="field"><label>Source</label><select><option>All sources</option><option>api_pull</option><option>csv</option></select></div>
-          <div class="field"><label>AutoQRA status</label><select><option>All</option><option>COMPLETED</option><option>IN_REVIEW</option></select></div>
-          <button class="btn primary" type="button">Apply filters</button>
+        <div class="ix-list-head">
+          <h2>Interactions</h2>
+          <button class="link-btn" type="button" data-ix-back style="font-size:0.8rem">← All interactions</button>
         </div>
-        <div class="ix-items">${list}</div>
+        <div class="ix-items">
+          ${INTERACTIONS.map(
+            (i) => `
+            <button class="ix-item ${i.id === ix.id ? "active" : ""}" type="button" data-open-ix="${i.id}">
+              <div class="id">${i.short}</div>
+              <div class="meta">${i.queue}</div>
+              <div class="sub">${i.agentName} · ${i.score} · ${i.status}</div>
+            </button>`
+          ).join("")}
+        </div>
       </section>
 
       <section class="ix-transcript">
         <div class="ix-trans-head">
           <div>
             <h2>Transcript</h2>
-            <div class="ix-trans-meta">${ix.id} · ${ix.duration} · Agent ${ix.agent}</div>
+            <div class="ix-trans-meta">${ix.id} · ${ix.duration} · ${ix.agentName}</div>
           </div>
-          <button class="btn" type="button">← Back</button>
+          <button class="btn" type="button" data-ix-back>← Back to list</button>
         </div>
         <div class="search-row"><input placeholder="Search transcript..." /></div>
         <div class="transcript-body">
@@ -329,6 +465,12 @@ function renderInteractions() {
         <div class="ix-side-body">${sideBody}</div>
       </section>
     </div>`;
+}
+
+function renderInteractions() {
+  if (!selectedIx) return renderInteractionsList();
+  const ix = INTERACTIONS.find((i) => i.id === selectedIx) || INTERACTIONS[0];
+  return renderInteractionDetail(ix);
 }
 
 function renderDataImport() {
@@ -358,7 +500,7 @@ function renderDataImport() {
       <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap">
         <div>
           <h3 style="margin:0">Ingest row preview</h3>
-          <p class="hint" style="margin:0.25rem 0 0">Server-paginated preview (50 rows/page). Filter failures first for large jobs.</p>
+          <p class="hint" style="margin:0.25rem 0 0">Server-paginated preview (50 rows/page).</p>
         </div>
         <div class="pill-filters">
           <button class="pill active" type="button">FAILED 0</button>
@@ -366,7 +508,7 @@ function renderDataImport() {
           <button class="pill" type="button">ALL 16</button>
         </div>
       </div>
-      <p style="color:var(--muted);margin:0.85rem 0 0">No failed items for this job. Switch to ALL or SUCCESS to browse outcomes.</p>
+      <p style="color:var(--muted);margin:0.85rem 0 0">No failed items for this job.</p>
     </div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center">
@@ -383,14 +525,6 @@ function renderDataImport() {
             <td><span class="status ok">COMPLETED</span></td>
             <td>16/16</td>
             <td>2026-09-10 11:56:44</td>
-          </tr>
-          <tr class="clickable" data-job="ing_758351914494">
-            <td style="font-family:var(--mono);font-size:0.75rem">ing_75835191…</td>
-            <td><span class="chip">csv</span></td>
-            <td>qra-input-sample (4).csv</td>
-            <td><span class="status bad">FAILED</span></td>
-            <td>0/0</td>
-            <td>2026-09-10 11:37:42</td>
           </tr>
           <tr class="clickable" data-job="ing_api_9912">
             <td style="font-family:var(--mono);font-size:0.75rem">ing_api_9912…</td>
@@ -409,24 +543,17 @@ function renderDataImport() {
     <div class="grid-2">
       <div class="card" style="margin:0">
         <h3>Export AutoQRA</h3>
-        <p class="hint">Export COMPLETED AutoQRA rows as QRA-Output CSV for the selected date range. <a href="#">Download column sample</a></p>
+        <p class="hint">Export COMPLETED AutoQRA rows. <a href="#">Download column sample</a></p>
         <div class="grid-filters">
-          <div class="field"><label>Date from</label><input type="text" placeholder="mm/dd/yyyy" /></div>
-          <div class="field"><label>Date to</label><input type="text" placeholder="mm/dd/yyyy" /></div>
+          <div class="field"><label>Date from</label><input placeholder="mm/dd/yyyy" /></div>
+          <div class="field"><label>Date to</label><input placeholder="mm/dd/yyyy" /></div>
         </div>
-        <div class="footer-actions"><span></span><button class="btn" type="button" disabled>Start export</button></div>
+        <div class="footer-actions"><span></span><button class="btn" disabled type="button">Start export</button></div>
       </div>
       <div class="card" style="margin:0">
         <h3>Selected job</h3>
-        <p class="hint">Select an export job to download artifacts or view errors.</p>
+        <p class="hint">Select an export job to download artifacts.</p>
       </div>
-    </div>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <h3 style="margin:0">Recent export jobs</h3>
-        <button class="link-btn" type="button">↻ Refresh</button>
-      </div>
-      <p style="color:var(--muted);margin:0.75rem 0 0">No export jobs yet. Choose a date range and start an export.</p>
     </div>`;
 
   return `
@@ -445,10 +572,10 @@ function renderSampling() {
   const newSample = `
     <div class="card">
       <h3>Sample from ingested interactions</h3>
-      <p class="hint">Multi-select filters are loaded from ci_interactions. Leave a field empty to include all values. Date range also scopes available options. Queues AutoQRA, enrichment, and evaluation modules.</p>
+      <p class="hint">Filters load from ci_interactions. Queues AutoQRA, enrichment, and evaluation.</p>
       <div class="grid-filters">
-        <div class="field"><label>Date from</label><input type="text" placeholder="mm/dd/yyyy" value="09/01/2026" /></div>
-        <div class="field"><label>Date to</label><input type="text" placeholder="mm/dd/yyyy" value="09/10/2026" /></div>
+        <div class="field"><label>Date from</label><input value="09/01/2026" /></div>
+        <div class="field"><label>Date to</label><input value="09/10/2026" /></div>
         <div class="field"><label>Queue</label>
           <div class="chip-select">
             <span class="chip">UHC_Refill_Status <button type="button">×</button></span>
@@ -458,7 +585,6 @@ function renderSampling() {
         <div class="field"><label>LOB</label>
           <div class="chip-select">
             <span class="chip">Commercial Pharmacy <button type="button">×</button></span>
-            <span class="chip">Medicaid Pharmacy <button type="button">×</button></span>
           </div>
         </div>
         <div class="field"><label>Agent</label><select><option>All agents</option></select></div>
@@ -469,7 +595,7 @@ function renderSampling() {
         <div class="field"><label>Requested count</label><input type="number" value="10" /></div>
       </div>
       <div class="footer-actions">
-        <p class="hint">After queueing, you'll be taken to Jobs &amp; results to watch progress.</p>
+        <p class="hint">After queueing, open Jobs &amp; results.</p>
         <button class="btn primary" type="button">Start sampling</button>
       </div>
     </div>`;
@@ -477,33 +603,18 @@ function renderSampling() {
   const jobs = `
     <div class="card">
       <h3>Jobs &amp; results</h3>
-      <p class="hint">Sampling jobs run AutoQRA scoring, enrichment, and evaluation for the selected techclient filters.</p>
       <table class="table">
-        <thead><tr><th>Job</th><th>Filters</th><th>Requested</th><th>Status</th><th>AutoQRA</th><th>Updated</th></tr></thead>
+        <thead><tr><th>Job</th><th>Filters</th><th>Requested</th><th>Status</th><th>AutoQRA</th></tr></thead>
         <tbody>
-          <tr>
-            <td style="font-family:var(--mono);font-size:0.75rem">smp_44a1…</td>
-            <td>UHC queues · Rx intent</td>
-            <td>10</td>
-            <td><span class="status ok">COMPLETED</span></td>
-            <td>10 scored</td>
-            <td>2026-09-10 12:04</td>
-          </tr>
-          <tr>
-            <td style="font-family:var(--mono);font-size:0.75rem">smp_91bc…</td>
-            <td>patelco_Web_Chat</td>
-            <td>25</td>
-            <td><span class="status warn">RUNNING</span></td>
-            <td>12 / 25</td>
-            <td>2026-09-10 12:10</td>
-          </tr>
+          <tr><td style="font-family:var(--mono);font-size:0.75rem">smp_44a1…</td><td>UHC · Rx</td><td>10</td><td><span class="status ok">COMPLETED</span></td><td>10 scored</td></tr>
+          <tr><td style="font-family:var(--mono);font-size:0.75rem">smp_91bc…</td><td>patelco_Web_Chat</td><td>25</td><td><span class="status warn">RUNNING</span></td><td>12 / 25</td></tr>
         </tbody>
       </table>
     </div>`;
 
   return `
     <h1 class="page-title">Sampling</h1>
-    <p class="page-sub">Sample ingested interactions and run AutoQRA, enrichment, and evaluation modules.</p>
+    <p class="page-sub">Sample ingested interactions and run AutoQRA modules.</p>
     ${tenantRow()}
     ${failedBar()}
     <div class="tabs">
@@ -513,11 +624,218 @@ function renderSampling() {
     ${samplingTab === "new" ? newSample : jobs}`;
 }
 
+function renderCoaching() {
+  const cards = COACHING.map(
+    (c) => `
+    <article class="coach-card">
+      <span class="severity ${c.severity}">${c.severity.toUpperCase()}</span>
+      <h3>${c.agent}</h3>
+      <div class="audit-count">${c.audits} audits · ${c.fails} fail / defect hits · theme: ${c.theme}</div>
+      <p class="opp">${c.opportunity}</p>
+      <div class="btn-row">
+        <button class="btn primary" type="button">Open coaching plan</button>
+        <button class="btn" type="button">View audits</button>
+      </div>
+    </article>`
+  ).join("");
+
+  return `
+    <h1 class="page-title">Coaching</h1>
+    <p class="page-sub">Coaching opportunities prioritized by audit volume and recurring defect patterns from AutoQRA scoring.</p>
+    ${tenantRow()}
+    <div class="stat-row">
+      <div class="stat"><div class="label">Agents with opps</div><div class="value">${COACHING.length}</div></div>
+      <div class="stat"><div class="label">Audits in window</div><div class="value">255</div></div>
+      <div class="stat"><div class="label">High priority</div><div class="value">2</div></div>
+      <div class="stat"><div class="label">Avg audits / agent</div><div class="value">51</div></div>
+    </div>
+    <div class="coach-grid">${cards}</div>`;
+}
+
+function renderReporting() {
+  return `
+    <h1 class="page-title">Reporting &amp; Insights</h1>
+    <p class="page-sub">Apache Superset dashboards for AutoQRA volume, scores, overrides, and LOB trends.</p>
+    ${tenantRow()}
+    <div class="embed-frame">
+      <div class="embed-chrome">
+        <span class="dot"></span>
+        <span>Superset · AutoQRA Executive Dashboard</span>
+        <span style="margin-left:auto;font-family:var(--mono);font-size:0.72rem">/superset/dashboard/autoqra-exec/</span>
+        <button class="btn" type="button">Open in Superset ↗</button>
+      </div>
+      <div class="embed-body">
+        <div class="stat-row" style="margin:0">
+          <div class="stat"><div class="label">Audits MTD</div><div class="value">18.4k</div></div>
+          <div class="stat"><div class="label">Avg score</div><div class="value">86.4</div></div>
+          <div class="stat"><div class="label">Agreement</div><div class="value">92%</div></div>
+          <div class="stat"><div class="label">Override rate</div><div class="value">4.8%</div></div>
+        </div>
+        <div class="superset-mock">
+          <div class="chart-box">
+            <h4>Audit volume by day</h4>
+            <div class="bar-chart">
+              <span style="height:40%"></span><span style="height:55%"></span><span style="height:70%"></span>
+              <span style="height:48%"></span><span style="height:82%"></span><span style="height:66%"></span>
+              <span style="height:90%"></span>
+            </div>
+          </div>
+          <div class="chart-box">
+            <h4>Pass / fail / review mix</h4>
+            <table class="table">
+              <tbody>
+                <tr><td>Auto-pass</td><td>72%</td></tr>
+                <tr><td>Auto-fail</td><td>11%</td></tr>
+                <tr><td>Human review</td><td>17%</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="chart-box">
+            <h4>Score by LOB</h4>
+            <table class="table">
+              <tbody>
+                <tr><td>Retail</td><td>88.1</td></tr>
+                <tr><td>Cards</td><td>81.4</td></tr>
+                <tr><td>Pharmacy</td><td>90.2</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="chart-box">
+            <h4>Top defect parameters</h4>
+            <table class="table">
+              <tbody>
+                <tr><td>Disclosure completeness</td><td>142</td></tr>
+                <tr><td>Empathy / rapport</td><td>89</td></tr>
+                <tr><td>Resolution confirmation</td><td>61</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="hint" style="margin-top:0.65rem;color:var(--muted);font-size:0.85rem">Wireframe placeholder for embedded Superset. Production loads governed datasets from AutoQRA result tables.</p>`;
+}
+
+function renderCalibration() {
+  return `
+    <h1 class="page-title">Calibration &amp; AI Optimization</h1>
+    <p class="page-sub">Align human and AI scoring, tune thresholds, and optimize prompts / models from disagreement patterns.</p>
+    ${tenantRow()}
+    <div class="calib-grid">
+      <div class="card">
+        <h3>Calibration sessions</h3>
+        <p class="hint">Compare AI vs lead reviewer on sampled audits.</p>
+        <table class="table">
+          <thead><tr><th>Session</th><th>Audits</th><th>Agreement</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>Weekly Cards · Soft skills</td><td>12</td><td>90%</td><td><span class="status warn">Scheduled</span></td></tr>
+            <tr><td>Pharmacy disclosures</td><td>20</td><td>93%</td><td><span class="status ok">Complete</span></td></tr>
+            <tr><td>Fraud intent pack</td><td>15</td><td>—</td><td><span class="status neutral">Draft</span></td></tr>
+          </tbody>
+        </table>
+        <div class="btn-row" style="margin-top:0.65rem">
+          <button class="btn primary" type="button">Start session</button>
+          <button class="btn" type="button">Export pack</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>AI Optimization</h3>
+        <p class="hint">Actions driven by override and anomaly signals.</p>
+        <ul class="opt-list">
+          <li><strong>Prompt v14 drift</strong> — Soft skills agreement dipped 3pts. Recommend A/B vs v13.</li>
+          <li><strong>Routing threshold</strong> — Cards chat human-route share 24% (target 17%). Review confidence cutover 0.86 → 0.88.</li>
+          <li><strong>Hallucination watch</strong> — Unsupported rationale 2.1% (under 5% gate).</li>
+          <li><strong>Scorecard gap</strong> — New promo disclosure not in Patelco form v3. Queue form modify.</li>
+        </ul>
+        <div class="btn-row" style="margin-top:0.65rem">
+          <button class="btn primary" type="button">Open model ops</button>
+          <button class="btn" type="button">Reprocess sample</button>
+        </div>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat"><div class="label">Human agreement</div><div class="value">92%</div></div>
+      <div class="stat"><div class="label">Override rate</div><div class="value">4.8%</div></div>
+      <div class="stat"><div class="label">Hallucination</div><div class="value">2.1%</div></div>
+      <div class="stat"><div class="label">Active prompt</div><div class="value">v14</div></div>
+    </div>`;
+}
+
+function renderAdvanced() {
+  return `
+    <h1 class="page-title">Advanced Insights</h1>
+    <p class="page-sub">Sentiment analysis, predictive QA, intent analytics, and behavioral scoring signals.</p>
+    ${tenantRow()}
+    <div class="adv-grid">
+      <div class="adv-card">
+        <h3>Sentiment analysis</h3>
+        <p class="hint" style="margin:0;color:var(--muted);font-size:0.85rem">Customer / agent tone across audited interactions</p>
+        <div class="sentiment-row">
+          <div class="sent-pill pos">Positive<br/><b>41%</b></div>
+          <div class="sent-pill neu">Neutral<br/><b>46%</b></div>
+          <div class="sent-pill neg">Negative<br/><b>13%</b></div>
+        </div>
+        <p style="font-size:0.86rem;margin:0">Negative spikes correlate with fraud-unauthorized-charges and payment_arrangement intents.</p>
+      </div>
+      <div class="adv-card">
+        <h3>Predictive analysis</h3>
+        <p class="hint" style="margin:0 0 0.45rem;color:var(--muted);font-size:0.85rem">Forecast risk before volume builds</p>
+        <p style="font-size:0.88rem;line-height:1.45;margin:0 0 0.55rem">Cards chat fail risk <strong>+18%</strong> tomorrow from promo script variance. Pharmacy refill queue stable.</p>
+        <button class="btn primary" type="button">Open risk plan</button>
+      </div>
+      <div class="adv-card">
+        <h3>Intent analytics</h3>
+        <table class="table">
+          <tbody>
+            <tr><td>rx_refill_request</td><td>18%</td></tr>
+            <tr><td>fraud-unauthorized-charges</td><td>14%</td></tr>
+            <tr><td>address_update</td><td>11%</td></tr>
+            <tr><td>payment_arrangement</td><td>9%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="grid-2" style="margin-top:0.75rem">
+      <div class="card">
+        <h3>Behavioral scoring trends</h3>
+        <table class="table">
+          <thead><tr><th>Dimension</th><th>Avg</th><th>WoW</th></tr></thead>
+          <tbody>
+            <tr><td>Empathy</td><td>4.2</td><td>+0.1</td></tr>
+            <tr><td>Ownership</td><td>4.5</td><td>0</td></tr>
+            <tr><td>Clarity</td><td>3.9</td><td>-0.2</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Anomaly highlights</h3>
+        <ul class="opt-list">
+          <li>Override rate ↑ Cards LOB (watch)</li>
+          <li>Sentiment negative cluster · payment_arrangement</li>
+          <li>Predictive alert · promo script variance</li>
+        </ul>
+      </div>
+    </div>`;
+}
+
 function renderAdmin() {
   return `
     <h1 class="page-title">Admin</h1>
-    <p class="page-sub">Tenant configuration for techclient data ingestion, quotas, and AutoQRA runtime.</p>
+    <p class="page-sub">Tenant configuration, CRM / KB integration, ingestion, RBAC, and monitoring forms.</p>
     ${tenantRow()}
+
+    <div class="card">
+      <h3>CRM &amp; Knowledge Base integration</h3>
+      <p class="hint">Connect CRMs and KB sources so AutoQRA can pull case context and policy articles during review.</p>
+      <button class="admin-link-card" type="button" data-open-crm>
+        <div>
+          <strong>Configure CRM &amp; KB</strong>
+          <span>3 connected · Salesforce, Confluence, Internal Policy KB</span>
+        </div>
+        <span>Open pane →</span>
+      </button>
+    </div>
+
     <div class="card admin-block">
       <h3>Tenant configuration</h3>
       <pre>{
@@ -537,22 +855,13 @@ function renderAdmin() {
           <dt>Last watermark</dt><dd>2026-08-31T23:59:59Z</dd>
           <dt>Connector</dt><dd>dasng</dd>
           <dt>Report ID</dt><dd>get_conversations</dd>
-          <dt>Page size</dt><dd>100</dd>
-          <dt>Overlap</dt><dd>300 seconds</dd>
         </dl>
       </div>
       <div class="card">
-        <h3>SFTP ingestion</h3>
+        <h3>SFTP / Cloud bucket</h3>
         <dl class="kv">
-          <dt>Enable</dt><dd>No</dd>
-          <dt>Remote path</dt><dd>—</dd>
-          <dt>File pattern</dt><dd>*.csv</dd>
-        </dl>
-        <h3 style="margin-top:1rem">Cloud bucket ingestion</h3>
-        <dl class="kv">
-          <dt>Enable</dt><dd>Yes</dd>
-          <dt>Path prefix</dt><dd>—</dd>
-          <dt>File pattern</dt><dd>*.csv</dd>
+          <dt>SFTP</dt><dd>Disabled</dd>
+          <dt>Bucket ingest</dt><dd>Enabled · *.csv</dd>
         </dl>
       </div>
     </div>
@@ -569,9 +878,9 @@ function renderAdmin() {
         </table>
       </div>
       <div class="card">
-        <h3>Monitoring form / queue mapping</h3>
+        <h3>Monitoring form scoring</h3>
         <ul style="margin:0;padding-left:1.1rem;font-size:0.9rem;line-height:1.6">
-          <li>Patelco Chat QA form v3 — published</li>
+          <li>Patelco Chat QA form v3 — published (scoring + GenAI summary)</li>
           <li>Queue <code>patelco_Web_Chat</code> → scorecard v3</li>
           <li>Queue <code>UHC_Rx_Refill_Chat</code> → Pharmacy form v1.4</li>
         </ul>
@@ -583,50 +892,43 @@ function renderAdmin() {
     </div>`;
 }
 
-function renderAnalytics() {
+function renderCrmPaneBody() {
   return `
-    <h1 class="page-title">Analytics</h1>
-    <p class="page-sub">Reporting basics, advanced dashboards, coaching, intent, and predictive QA insights.</p>
-    ${tenantRow()}
-    <div class="stat-row">
-      <div class="stat"><div class="label">Audits today</div><div class="value">2,048</div></div>
-      <div class="stat"><div class="label">Avg score</div><div class="value">86.4</div></div>
-      <div class="stat"><div class="label">Agreement</div><div class="value">92%</div></div>
-      <div class="stat"><div class="label">Sample quota</div><div class="value">1700</div></div>
-    </div>
-    <div class="grid-2">
-      <div class="card">
-        <h3>Reporting basics</h3>
-        <table class="table">
-          <thead><tr><th>Queue</th><th>Volume</th><th>Pass%</th><th>Overrides</th></tr></thead>
-          <tbody>
-            <tr><td>patelco_Web_Chat</td><td>820</td><td>84%</td><td>42</td></tr>
-            <tr><td>UHC_Rx_Refill_Chat</td><td>610</td><td>79%</td><td>55</td></tr>
-          </tbody>
-        </table>
+    <p style="margin:0 0 0.75rem;font-size:0.88rem;color:var(--muted)">Known CRM and KB systems for this techclient. Select one to configure endpoints and scopes.</p>
+    ${CRMS.map(
+      (c) => `
+      <div class="crm-item ${c.id === selectedCrm ? "active" : ""}" data-crm="${c.id}">
+        <h4>${c.name} <span class="status ${c.status === "Connected" ? "ok" : "neutral"}">${c.status}</span></h4>
+        <p>${c.type} · ${c.endpoint}</p>
+        <div class="crm-actions">
+          <button class="btn ${c.status === "Connected" ? "" : "primary"}" type="button" data-crm-cfg="${c.id}">
+            ${c.status === "Connected" ? "Edit config" : "Connect"}
+          </button>
+        </div>
+      </div>`
+    ).join("")}
+    <div class="card" style="margin-top:0.5rem">
+      <h3>Configuration · ${CRMS.find((c) => c.id === selectedCrm)?.name || ""}</h3>
+      <div class="form-grid" style="display:grid;gap:0.55rem">
+        <div class="field"><label>Base URL / endpoint</label><input value="${CRMS.find((c) => c.id === selectedCrm)?.endpoint || ""}" /></div>
+        <div class="field"><label>Auth</label><select><option>OAuth 2.0</option><option>API key</option><option>SSO</option></select></div>
+        <div class="field"><label>Scopes</label><input value="cases:read, contacts:read, articles:read" /></div>
+        <div class="field"><label>Use in AutoQRA review</label><select><option>Yes — show on Details tab</option><option>No</option></select></div>
       </div>
-      <div class="card">
-        <h3>Intent analytics</h3>
-        <table class="table">
-          <thead><tr><th>Intent</th><th>Share</th></tr></thead>
-          <tbody>
-            <tr><td>fraud-unauthorized-charges</td><td>14%</td></tr>
-            <tr><td>rx_refill_request</td><td>18%</td></tr>
-            <tr><td>address_update</td><td>11%</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div class="grid-2">
-      <div class="card">
-        <h3>Agent coaching recommendations</h3>
-        <p>Agent R. Patel — disclosure drill · Agent M. Chen — empathy tips</p>
-      </div>
-      <div class="card">
-        <h3>Predictive QA insights</h3>
-        <p>Elevated fail risk on Cards chat tomorrow (+18%) from promo script variance.</p>
+      <div class="btn-row" style="margin-top:0.65rem">
+        <button class="btn primary" type="button">Save</button>
+        <button class="btn" type="button" data-close-pane>Cancel</button>
       </div>
     </div>`;
+}
+
+function openCrmPane() {
+  crmPaneBody.innerHTML = renderCrmPaneBody();
+  crmPane.hidden = false;
+}
+
+function closeCrmPane() {
+  crmPane.hidden = true;
 }
 
 const RENDERERS = {
@@ -634,8 +936,11 @@ const RENDERERS = {
   interactions: renderInteractions,
   "data-import": renderDataImport,
   sampling: renderSampling,
+  coaching: renderCoaching,
+  reporting: renderReporting,
+  calibration: renderCalibration,
+  advanced: renderAdvanced,
   admin: renderAdmin,
-  analytics: renderAnalytics,
 };
 
 function setNav(view) {
@@ -647,6 +952,7 @@ function setNav(view) {
 
 function render(view) {
   currentView = view;
+  if (view !== "interactions") selectedIx = null;
   setNav(view);
   workspace.innerHTML = RENDERERS[view]();
   sideNav.classList.remove("open");
@@ -654,7 +960,10 @@ function render(view) {
 }
 
 document.querySelectorAll(".side-item").forEach((btn) => {
-  btn.addEventListener("click", () => render(btn.dataset.view));
+  btn.addEventListener("click", () => {
+    selectedIx = null;
+    render(btn.dataset.view);
+  });
 });
 
 document.getElementById("collapseNav").addEventListener("click", () => {
@@ -664,13 +973,21 @@ document.getElementById("collapseNav").addEventListener("click", () => {
 workspace.addEventListener("click", (e) => {
   const goto = e.target.closest("[data-goto]");
   if (goto) {
+    selectedIx = null;
     render(goto.dataset.goto);
     return;
   }
 
-  const ix = e.target.closest("[data-ix]");
-  if (ix) {
-    selectedIx = ix.dataset.ix;
+  const openIx = e.target.closest("[data-open-ix]");
+  if (openIx) {
+    selectedIx = openIx.dataset.openIx;
+    ixSideTab = "audit";
+    render("interactions");
+    return;
+  }
+
+  if (e.target.closest("[data-ix-back]")) {
+    selectedIx = null;
     render("interactions");
     return;
   }
@@ -703,6 +1020,11 @@ workspace.addEventListener("click", (e) => {
     return;
   }
 
+  if (e.target.closest("[data-open-crm]")) {
+    openCrmPane();
+    return;
+  }
+
   const pill = e.target.closest(".pill");
   if (pill && pill.parentElement?.classList.contains("pill-filters")) {
     pill.parentElement.querySelectorAll(".pill").forEach((p) => p.classList.remove("active"));
@@ -715,6 +1037,27 @@ workspace.addEventListener("click", (e) => {
     row.querySelectorAll(".choice").forEach((c) => c.classList.remove("selected"));
     choice.classList.add("selected");
   }
+});
+
+crmPane.addEventListener("click", (e) => {
+  if (e.target.closest("[data-close-pane]")) {
+    closeCrmPane();
+    return;
+  }
+  const item = e.target.closest("[data-crm]");
+  if (item) {
+    selectedCrm = item.dataset.crm;
+    crmPaneBody.innerHTML = renderCrmPaneBody();
+  }
+  const cfg = e.target.closest("[data-crm-cfg]");
+  if (cfg) {
+    selectedCrm = cfg.dataset.crmCfg;
+    crmPaneBody.innerHTML = renderCrmPaneBody();
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !crmPane.hidden) closeCrmPane();
 });
 
 render("interactions");

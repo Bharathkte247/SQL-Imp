@@ -1,0 +1,5 @@
+
+# Auto QRA Word export intermediates
+docs/auto-qra/export/build/
+docs/auto-qra/export/diagrams/
+docs/auto-qra/export/puppeteer.json

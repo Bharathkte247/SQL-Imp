@@ -11,26 +11,26 @@ const FEATURES = [
   { id: "multi-lob", name: "Multi-LOB support", tier: "core", view: "sampling" },
   { id: "audit-trail", name: "Audit Trail and Log", tier: "core", view: "interactions" },
   { id: "human-override", name: "Human override workflow", tier: "core", view: "interactions" },
-  { id: "crm-docs", name: "Access to CRM and Documentation", tier: "advanced", view: "admin" },
-  { id: "calibration", name: "Calibration sessions", tier: "advanced", view: "calibration" },
+  { id: "crm-docs", name: "Access to CRM and Documentation", tier: "advanced", view: "settings" },
+  { id: "calibration", name: "Calibration sessions", tier: "advanced", view: "settings" },
   { id: "compliance-alerts", name: "Compliance Detection and Alerts", tier: "advanced", view: "interactions" },
   { id: "tech-ingestion", name: "Technology Client — Data ingestion", tier: "advanced", view: "data-import" },
   { id: "autonomous-scoring", name: "Fully autonomous scoring", tier: "advanced", view: "sampling" },
   { id: "advanced-dashboards", name: "Advanced dashboards", tier: "advanced", view: "reporting" },
   { id: "cloud-integrations", name: "Cloud integrations", tier: "advanced", view: "data-import" },
   { id: "csv-ingestion", name: "CSV ingestion", tier: "advanced", view: "data-import" },
-  { id: "queue-mapping", name: "Queue mapping", tier: "advanced", view: "admin" },
-  { id: "sentiment", name: "Sentiment analysis", tier: "advanced", view: "advanced" },
+  { id: "queue-mapping", name: "Queue mapping", tier: "advanced", view: "settings" },
+  { id: "sentiment", name: "Sentiment analysis", tier: "advanced", view: "settings" },
   { id: "coaching", name: "Agent coaching recommendations", tier: "insight", view: "coaching" },
-  { id: "rbac", name: "RBAC", tier: "insight", view: "admin" },
-  { id: "self-serve", name: "Self-serve Capabilities (Based on RBAC)", tier: "insight", view: "admin" },
+  { id: "rbac", name: "RBAC", tier: "insight", view: "settings" },
+  { id: "self-serve", name: "Self-serve Capabilities (Based on RBAC)", tier: "insight", view: "settings" },
   { id: "multi-language", name: "Multi-language QA", tier: "insight", view: "interactions" },
   { id: "realtime", name: "Real-time auditing", tier: "insight", view: "interactions" },
-  { id: "monitoring-form", name: "New / Modification of the Monitoring Form", tier: "insight", view: "admin" },
-  { id: "anomaly", name: "AI anomaly detection", tier: "insight", view: "calibration" },
+  { id: "monitoring-form", name: "New / Modification of the Monitoring Form", tier: "insight", view: "settings" },
+  { id: "anomaly", name: "AI anomaly detection", tier: "insight", view: "settings" },
   { id: "genai-summaries", name: "GenAI summaries", tier: "insight", view: "interactions" },
-  { id: "intent", name: "Intent analytics", tier: "insight", view: "advanced" },
-  { id: "predictive", name: "Predictive QA insights", tier: "insight", view: "advanced" },
+  { id: "intent", name: "Intent analytics", tier: "insight", view: "settings" },
+  { id: "predictive", name: "Predictive QA insights", tier: "insight", view: "settings" },
   { id: "behavioral", name: "Behavioral scoring", tier: "insight", view: "interactions" },
 ];
 
@@ -157,44 +157,183 @@ const AUDIT_QUESTIONS = [
 
 const COACHING = [
   {
+    id: "c1",
     agent: "R. Patel",
+    lob: "Commercial Pharmacy",
+    queue: "UHC_Rx_Refill_Chat",
     audits: 48,
     fails: 11,
     severity: "high",
     opportunity: "Disclosure completeness failing on 23% of audited chats. Focus coaching on promo / refill disclosure script.",
     theme: "Disclosures",
+    sampleAudits: [
+      { id: "AUD-8821", score: 62, defect: "Missing refill disclosure", date: "2026-09-09" },
+      { id: "AUD-8790", score: 68, defect: "Incomplete promo wording", date: "2026-09-08" },
+      { id: "AUD-8702", score: 71, defect: "Disclosure late in chat", date: "2026-09-06" },
+    ],
   },
   {
+    id: "c2",
     agent: "M. Chen",
+    lob: "Retail",
+    queue: "247client1_Web_Chat",
     audits: 36,
     fails: 6,
     severity: "med",
     opportunity: "Empathy / rapport misses on escalated fraud intents. Pair with soft-skills calibration pack.",
     theme: "Soft skills",
+    sampleAudits: [
+      { id: "AUD-8611", score: 74, defect: "Weak empathy opener", date: "2026-09-09" },
+      { id: "AUD-8550", score: 70, defect: "Missed rapport on escalate", date: "2026-09-07" },
+    ],
   },
   {
+    id: "c3",
     agent: "A. Nguyen",
+    lob: "Retail",
+    queue: "247client1_Web_Chat",
     audits: 29,
     fails: 9,
     severity: "high",
     opportunity: "Payment arrangement closure language incomplete on 9 of 29 audits. Recommend guided close checklist.",
     theme: "Resolution",
+    sampleAudits: [
+      { id: "AUD-8499", score: 58, defect: "No payment confirm", date: "2026-09-08" },
+      { id: "AUD-8412", score: 65, defect: "Close skipped", date: "2026-09-05" },
+      { id: "AUD-8388", score: 60, defect: "Partial arrangement summary", date: "2026-09-04" },
+    ],
   },
   {
+    id: "c4",
     agent: "Team Cards-B",
+    lob: "Cards",
+    queue: "247client1_Web_Chat",
     audits: 120,
     fails: 14,
     severity: "med",
     opportunity: "Team-level hold-time empathy dips after minute 4. Share best-call examples from 247client1 Web Chat.",
     theme: "Team pattern",
+    sampleAudits: [
+      { id: "AUD-8301", score: 77, defect: "Hold empathy drop", date: "2026-09-09" },
+      { id: "AUD-8290", score: 79, defect: "Long silent hold", date: "2026-09-08" },
+    ],
   },
   {
+    id: "c5",
     agent: "S. Okonkwo",
+    lob: "Test_Lob",
+    queue: "247client1_Web_Chat",
     audits: 22,
     fails: 2,
     severity: "low",
     opportunity: "Strong scores; nominate as calibration peer reviewer for Soft Skills section.",
     theme: "Peer coach",
+    sampleAudits: [
+      { id: "AUD-8200", score: 94, defect: "Minor clarity note", date: "2026-09-07" },
+    ],
+  },
+  {
+    id: "c6",
+    agent: "J. Brooks",
+    lob: "Medicaid Pharmacy",
+    queue: "UHC_Refill_Status",
+    audits: 41,
+    fails: 8,
+    severity: "high",
+    opportunity: "Status update scripts miss next-step confirmation. Coach on closing loop with member.",
+    theme: "Resolution",
+    sampleAudits: [
+      { id: "AUD-8122", score: 66, defect: "No next-step confirm", date: "2026-09-09" },
+      { id: "AUD-8101", score: 69, defect: "Status only, no CTA", date: "2026-09-06" },
+    ],
+  },
+  {
+    id: "c7",
+    agent: "L. Ramirez",
+    lob: "Retail",
+    queue: "247client1_Web_Chat",
+    audits: 33,
+    fails: 5,
+    severity: "med",
+    opportunity: "Authentication steps rushed; 5 audits missed secondary verification question.",
+    theme: "Compliance",
+    sampleAudits: [
+      { id: "AUD-8055", score: 72, defect: "Skipped 2nd verify", date: "2026-09-08" },
+      { id: "AUD-8010", score: 75, defect: "Partial auth", date: "2026-09-05" },
+    ],
+  },
+  {
+    id: "c8",
+    agent: "K. Singh",
+    lob: "Commercial Pharmacy",
+    queue: "UHC_Rx_Refill_Chat",
+    audits: 27,
+    fails: 4,
+    severity: "med",
+    opportunity: "Tone shifts negative under refill delay complaints. Soft-skills refresh recommended.",
+    theme: "Soft skills",
+    sampleAudits: [
+      { id: "AUD-7988", score: 73, defect: "Curt reply on delay", date: "2026-09-07" },
+    ],
+  },
+  {
+    id: "c9",
+    agent: "P. Ellis",
+    lob: "Cards",
+    queue: "247client1_Web_Chat",
+    audits: 19,
+    fails: 7,
+    severity: "high",
+    opportunity: "Dispute intake misses required case number readback on 7 audits.",
+    theme: "Disclosures",
+    sampleAudits: [
+      { id: "AUD-7901", score: 55, defect: "No case readback", date: "2026-09-09" },
+      { id: "AUD-7880", score: 61, defect: "Incomplete dispute script", date: "2026-09-08" },
+    ],
+  },
+  {
+    id: "c10",
+    agent: "T. Morales",
+    lob: "Retail",
+    queue: "247client1_Web_Chat",
+    audits: 25,
+    fails: 3,
+    severity: "low",
+    opportunity: "Minor clarity gaps on product upsell; light coaching only.",
+    theme: "Clarity",
+    sampleAudits: [
+      { id: "AUD-7812", score: 84, defect: "Unclear product name", date: "2026-09-06" },
+    ],
+  },
+  {
+    id: "c11",
+    agent: "H. Cho",
+    lob: "Commercial Pharmacy",
+    queue: "UHC_Rx_Refill_Chat",
+    audits: 38,
+    fails: 6,
+    severity: "med",
+    opportunity: "Transfer announcements missing on warm handoffs to specialty queue.",
+    theme: "Resolution",
+    sampleAudits: [
+      { id: "AUD-7750", score: 70, defect: "Silent transfer", date: "2026-09-08" },
+      { id: "AUD-7722", score: 73, defect: "No transfer reason", date: "2026-09-05" },
+    ],
+  },
+  {
+    id: "c12",
+    agent: "Team Retail-A",
+    lob: "Retail",
+    queue: "247client1_Web_Chat",
+    audits: 95,
+    fails: 10,
+    severity: "med",
+    opportunity: "Team trend: greeting personalization below target. Share top-quartile examples.",
+    theme: "Team pattern",
+    sampleAudits: [
+      { id: "AUD-7701", score: 78, defect: "Generic greeting", date: "2026-09-09" },
+      { id: "AUD-7690", score: 80, defect: "No name use", date: "2026-09-07" },
+    ],
   },
 ];
 
@@ -218,7 +357,11 @@ let currentView = "interactions";
 let selectedIx = null; // null = list view
 let ixSideTab = "audit";
 let dataTab = "ingest";
-let samplingTab = "new";
+let samplingTab = "jobs";
+let settingsTab = "admin";
+let selectedCoach = null;
+let reportFilters = { lob: "All", queue: "All", period: "MTD" };
+let coachFilters = { severity: [], themes: [], agents: [] };
 let selectedIngestJob = "ing_340ceb2fe31747c8b771e871a15ec2356";
 let selectedCrm = "salesforce";
 let openMsKey = null; // which multi-select dropdown is open
@@ -317,7 +460,7 @@ function renderOverview() {
 
   return `
     <h1 class="page-title">AutoQRA feature map</h1>
-    <p class="page-sub">31 capabilities across Interactions, Data Import, Sampling, Coaching, Reporting, Calibration, Advanced Insights, and Admin.</p>
+    <p class="page-sub">31 capabilities across Interactions, Import / Export, QA Job, Coaching, Reporting & Insights, and Settings.</p>
     <div class="stat-row">
       <div class="stat"><div class="label">Total</div><div class="value">31</div></div>
       <div class="stat"><div class="label">Core</div><div class="value">${core.length}</div></div>
@@ -625,8 +768,8 @@ function renderDataImport() {
     </div>`;
 
   return `
-    <h1 class="page-title">Data Import</h1>
-    <p class="page-sub">Ingest, pull, and export conversation data for the selected techclient tenant.</p>
+    <h1 class="page-title">Import / Export</h1>
+    <p class="page-sub">Bring conversation data into AutoQRA for this techclient, and export completed QA results.</p>
     ${tenantRow()}
     ${failedBar()}
     <div class="tabs">
@@ -636,12 +779,71 @@ function renderDataImport() {
     ${dataTab === "ingest" ? ingest : exportTab}`;
 }
 
+function renderDataImportTitle() {
+  return `
+    <h1 class="page-title">Import / Export</h1>
+    <p class="page-sub">Bring conversation data into AutoQRA for this techclient, and export completed QA results.</p>`;
+}
+
 function renderSampling() {
-  const newSample = `
+  const jobs = `
     <div class="card">
-      <h3>Sample from ingested interactions</h3>
-      <p class="hint">Filters load from ci_interactions. Queues AutoQRA, enrichment, and evaluation.</p>
+      <h3>QA jobs — track AutoQRA scoring runs</h3>
+      <p class="hint">Each job selects interactions, runs AutoQRA scoring / enrichment / evaluation, and stores results for review and coaching.</p>
+      <table class="table">
+        <thead><tr><th>Job ID</th><th>Purpose</th><th>Scope</th><th>Requested</th><th>Status</th><th>Scored</th><th>Updated</th></tr></thead>
+        <tbody>
+          <tr class="clickable">
+            <td style="font-family:var(--mono);font-size:0.75rem">qaj_44a1c2…</td>
+            <td>Weekly pharmacy AutoQRA batch</td>
+            <td>UHC · Rx intent</td>
+            <td>10</td>
+            <td><span class="status ok">COMPLETED</span></td>
+            <td>10 / 10</td>
+            <td>2026-09-10 12:04</td>
+          </tr>
+          <tr class="clickable">
+            <td style="font-family:var(--mono);font-size:0.75rem">qaj_91bc88…</td>
+            <td>247client1 web chat QA run</td>
+            <td>247client1_Web_Chat</td>
+            <td>25</td>
+            <td><span class="status warn">RUNNING</span></td>
+            <td>12 / 25</td>
+            <td>2026-09-10 12:10</td>
+          </tr>
+          <tr class="clickable">
+            <td style="font-family:var(--mono);font-size:0.75rem">qaj_22fe01…</td>
+            <td>Calibration sample pack</td>
+            <td>Retail · fraud intent</td>
+            <td>15</td>
+            <td><span class="status ok">COMPLETED</span></td>
+            <td>15 / 15</td>
+            <td>2026-09-09 16:22</td>
+          </tr>
+          <tr class="clickable">
+            <td style="font-family:var(--mono);font-size:0.75rem">qaj_77aa09…</td>
+            <td>Backfill re-score (prompt v14)</td>
+            <td>Cards LOB</td>
+            <td>50</td>
+            <td><span class="status neutral">QUEUED</span></td>
+            <td>0 / 50</td>
+            <td>2026-09-10 12:15</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="btn-row" style="margin-top:0.75rem">
+        <button class="btn primary" type="button" data-samp-tab="new">+ Create QA job</button>
+        <button class="btn" type="button">Refresh</button>
+      </div>
+    </div>`;
+
+  const newJob = `
+    <div class="card">
+      <h3>Create QA job</h3>
+      <p class="hint">Define which ingested interactions to score. This queues an AutoQRA job — it does not open the audit form itself. Results appear under QA jobs when complete.</p>
       <div class="grid-filters">
+        <div class="field"><label>Job name</label><input value="247client1 weekly AutoQRA" /></div>
+        <div class="field"><label>Job type</label><select><option>AutoQRA scoring</option><option>Calibration sample</option><option>Re-score / backfill</option></select></div>
         <div class="field"><label>Date from</label><input value="09/01/2026" /></div>
         <div class="field"><label>Date to</label><input value="09/10/2026" /></div>
         <div class="field"><label>Queue</label>
@@ -663,68 +865,199 @@ function renderSampling() {
         <div class="field"><label>Requested count</label><input type="number" value="10" /></div>
       </div>
       <div class="footer-actions">
-        <p class="hint">After queueing, open Jobs &amp; results.</p>
-        <button class="btn primary" type="button">Start sampling</button>
+        <p class="hint">After you start the job, return to <strong>QA jobs</strong> to watch progress and open scored interactions.</p>
+        <button class="btn primary" type="button">Start QA job</button>
       </div>
     </div>`;
 
-  const jobs = `
-    <div class="card">
-      <h3>Jobs &amp; results</h3>
-      <table class="table">
-        <thead><tr><th>Job</th><th>Filters</th><th>Requested</th><th>Status</th><th>AutoQRA</th></tr></thead>
-        <tbody>
-          <tr><td style="font-family:var(--mono);font-size:0.75rem">smp_44a1…</td><td>UHC · Rx</td><td>10</td><td><span class="status ok">COMPLETED</span></td><td>10 scored</td></tr>
-          <tr><td style="font-family:var(--mono);font-size:0.75rem">smp_91bc…</td><td>247client1_Web_Chat</td><td>25</td><td><span class="status warn">RUNNING</span></td><td>12 / 25</td></tr>
-        </tbody>
-      </table>
-    </div>`;
-
   return `
-    <h1 class="page-title">Sampling</h1>
-    <p class="page-sub">Sample ingested interactions and run AutoQRA modules.</p>
+    <h1 class="page-title">QA Job</h1>
+    <p class="page-sub">Create and monitor AutoQRA scoring jobs — select interactions, run QA at scale, then review results.</p>
     ${tenantRow()}
     ${failedBar()}
     <div class="tabs">
-      <button class="tab ${samplingTab === "new" ? "active" : ""}" type="button" data-samp-tab="new">New sample</button>
-      <button class="tab ${samplingTab === "jobs" ? "active" : ""}" type="button" data-samp-tab="jobs">Jobs &amp; results</button>
+      <button class="tab ${samplingTab === "jobs" ? "active" : ""}" type="button" data-samp-tab="jobs">QA jobs</button>
+      <button class="tab ${samplingTab === "new" ? "active" : ""}" type="button" data-samp-tab="new">Create QA job</button>
     </div>
-    ${samplingTab === "new" ? newSample : jobs}`;
+    ${samplingTab === "jobs" ? jobs : newJob}`;
+}
+
+function filteredCoaching() {
+  return COACHING.filter((c) => {
+    if (coachFilters.severity.length && !coachFilters.severity.includes(c.severity)) return false;
+    if (coachFilters.themes.length && !coachFilters.themes.includes(c.theme)) return false;
+    if (coachFilters.agents.length && !coachFilters.agents.includes(c.agent)) return false;
+    return true;
+  });
 }
 
 function renderCoaching() {
-  const cards = COACHING.map(
-    (c) => `
-    <article class="coach-card">
-      <span class="severity ${c.severity}">${c.severity.toUpperCase()}</span>
-      <h3>${c.agent}</h3>
-      <div class="audit-count">${c.audits} audits · ${c.fails} fail / defect hits · theme: ${c.theme}</div>
-      <p class="opp">${c.opportunity}</p>
-      <div class="btn-row">
-        <button class="btn primary" type="button">Open coaching plan</button>
-        <button class="btn" type="button">View audits</button>
+  const list = filteredCoaching();
+  const rows = list
+    .map(
+      (c) => `
+    <tr class="clickable ${selectedCoach === c.id ? "selected" : ""}" data-coach="${c.id}">
+      <td><span class="severity ${c.severity}">${c.severity.toUpperCase()}</span></td>
+      <td><strong>${c.agent}</strong></td>
+      <td>${c.lob}</td>
+      <td>${c.queue}</td>
+      <td>${c.theme}</td>
+      <td>${c.audits}</td>
+      <td>${c.fails}</td>
+      <td style="max-width:280px;font-size:0.82rem">${c.opportunity}</td>
+    </tr>`
+    )
+    .join("");
+
+  const selected = COACHING.find((c) => c.id === selectedCoach) || list[0] || null;
+  const audits = selected
+    ? selected.sampleAudits
+        .map(
+          (a) => `
+      <tr>
+        <td style="font-family:var(--mono);font-size:0.75rem">${a.id}</td>
+        <td>${a.date}</td>
+        <td>${a.score}</td>
+        <td>${a.defect}</td>
+        <td><button class="link-btn" type="button">Open audit</button></td>
+      </tr>`
+        )
+        .join("")
+    : "";
+
+  const detail = selected
+    ? `
+    <div class="card" style="margin-top:0.85rem">
+      <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-start">
+        <div>
+          <h3 style="margin:0">Coaching plan · ${selected.agent}</h3>
+          <p class="hint" style="margin:0.35rem 0 0">${selected.audits} audits · ${selected.fails} defect hits · ${selected.theme} · ${selected.lob}</p>
+        </div>
+        <span class="severity ${selected.severity}">${selected.severity.toUpperCase()}</span>
       </div>
-    </article>`
-  ).join("");
+      <p style="font-size:0.9rem;line-height:1.45">${selected.opportunity}</p>
+      <h3 style="margin:0.85rem 0 0.45rem;font-size:0.95rem">Example audits leading to this plan</h3>
+      <table class="table">
+        <thead><tr><th>Audit</th><th>Date</th><th>Score</th><th>Defect</th><th></th></tr></thead>
+        <tbody>${audits}</tbody>
+      </table>
+      <div class="btn-row" style="margin-top:0.75rem">
+        <button class="btn primary" type="button">Open coaching plan</button>
+        <button class="btn" type="button">Assign to coach</button>
+        <button class="btn" type="button">Schedule session</button>
+      </div>
+    </div>`
+    : `<div class="card" style="margin-top:0.85rem"><p class="hint">Select an agent row to see example audits and coaching plan.</p></div>`;
+
+  const sevOpts = [...new Set(COACHING.map((c) => c.severity))];
+  const themeOpts = [...new Set(COACHING.map((c) => c.theme))];
+  const agentOpts = [...new Set(COACHING.map((c) => c.agent))];
 
   return `
     <h1 class="page-title">Coaching</h1>
-    <p class="page-sub">Coaching opportunities prioritized by audit volume and recurring defect patterns from AutoQRA scoring.</p>
+    <p class="page-sub">Long list of coaching opportunities from AutoQRA audit volume. Filter, then open a plan with example audits.</p>
     ${tenantRow()}
     <div class="stat-row">
-      <div class="stat"><div class="label">Agents with opps</div><div class="value">${COACHING.length}</div></div>
-      <div class="stat"><div class="label">Audits in window</div><div class="value">255</div></div>
-      <div class="stat"><div class="label">High priority</div><div class="value">2</div></div>
-      <div class="stat"><div class="label">Avg audits / agent</div><div class="value">51</div></div>
+      <div class="stat"><div class="label">Opportunities</div><div class="value">${list.length}</div></div>
+      <div class="stat"><div class="label">Total in catalog</div><div class="value">${COACHING.length}</div></div>
+      <div class="stat"><div class="label">High priority</div><div class="value">${list.filter((c) => c.severity === "high").length}</div></div>
+      <div class="stat"><div class="label">Audits represented</div><div class="value">${list.reduce((s, c) => s + c.audits, 0)}</div></div>
     </div>
-    <div class="coach-grid">${cards}</div>`;
+    <div class="card" style="padding:0.75rem 1rem">
+      <div class="filters-inline" style="margin-bottom:0.65rem">
+        <div class="field"><label>Severity</label>
+          <select data-coach-filter="severity" multiple size="3" style="min-height:64px">
+            ${sevOpts.map((s) => `<option value="${s}" ${coachFilters.severity.includes(s) ? "selected" : ""}>${s}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field"><label>Theme</label>
+          <select data-coach-filter="themes" multiple size="3" style="min-height:64px">
+            ${themeOpts.map((s) => `<option value="${s}" ${coachFilters.themes.includes(s) ? "selected" : ""}>${s}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field"><label>Agent / team</label>
+          <select data-coach-filter="agents" multiple size="3" style="min-height:64px">
+            ${agentOpts.map((s) => `<option value="${s}" ${coachFilters.agents.includes(s) ? "selected" : ""}>${s}</option>`).join("")}
+          </select>
+        </div>
+        <div class="filter-actions">
+          <button class="btn primary" type="button" data-coach-apply>Apply filters</button>
+          <button class="btn" type="button" data-coach-clear>Clear</button>
+        </div>
+      </div>
+      <p class="hint" style="margin:0 0 0.45rem">Hold Ctrl/Cmd to multi-select. Showing ${list.length} of ${COACHING.length} opportunities.</p>
+      <div class="ix-table-wrap" style="border:none">
+        <table class="table">
+          <thead>
+            <tr><th>Priority</th><th>Agent / team</th><th>LOB</th><th>Queue</th><th>Theme</th><th>Audits</th><th>Fails</th><th>Opportunity</th></tr>
+          </thead>
+          <tbody>${rows || `<tr><td colspan="8" style="text-align:center;color:var(--muted)">No coaching rows match filters.</td></tr>`}</tbody>
+        </table>
+      </div>
+    </div>
+    ${detail}`;
 }
 
 function renderReporting() {
+  const topAgents = [
+    { rank: 1, agent: "S. Okonkwo", lob: "Test_Lob", audits: 22, score: 94.2, pass: "96%" },
+    { rank: 2, agent: "T. Morales", lob: "Retail", audits: 25, score: 91.8, pass: "94%" },
+    { rank: 3, agent: "M. Chen", lob: "Retail", audits: 36, score: 89.1, pass: "91%" },
+    { rank: 4, agent: "H. Cho", lob: "Commercial Pharmacy", audits: 38, score: 88.4, pass: "90%" },
+    { rank: 5, agent: "K. Singh", lob: "Commercial Pharmacy", audits: 27, score: 87.0, pass: "88%" },
+    { rank: 6, agent: "L. Ramirez", lob: "Retail", audits: 33, score: 85.2, pass: "86%" },
+    { rank: 7, agent: "J. Brooks", lob: "Medicaid Pharmacy", audits: 41, score: 82.6, pass: "83%" },
+    { rank: 8, agent: "R. Patel", lob: "Commercial Pharmacy", audits: 48, score: 78.4, pass: "77%" },
+  ];
+  const lobBoard = [
+    { lob: "Pharmacy", score: 90.2, audits: 4200, agreement: "93%", trend: "+1.2" },
+    { lob: "Retail", score: 88.1, audits: 6100, agreement: "92%", trend: "+0.4" },
+    { lob: "Test_Lob", score: 86.9, audits: 980, agreement: "91%", trend: "0.0" },
+    { lob: "Cards", score: 81.4, audits: 5100, agreement: "89%", trend: "-1.8" },
+  ];
+
+  const filteredAgents =
+    reportFilters.lob === "All"
+      ? topAgents
+      : topAgents.filter((a) => a.lob === reportFilters.lob || (reportFilters.lob === "Pharmacy" && a.lob.includes("Pharmacy")));
+
   return `
     <h1 class="page-title">Reporting &amp; Insights</h1>
-    <p class="page-sub">Apache Superset dashboards for AutoQRA volume, scores, overrides, and LOB trends.</p>
+    <p class="page-sub">Superset-backed AutoQRA insights — filter by period / LOB / queue, then review top agents and LOB leaderboard.</p>
     ${tenantRow()}
+    <div class="card" style="padding:0.75rem 1rem;margin-bottom:0.85rem">
+      <div class="filters-inline">
+        <div class="field"><label>Period</label>
+          <select data-report-filter="period">
+            <option ${reportFilters.period === "MTD" ? "selected" : ""}>MTD</option>
+            <option ${reportFilters.period === "Last 7 days" ? "selected" : ""}>Last 7 days</option>
+            <option ${reportFilters.period === "Last 30 days" ? "selected" : ""}>Last 30 days</option>
+            <option ${reportFilters.period === "Quarter" ? "selected" : ""}>Quarter</option>
+          </select>
+        </div>
+        <div class="field"><label>LOB</label>
+          <select data-report-filter="lob">
+            <option>All</option>
+            <option ${reportFilters.lob === "Retail" ? "selected" : ""}>Retail</option>
+            <option ${reportFilters.lob === "Cards" ? "selected" : ""}>Cards</option>
+            <option ${reportFilters.lob === "Pharmacy" ? "selected" : ""}>Pharmacy</option>
+            <option ${reportFilters.lob === "Test_Lob" ? "selected" : ""}>Test_Lob</option>
+          </select>
+        </div>
+        <div class="field"><label>Queue</label>
+          <select data-report-filter="queue">
+            <option>All</option>
+            <option ${reportFilters.queue === "247client1_Web_Chat" ? "selected" : ""}>247client1_Web_Chat</option>
+            <option ${reportFilters.queue === "UHC_Rx_Refill_Chat" ? "selected" : ""}>UHC_Rx_Refill_Chat</option>
+            <option ${reportFilters.queue === "UHC_Refill_Status" ? "selected" : ""}>UHC_Refill_Status</option>
+          </select>
+        </div>
+        <div class="filter-actions">
+          <button class="btn primary" type="button" data-report-apply>Apply filters</button>
+        </div>
+      </div>
+      <p class="hint" style="margin:0.5rem 0 0">Active: <strong>${reportFilters.period}</strong> · LOB <strong>${reportFilters.lob}</strong> · Queue <strong>${reportFilters.queue}</strong></p>
+    </div>
     <div class="embed-frame">
       <div class="embed-chrome">
         <span class="dot"></span>
@@ -734,12 +1067,40 @@ function renderReporting() {
       </div>
       <div class="embed-body">
         <div class="stat-row" style="margin:0">
-          <div class="stat"><div class="label">Audits MTD</div><div class="value">18.4k</div></div>
+          <div class="stat"><div class="label">Audits ${reportFilters.period}</div><div class="value">18.4k</div></div>
           <div class="stat"><div class="label">Avg score</div><div class="value">86.4</div></div>
           <div class="stat"><div class="label">Agreement</div><div class="value">92%</div></div>
           <div class="stat"><div class="label">Override rate</div><div class="value">4.8%</div></div>
         </div>
         <div class="superset-mock">
+          <div class="chart-box">
+            <h4>Top agents</h4>
+            <table class="table">
+              <thead><tr><th>#</th><th>Agent</th><th>LOB</th><th>Audits</th><th>Avg score</th><th>Pass%</th></tr></thead>
+              <tbody>
+                ${filteredAgents
+                  .map(
+                    (a) =>
+                      `<tr><td>${a.rank}</td><td>${a.agent}</td><td>${a.lob}</td><td>${a.audits}</td><td><strong>${a.score}</strong></td><td>${a.pass}</td></tr>`
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
+          <div class="chart-box">
+            <h4>LOB leaderboard</h4>
+            <table class="table">
+              <thead><tr><th>LOB</th><th>Avg score</th><th>Audits</th><th>Agreement</th><th>Trend</th></tr></thead>
+              <tbody>
+                ${lobBoard
+                  .map(
+                    (l) =>
+                      `<tr><td><strong>${l.lob}</strong></td><td>${l.score}</td><td>${l.audits.toLocaleString()}</td><td>${l.agreement}</td><td>${l.trend}</td></tr>`
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
           <div class="chart-box">
             <h4>Audit volume by day</h4>
             <div class="bar-chart">
@@ -747,26 +1108,6 @@ function renderReporting() {
               <span style="height:48%"></span><span style="height:82%"></span><span style="height:66%"></span>
               <span style="height:90%"></span>
             </div>
-          </div>
-          <div class="chart-box">
-            <h4>Pass / fail / review mix</h4>
-            <table class="table">
-              <tbody>
-                <tr><td>Auto-pass</td><td>72%</td></tr>
-                <tr><td>Auto-fail</td><td>11%</td></tr>
-                <tr><td>Human review</td><td>17%</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="chart-box">
-            <h4>Score by LOB</h4>
-            <table class="table">
-              <tbody>
-                <tr><td>Retail</td><td>88.1</td></tr>
-                <tr><td>Cards</td><td>81.4</td></tr>
-                <tr><td>Pharmacy</td><td>90.2</td></tr>
-              </tbody>
-            </table>
           </div>
           <div class="chart-box">
             <h4>Top defect parameters</h4>
@@ -780,15 +1121,58 @@ function renderReporting() {
           </div>
         </div>
       </div>
-    </div>
-    <p class="hint" style="margin-top:0.65rem;color:var(--muted);font-size:0.85rem">Wireframe placeholder for embedded Superset. Production loads governed datasets from AutoQRA result tables.</p>`;
+    </div>`;
 }
 
-function renderCalibration() {
+function renderSettingsAdminBody() {
   return `
-    <h1 class="page-title">Calibration &amp; AI Optimization</h1>
-    <p class="page-sub">Align human and AI scoring, tune thresholds, and optimize prompts / models from disagreement patterns.</p>
-    ${tenantRow()}
+    <div class="card">
+      <h3>CRM &amp; Knowledge Base integration</h3>
+      <p class="hint">Connect CRMs and KB sources so AutoQRA can pull case context and policy articles during review.</p>
+      <button class="admin-link-card" type="button" data-open-crm>
+        <div>
+          <strong>Configure CRM &amp; KB</strong>
+          <span>3 connected · Salesforce, Confluence, Internal Policy KB</span>
+        </div>
+        <span>Open pane →</span>
+      </button>
+    </div>
+    <div class="card admin-block">
+      <h3>Tenant configuration</h3>
+      <pre>{
+  "sample_daily_quota": 1700,
+  "quota_timezone": "UTC",
+  "transcript_report_id": "get_ingested_transcript",
+  "max_csv_bytes": 52428800,
+  "uses_agentic_runtime": true
+}</pre>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <h3>API Pull / SFTP / Bucket</h3>
+        <dl class="kv">
+          <dt>API pull</dt><dd>Enabled · dasng</dd>
+          <dt>SFTP</dt><dd>Disabled</dd>
+          <dt>Bucket ingest</dt><dd>Enabled · *.csv</dd>
+        </dl>
+      </div>
+      <div class="card">
+        <h3>RBAC &amp; monitoring forms</h3>
+        <ul style="margin:0;padding-left:1.1rem;font-size:0.9rem;line-height:1.55">
+          <li>QA Analyst / Manager / System Admin roles</li>
+          <li>247client1 Chat QA form v3 — published</li>
+          <li>Queue <code>247client1_Web_Chat</code> → scorecard v3</li>
+        </ul>
+        <div class="btn-row" style="margin-top:0.65rem">
+          <button class="btn primary" type="button">Modify monitoring form</button>
+          <button class="btn" type="button">Map queue</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderSettingsCalibrationBody() {
+  return `
     <div class="calib-grid">
       <div class="card">
         <h3>Calibration sessions</h3>
@@ -808,12 +1192,11 @@ function renderCalibration() {
       </div>
       <div class="card">
         <h3>AI Optimization</h3>
-        <p class="hint">Actions driven by override and anomaly signals.</p>
         <ul class="opt-list">
           <li><strong>Prompt v14 drift</strong> — Soft skills agreement dipped 3pts. Recommend A/B vs v13.</li>
-          <li><strong>Routing threshold</strong> — Cards chat human-route share 24% (target 17%). Review confidence cutover 0.86 → 0.88.</li>
+          <li><strong>Routing threshold</strong> — Cards chat human-route share 24% (target 17%).</li>
           <li><strong>Hallucination watch</strong> — Unsupported rationale 2.1% (under 5% gate).</li>
-          <li><strong>Scorecard gap</strong> — New promo disclosure not in 247client1 form v3. Queue form modify.</li>
+          <li><strong>Scorecard gap</strong> — New promo disclosure not in 247client1 form v3.</li>
         </ul>
         <div class="btn-row" style="margin-top:0.65rem">
           <button class="btn primary" type="button">Open model ops</button>
@@ -829,26 +1212,21 @@ function renderCalibration() {
     </div>`;
 }
 
-function renderAdvanced() {
+function renderSettingsAdvancedBody() {
   return `
-    <h1 class="page-title">Advanced Insights</h1>
-    <p class="page-sub">Sentiment analysis, predictive QA, intent analytics, and behavioral scoring signals.</p>
-    ${tenantRow()}
     <div class="adv-grid">
       <div class="adv-card">
         <h3>Sentiment analysis</h3>
-        <p class="hint" style="margin:0;color:var(--muted);font-size:0.85rem">Customer / agent tone across audited interactions</p>
         <div class="sentiment-row">
           <div class="sent-pill pos">Positive<br/><b>41%</b></div>
           <div class="sent-pill neu">Neutral<br/><b>46%</b></div>
           <div class="sent-pill neg">Negative<br/><b>13%</b></div>
         </div>
-        <p style="font-size:0.86rem;margin:0">Negative spikes correlate with fraud-unauthorized-charges and payment_arrangement intents.</p>
+        <p style="font-size:0.86rem;margin:0">Negative spikes correlate with fraud and payment_arrangement intents.</p>
       </div>
       <div class="adv-card">
         <h3>Predictive analysis</h3>
-        <p class="hint" style="margin:0 0 0.45rem;color:var(--muted);font-size:0.85rem">Forecast risk before volume builds</p>
-        <p style="font-size:0.88rem;line-height:1.45;margin:0 0 0.55rem">Cards chat fail risk <strong>+18%</strong> tomorrow from promo script variance. Pharmacy refill queue stable.</p>
+        <p style="font-size:0.88rem;line-height:1.45;margin:0 0 0.55rem">Cards chat fail risk <strong>+18%</strong> tomorrow from promo script variance.</p>
         <button class="btn primary" type="button">Open risk plan</button>
       </div>
       <div class="adv-card">
@@ -878,7 +1256,7 @@ function renderAdvanced() {
       <div class="card">
         <h3>Anomaly highlights</h3>
         <ul class="opt-list">
-          <li>Override rate ↑ Cards LOB (watch)</li>
+          <li>Override rate ↑ Cards LOB</li>
           <li>Sentiment negative cluster · payment_arrangement</li>
           <li>Predictive alert · promo script variance</li>
         </ul>
@@ -886,78 +1264,24 @@ function renderAdvanced() {
     </div>`;
 }
 
-function renderAdmin() {
+function renderSettings() {
+  const body =
+    settingsTab === "calibration"
+      ? renderSettingsCalibrationBody()
+      : settingsTab === "advanced"
+        ? renderSettingsAdvancedBody()
+        : renderSettingsAdminBody();
+
   return `
-    <h1 class="page-title">Admin</h1>
-    <p class="page-sub">Tenant configuration, CRM / KB integration, ingestion, RBAC, and monitoring forms.</p>
+    <h1 class="page-title">Settings</h1>
+    <p class="page-sub">Admin configuration, calibration &amp; AI optimization, and advanced insight signals — in one place.</p>
     ${tenantRow()}
-
-    <div class="card">
-      <h3>CRM &amp; Knowledge Base integration</h3>
-      <p class="hint">Connect CRMs and KB sources so AutoQRA can pull case context and policy articles during review.</p>
-      <button class="admin-link-card" type="button" data-open-crm>
-        <div>
-          <strong>Configure CRM &amp; KB</strong>
-          <span>3 connected · Salesforce, Confluence, Internal Policy KB</span>
-        </div>
-        <span>Open pane →</span>
-      </button>
+    <div class="tabs">
+      <button class="tab ${settingsTab === "admin" ? "active" : ""}" type="button" data-settings-tab="admin">Admin &amp; CRM / KB</button>
+      <button class="tab ${settingsTab === "calibration" ? "active" : ""}" type="button" data-settings-tab="calibration">Calibration &amp; AI Opt</button>
+      <button class="tab ${settingsTab === "advanced" ? "active" : ""}" type="button" data-settings-tab="advanced">Advanced Insights</button>
     </div>
-
-    <div class="card admin-block">
-      <h3>Tenant configuration</h3>
-      <pre>{
-  "sample_daily_quota": 1700,
-  "quota_timezone": "UTC",
-  "transcript_report_id": "get_ingested_transcript",
-  "max_csv_bytes": 52428800,
-  "uses_agentic_runtime": true,
-  "enable_ai_coworker_tab": false
-}</pre>
-    </div>
-    <div class="grid-2">
-      <div class="card">
-        <h3>API Pull (Data ingestion)</h3>
-        <dl class="kv">
-          <dt>Enable</dt><dd>Yes</dd>
-          <dt>Last watermark</dt><dd>2026-08-31T23:59:59Z</dd>
-          <dt>Connector</dt><dd>dasng</dd>
-          <dt>Report ID</dt><dd>get_conversations</dd>
-        </dl>
-      </div>
-      <div class="card">
-        <h3>SFTP / Cloud bucket</h3>
-        <dl class="kv">
-          <dt>SFTP</dt><dd>Disabled</dd>
-          <dt>Bucket ingest</dt><dd>Enabled · *.csv</dd>
-        </dl>
-      </div>
-    </div>
-    <div class="grid-2">
-      <div class="card">
-        <h3>RBAC</h3>
-        <table class="table">
-          <thead><tr><th>Role</th><th>Audits</th><th>Override</th><th>Config</th></tr></thead>
-          <tbody>
-            <tr><td>QA Analyst</td><td>✓</td><td>✓</td><td>—</td></tr>
-            <tr><td>QA Manager</td><td>✓</td><td>✓</td><td>✓</td></tr>
-            <tr><td>System Admin</td><td>✓</td><td>✓</td><td>✓</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="card">
-        <h3>Monitoring form scoring</h3>
-        <ul style="margin:0;padding-left:1.1rem;font-size:0.9rem;line-height:1.6">
-          <li>247client1 Chat QA form v3 — published (scoring + GenAI summary)</li>
-          <li>Queue <code>247client1_Web_Chat</code> → scorecard v3</li>
-          <li>Queue <code>UHC_Rx_Refill_Chat</code> → Pharmacy form v1.4</li>
-        </ul>
-        <div class="btn-row" style="margin-top:0.75rem">
-          <button class="btn primary" type="button">Modify monitoring form</button>
-          <button class="btn" type="button">Map queue</button>
-        </div>
-      </div>
-    </div>`;
+    ${body}`;
 }
 
 function renderCrmPaneBody() {
@@ -1006,9 +1330,7 @@ const RENDERERS = {
   sampling: renderSampling,
   coaching: renderCoaching,
   reporting: renderReporting,
-  calibration: renderCalibration,
-  advanced: renderAdvanced,
-  admin: renderAdmin,
+  settings: renderSettings,
 };
 
 function setNav(view) {
@@ -1148,6 +1470,47 @@ workspace.addEventListener("click", (e) => {
   if (sTab) {
     samplingTab = sTab.dataset.sampTab;
     render("sampling");
+    return;
+  }
+
+  const settingsTabBtn = e.target.closest("[data-settings-tab]");
+  if (settingsTabBtn) {
+    settingsTab = settingsTabBtn.dataset.settingsTab;
+    render("settings");
+    return;
+  }
+
+  const coachRow = e.target.closest("[data-coach]");
+  if (coachRow) {
+    selectedCoach = coachRow.dataset.coach;
+    render("coaching");
+    return;
+  }
+
+  if (e.target.closest("[data-coach-apply]")) {
+    workspace.querySelectorAll("[data-coach-filter]").forEach((sel) => {
+      const key = sel.dataset.coachFilter;
+      coachFilters[key] = [...sel.selectedOptions].map((o) => o.value);
+    });
+    selectedCoach = null;
+    render("coaching");
+    return;
+  }
+
+  if (e.target.closest("[data-coach-clear]")) {
+    coachFilters.severity = [];
+    coachFilters.themes = [];
+    coachFilters.agents = [];
+    selectedCoach = null;
+    render("coaching");
+    return;
+  }
+
+  if (e.target.closest("[data-report-apply]")) {
+    workspace.querySelectorAll("[data-report-filter]").forEach((sel) => {
+      reportFilters[sel.dataset.reportFilter] = sel.value;
+    });
+    render("reporting");
     return;
   }
 

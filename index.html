@@ -3,71 +3,62 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AutoQRA — Product Wireframe</title>
+  <title>AutoQRA — Conversation Insights Wireframe</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="app">
-    <aside class="sidebar" id="sidebar">
-      <div class="brand">
-        <div class="brand-mark" aria-hidden="true">AQ</div>
-        <div>
-          <div class="brand-name">AutoQRA</div>
-          <div class="brand-sub">Product Wireframe</div>
-        </div>
+  <div class="app-shell">
+    <header class="top-header">
+      <div class="logo">
+        <span class="logo-mark">[24]7</span>
+        <span class="logo-name">CONVERSATION INSIGHTS</span>
+        <span class="logo-badge">AutoQRA Wireframe</span>
       </div>
-
-      <nav class="nav" aria-label="Primary">
-        <button class="nav-item active" data-view="overview">Feature Map</button>
-        <button class="nav-item" data-view="audit">Audit Workspace</button>
-        <button class="nav-item" data-view="scoring">AI Scoring</button>
-        <button class="nav-item" data-view="analytics">Analytics & Coaching</button>
-        <button class="nav-item" data-view="data">Data & Integrations</button>
-        <button class="nav-item" data-view="compliance">Compliance & Forms</button>
-        <button class="nav-item" data-view="admin">Admin & Access</button>
-      </nav>
-
-      <div class="sidebar-meta">
-        <div class="legend">
-          <span><i class="swatch core"></i> Core QA</span>
-          <span><i class="swatch advanced"></i> Advanced</span>
-          <span><i class="swatch insight"></i> Insights</span>
+      <div class="header-right">
+        <div class="quota" id="quotaBox" hidden>
+          <span class="quota-label">DAILY QUOTA</span>
+          <strong>1700 / 1700</strong>
+          <span class="quota-date">2026-09-10 UTC</span>
         </div>
-        <p class="meta-note">31 features · clickable wireframe</p>
+        <button class="icon-btn" type="button" title="Help">?</button>
+        <button class="user-chip" type="button">User</button>
       </div>
-    </aside>
+    </header>
 
-    <div class="main">
-      <header class="topbar">
-        <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation">☰</button>
-        <div class="crumb" id="crumb">AutoQRA / Feature Map</div>
-        <div class="topbar-actions">
-          <span class="chip">LOB: Retail Banking</span>
-          <span class="chip">Role: QA Manager</span>
-          <span class="avatar">SM</span>
-        </div>
-      </header>
+    <div class="body-row">
+      <aside class="side-nav" id="sideNav">
+        <div class="nav-brand">CONVERSATION INSIGHTS</div>
+        <nav aria-label="Primary">
+          <button class="side-item" data-view="overview" type="button">
+            <span class="ico">▦</span> Feature Map
+          </button>
+          <button class="side-item active" data-view="interactions" type="button">
+            <span class="ico">💬</span> Interactions
+          </button>
+          <button class="side-item" data-view="data-import" type="button">
+            <span class="ico">⬆</span> Data Import
+          </button>
+          <button class="side-item" data-view="sampling" type="button">
+            <span class="ico">⑂</span> Sampling
+          </button>
+          <button class="side-item" data-view="admin" type="button">
+            <span class="ico">⚙</span> Admin
+          </button>
+          <button class="side-item" data-view="analytics" type="button">
+            <span class="ico">▤</span> Analytics
+          </button>
+        </nav>
+        <button class="collapse-btn" id="collapseNav" type="button">Collapse navbar</button>
+      </aside>
 
-      <main class="content" id="content">
-        <!-- views injected by app.js -->
+      <main class="workspace" id="workspace">
+        <!-- views injected -->
       </main>
     </div>
   </div>
-
-  <div class="feature-drawer" id="featureDrawer" hidden>
-    <div class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
-      <button class="drawer-close" id="drawerClose" aria-label="Close">×</button>
-      <p class="drawer-tier" id="drawerTier"></p>
-      <h2 id="drawerTitle"></h2>
-      <p id="drawerDesc"></p>
-      <p class="drawer-screen">Screen: <strong id="drawerScreen"></strong></p>
-      <button class="btn primary" id="drawerGo">Open screen</button>
-    </div>
-  </div>
-
   <script src="app.js"></script>
 </body>
 </html>

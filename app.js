@@ -41,7 +41,7 @@ const INTERACTIONS = [
     agent: "qa",
     agentName: "QA Bot Handoff",
     duration: "3m 29s",
-    queue: "patelco_Web_Chat",
+    queue: "247client1_Web_Chat",
     lob: "Test_Lob",
     channel: "ude",
     source: "api_pull",
@@ -58,7 +58,7 @@ const INTERACTIONS = [
     agent: "m.chen",
     agentName: "M. Chen",
     duration: "5m 12s",
-    queue: "patelco_Web_Chat",
+    queue: "247client1_Web_Chat",
     lob: "Retail",
     channel: "ude",
     source: "csv",
@@ -92,7 +92,7 @@ const INTERACTIONS = [
     agent: "a.nguyen",
     agentName: "A. Nguyen",
     duration: "6m 40s",
-    queue: "patelco_Web_Chat",
+    queue: "247client1_Web_Chat",
     lob: "Retail",
     channel: "ude",
     source: "api_pull",
@@ -104,7 +104,7 @@ const INTERACTIONS = [
     date: "2026-09-08",
   },
   {
-    id: "d decl0f11e-3344-4aa0-9b12-aabbccddeeff",
+    id: "dd0f11e-3344-4aa0-9b12-aabbccddeeff",
     short: "dd0f11e…eeff",
     agent: "r.patel",
     agentName: "R. Patel",
@@ -121,9 +121,6 @@ const INTERACTIONS = [
     date: "2026-09-07",
   },
 ];
-
-// fix typo in last id
-INTERACTIONS[4].id = "dd0f11e-3344-4aa0-9b12-aabbccddeeff";
 
 const AUDIT_QUESTIONS = [
   {
@@ -188,7 +185,7 @@ const COACHING = [
     audits: 120,
     fails: 14,
     severity: "med",
-    opportunity: "Team-level hold-time empathy dips after minute 4. Share best-call examples from Patelco Web Chat.",
+    opportunity: "Team-level hold-time empathy dips after minute 4. Share best-call examples from 247client1 Web Chat.",
     theme: "Team pattern",
   },
   {
@@ -208,7 +205,7 @@ const CRMS = [
   { id: "genesys", name: "Genesys Cloud CX", type: "CRM", status: "Available", endpoint: "—" },
   { id: "kb-confluence", name: "Confluence Knowledge Base", type: "KB", status: "Connected", endpoint: "space: CX-KB" },
   { id: "kb-sharepoint", name: "SharePoint / Docs", type: "KB", status: "Available", endpoint: "—" },
-  { id: "kb-internal", name: "Internal Policy KB", type: "KB", status: "Connected", endpoint: "kb://patelco-policies" },
+  { id: "kb-internal", name: "Internal Policy KB", type: "KB", status: "Connected", endpoint: "kb://247client1-policies" },
 ];
 
 const workspace = document.getElementById("workspace");
@@ -224,7 +221,68 @@ let dataTab = "ingest";
 let samplingTab = "new";
 let selectedIngestJob = "ing_340ceb2fe31747c8b771e871a15ec2356";
 let selectedCrm = "salesforce";
+let openMsKey = null; // which multi-select dropdown is open
 
+const ixFilters = {
+  dateFrom: "2026-09-01",
+  dateTo: "2026-09-10",
+  queues: [],
+  lobs: [],
+  agents: [],
+  intents: [],
+  statuses: [],
+  sources: [],
+};
+
+function uniqueValues(key) {
+  return [...new Set(INTERACTIONS.map((i) => i[key]))].sort();
+}
+
+function toggleFilterValue(key, value) {
+  const arr = ixFilters[key];
+  const idx = arr.indexOf(value);
+  if (idx >= 0) arr.splice(idx, 1);
+  else arr.push(value);
+}
+
+function matchesFilters(i) {
+  if (ixFilters.dateFrom && i.date < ixFilters.dateFrom) return false;
+  if (ixFilters.dateTo && i.date > ixFilters.dateTo) return false;
+  if (ixFilters.queues.length && !ixFilters.queues.includes(i.queue)) return false;
+  if (ixFilters.lobs.length && !ixFilters.lobs.includes(i.lob)) return false;
+  if (ixFilters.agents.length && !ixFilters.agents.includes(i.agentName)) return false;
+  if (ixFilters.intents.length && !ixFilters.intents.includes(i.intent)) return false;
+  if (ixFilters.statuses.length && !ixFilters.statuses.includes(i.status)) return false;
+  if (ixFilters.sources.length && !ixFilters.sources.includes(i.source)) return false;
+  return true;
+}
+
+function filteredInteractions() {
+  return INTERACTIONS.filter(matchesFilters);
+}
+
+function msField(label, key, options) {
+  const selected = ixFilters[key];
+  const chips = selected.length
+    ? selected.map((v) => `<span class="chip">${v} <button type="button" data-ms-remove="${key}|${v}">×</button></span>`).join("")
+    : `<span class="placeholder">All</span>`;
+  const open = openMsKey === key;
+  const opts = options
+    .map(
+      (o) => `
+      <label class="ms-option">
+        <input type="checkbox" data-ms-toggle="${key}|${o}" ${selected.includes(o) ? "checked" : ""} />
+        <span>${o}</span>
+      </label>`
+    )
+    .join("");
+  return `
+    <div class="field ms-wrap" data-ms-key="${key}">
+      <label>${label} <span style="font-weight:400;color:var(--muted)">(multi)</span></label>
+      <button class="ms-trigger" type="button" data-ms-open="${key}">${chips}</button>
+      <div class="ms-dropdown" ${open ? "" : "hidden"} data-ms-drop="${key}">${opts}</div>
+    </div>`;
+}
 function tenantRow() {
   return `
     <div class="tenant-row">
@@ -272,8 +330,10 @@ function renderOverview() {
 }
 
 function renderInteractionsList() {
-  const rows = INTERACTIONS.map(
-    (i) => `
+  const rowsData = filteredInteractions();
+  const rows = rowsData
+    .map(
+      (i) => `
     <tr class="clickable" data-open-ix="${i.id}">
       <td>${i.short}</td>
       <td>${i.date}</td>
@@ -285,25 +345,33 @@ function renderInteractionsList() {
       <td>${i.score}</td>
       <td>${i.duration}</td>
     </tr>`
-  ).join("");
+    )
+    .join("");
+
+  const empty = rowsData.length
+    ? ""
+    : `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:1.25rem">No interactions match the selected filters.</td></tr>`;
 
   return `
     <div class="ix-list-page">
       <h1 class="page-title">Interactions</h1>
-      <p class="page-sub">Browse audited conversations. Select a row to open transcript, monitoring form scoring, and GenAI summary.</p>
+      <p class="page-sub">Browse audited conversations. Use multi-select filters, then select a row to open detail.</p>
       ${tenantRow()}
       <div class="list-toolbar">
         <div class="filters-inline">
-          <div class="field"><label>Date from</label><input value="09/01/2026" /></div>
-          <div class="field"><label>Date to</label><input value="09/10/2026" /></div>
-          <div class="field"><label>Queue</label><select><option>All queues</option><option>patelco_Web_Chat</option><option>UHC_Rx_Refill_Chat</option></select></div>
-          <div class="field"><label>LOB</label><select><option>All LOBs</option><option>Retail</option><option>Test_Lob</option></select></div>
-          <div class="field"><label>Agent</label><select><option>All agents</option></select></div>
-          <div class="field"><label>Intent</label><select><option>All intents</option></select></div>
-          <div class="field"><label>AutoQRA status</label><select><option>All</option><option>COMPLETED</option><option>IN_REVIEW</option></select></div>
-          <div class="field"><label>Source</label><select><option>All sources</option><option>api_pull</option><option>csv</option></select></div>
+          <div class="field"><label>Date from</label><input type="date" data-ix-date="dateFrom" value="${ixFilters.dateFrom}" /></div>
+          <div class="field"><label>Date to</label><input type="date" data-ix-date="dateTo" value="${ixFilters.dateTo}" /></div>
+          ${msField("Queue", "queues", uniqueValues("queue"))}
+          ${msField("LOB", "lobs", uniqueValues("lob"))}
+          ${msField("Agent", "agents", uniqueValues("agentName"))}
+          ${msField("Intent", "intents", uniqueValues("intent"))}
+          ${msField("Status", "statuses", uniqueValues("status"))}
+          ${msField("Source", "sources", uniqueValues("source"))}
         </div>
-        <button class="btn primary" type="button">Apply filters</button>
+        <div class="filter-actions">
+          <button class="btn primary" type="button" data-ix-apply>Apply filters</button>
+          <button class="btn" type="button" data-ix-clear>Clear</button>
+        </div>
       </div>
       <div class="ix-table-wrap">
         <table class="table">
@@ -313,10 +381,10 @@ function renderInteractionsList() {
               <th>Agent</th><th>Intent</th><th>Status</th><th>Score</th><th>Duration</th>
             </tr>
           </thead>
-          <tbody>${rows}</tbody>
+          <tbody>${rows || empty}</tbody>
         </table>
       </div>
-      <p class="hint" style="margin-top:0.65rem;color:var(--muted);font-size:0.85rem">${INTERACTIONS.length} interactions · click a row to open detail</p>
+      <p class="hint" style="margin-top:0.65rem;color:var(--muted);font-size:0.85rem">${rowsData.length} of ${INTERACTIONS.length} interactions · multi-select filters · click a row to open detail</p>
     </div>`;
 }
 
@@ -360,7 +428,7 @@ function renderInteractionDetail(ix) {
 
   const audit = `
     <div class="audit-form">
-      <h3>Patelco's Chat Quality Assurance Monitoring Form</h3>
+      <h3>247client1 Chat Quality Assurance Monitoring Form</h3>
       <p class="hint" style="margin:0 0 0.55rem">Monitoring form scoring + GenAI summary · identity from CSV / API pull</p>
 
       <div class="genai-box">
@@ -410,7 +478,7 @@ function renderInteractionDetail(ix) {
     <table class="table">
       <thead><tr><th>When</th><th>Event</th></tr></thead>
       <tbody>
-        <tr><td>08:11</td><td>Autonomous scoring · Patelco Chat v3</td></tr>
+        <tr><td>08:11</td><td>Autonomous scoring · 247client1 Chat v3</td></tr>
         <tr><td>08:12</td><td>GenAI summary generated</td></tr>
         <tr><td>08:12</td><td>Monitoring form scoring · Soft Skills 20/20</td></tr>
         <tr><td>09:18</td><td>Agent acknowledgment · Accept</td></tr>
@@ -427,7 +495,7 @@ function renderInteractionDetail(ix) {
           <button class="link-btn" type="button" data-ix-back style="font-size:0.8rem">← All interactions</button>
         </div>
         <div class="ix-items">
-          ${INTERACTIONS.map(
+          ${filteredInteractions().map(
             (i) => `
             <button class="ix-item ${i.id === ix.id ? "active" : ""}" type="button" data-open-ix="${i.id}">
               <div class="id">${i.short}</div>
@@ -448,7 +516,7 @@ function renderInteractionDetail(ix) {
         </div>
         <div class="search-row"><input placeholder="Search transcript..." /></div>
         <div class="transcript-body">
-          <div class="bubble bot"><div class="who">Bot · 11:45 AM</div>Welcome to Patelco support. I can help with unauthorized charges.</div>
+          <div class="bubble bot"><div class="who">Bot · 11:45 AM</div>Welcome to 247client1 support. I can help with unauthorized charges.</div>
           <div class="bubble visitor"><div class="who">Visitor · 11:45 AM</div>I see a charge I didn't make on my account.</div>
           <div class="bubble bot"><div class="who">Bot · 11:46 AM</div>I'm sorry about that. Let's verify your identity, then I'll connect you to a specialist.</div>
           <div class="bubble visitor"><div class="who">Visitor · 11:47 AM</div>OK — last four of member number is 4912.</div>
@@ -607,7 +675,7 @@ function renderSampling() {
         <thead><tr><th>Job</th><th>Filters</th><th>Requested</th><th>Status</th><th>AutoQRA</th></tr></thead>
         <tbody>
           <tr><td style="font-family:var(--mono);font-size:0.75rem">smp_44a1…</td><td>UHC · Rx</td><td>10</td><td><span class="status ok">COMPLETED</span></td><td>10 scored</td></tr>
-          <tr><td style="font-family:var(--mono);font-size:0.75rem">smp_91bc…</td><td>patelco_Web_Chat</td><td>25</td><td><span class="status warn">RUNNING</span></td><td>12 / 25</td></tr>
+          <tr><td style="font-family:var(--mono);font-size:0.75rem">smp_91bc…</td><td>247client1_Web_Chat</td><td>25</td><td><span class="status warn">RUNNING</span></td><td>12 / 25</td></tr>
         </tbody>
       </table>
     </div>`;
@@ -745,7 +813,7 @@ function renderCalibration() {
           <li><strong>Prompt v14 drift</strong> — Soft skills agreement dipped 3pts. Recommend A/B vs v13.</li>
           <li><strong>Routing threshold</strong> — Cards chat human-route share 24% (target 17%). Review confidence cutover 0.86 → 0.88.</li>
           <li><strong>Hallucination watch</strong> — Unsupported rationale 2.1% (under 5% gate).</li>
-          <li><strong>Scorecard gap</strong> — New promo disclosure not in Patelco form v3. Queue form modify.</li>
+          <li><strong>Scorecard gap</strong> — New promo disclosure not in 247client1 form v3. Queue form modify.</li>
         </ul>
         <div class="btn-row" style="margin-top:0.65rem">
           <button class="btn primary" type="button">Open model ops</button>
@@ -880,8 +948,8 @@ function renderAdmin() {
       <div class="card">
         <h3>Monitoring form scoring</h3>
         <ul style="margin:0;padding-left:1.1rem;font-size:0.9rem;line-height:1.6">
-          <li>Patelco Chat QA form v3 — published (scoring + GenAI summary)</li>
-          <li>Queue <code>patelco_Web_Chat</code> → scorecard v3</li>
+          <li>247client1 Chat QA form v3 — published (scoring + GenAI summary)</li>
+          <li>Queue <code>247client1_Web_Chat</code> → scorecard v3</li>
           <li>Queue <code>UHC_Rx_Refill_Chat</code> → Pharmacy form v1.4</li>
         </ul>
         <div class="btn-row" style="margin-top:0.75rem">
@@ -974,6 +1042,7 @@ workspace.addEventListener("click", (e) => {
   const goto = e.target.closest("[data-goto]");
   if (goto) {
     selectedIx = null;
+    openMsKey = null;
     render(goto.dataset.goto);
     return;
   }
@@ -982,12 +1051,14 @@ workspace.addEventListener("click", (e) => {
   if (openIx) {
     selectedIx = openIx.dataset.openIx;
     ixSideTab = "audit";
+    openMsKey = null;
     render("interactions");
     return;
   }
 
   if (e.target.closest("[data-ix-back]")) {
     selectedIx = null;
+    openMsKey = null;
     render("interactions");
     return;
   }
@@ -995,6 +1066,73 @@ workspace.addEventListener("click", (e) => {
   const ixTab = e.target.closest("[data-ix-tab]");
   if (ixTab) {
     ixSideTab = ixTab.dataset.ixTab;
+    render("interactions");
+    return;
+  }
+
+  // Multi-select: remove chip
+  const msRemove = e.target.closest("[data-ms-remove]");
+  if (msRemove) {
+    e.preventDefault();
+    e.stopPropagation();
+    const [key, value] = msRemove.dataset.msRemove.split("|");
+    toggleFilterValue(key, value);
+    openMsKey = null;
+    render("interactions");
+    return;
+  }
+
+  // Multi-select: toggle checkbox option (handled on change; stop click bubble only)
+  if (e.target.closest("[data-ms-toggle]") || e.target.closest(".ms-option")) {
+    e.stopPropagation();
+    return;
+  }
+
+  // Multi-select: open/close dropdown
+  const msOpen = e.target.closest("[data-ms-open]");
+  if (msOpen) {
+    e.preventDefault();
+    e.stopPropagation();
+    const key = msOpen.dataset.msOpen;
+    openMsKey = openMsKey === key ? null : key;
+    render("interactions");
+    return;
+  }
+
+  // Keep dropdown open when clicking inside it
+  if (e.target.closest("[data-ms-drop]")) {
+    e.stopPropagation();
+    return;
+  }
+
+  if (e.target.closest("[data-ix-apply]")) {
+    openMsKey = null;
+    // read dates from inputs if present
+    const from = workspace.querySelector('[data-ix-date="dateFrom"]');
+    const to = workspace.querySelector('[data-ix-date="dateTo"]');
+    if (from) ixFilters.dateFrom = from.value;
+    if (to) ixFilters.dateTo = to.value;
+    render("interactions");
+    return;
+  }
+
+  if (e.target.closest("[data-ix-clear]")) {
+    ixFilters.dateFrom = "2026-09-01";
+    ixFilters.dateTo = "2026-09-10";
+    ixFilters.queues = [];
+    ixFilters.lobs = [];
+    ixFilters.agents = [];
+    ixFilters.intents = [];
+    ixFilters.statuses = [];
+    ixFilters.sources = [];
+    openMsKey = null;
+    render("interactions");
+    return;
+  }
+
+  // Close any open multi-select when clicking elsewhere in workspace
+  if (openMsKey && !e.target.closest(".ms-wrap")) {
+    openMsKey = null;
     render("interactions");
     return;
   }
@@ -1036,6 +1174,24 @@ workspace.addEventListener("click", (e) => {
     const row = choice.parentElement;
     row.querySelectorAll(".choice").forEach((c) => c.classList.remove("selected"));
     choice.classList.add("selected");
+  }
+});
+
+workspace.addEventListener("change", (e) => {
+  const dateInput = e.target.closest("[data-ix-date]");
+  if (dateInput) {
+    ixFilters[dateInput.dataset.ixDate] = dateInput.value;
+    return;
+  }
+  const msToggle = e.target.closest("[data-ms-toggle]");
+  if (msToggle) {
+    const [key, value] = msToggle.dataset.msToggle.split("|");
+    const arr = ixFilters[key];
+    const idx = arr.indexOf(value);
+    if (msToggle.checked && idx < 0) arr.push(value);
+    if (!msToggle.checked && idx >= 0) arr.splice(idx, 1);
+    openMsKey = key;
+    render("interactions");
   }
 });
 

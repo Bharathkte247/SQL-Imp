@@ -628,6 +628,12 @@ const coachPaneBody = document.getElementById("coachPaneBody");
 const coachPaneTitle = document.getElementById("coachPaneTitle");
 const coachPaneSub = document.getElementById("coachPaneSub");
 
+if (!workspace) {
+  document.body.innerHTML =
+    "<pre style='padding:1.5rem;font:14px/1.4 system-ui'>AutoQRA wireframe: #workspace not found.\n\nServe from the autoqra-wireframe folder:\n  cd autoqra-wireframe && python3 -m http.server 8765\nThen open http://127.0.0.1:8765/</pre>";
+  throw new Error("Missing #workspace — open via local http.server from autoqra-wireframe/");
+}
+
 let currentView = "interactions";
 let selectedIx = null; // null = list view
 let ixSideTab = "audit";
@@ -2212,7 +2218,12 @@ function render(view) {
   if (view !== "interactions") selectedIx = null;
   if (view !== "coaching") closeCoachPane();
   setNav(view);
-  workspace.innerHTML = RENDERERS[view]();
+  const renderer = RENDERERS[view];
+  if (!renderer) {
+    workspace.innerHTML = `<div class="card"><h3>Unknown view</h3><p class="hint">No renderer for <code>${view}</code>.</p></div>`;
+    return;
+  }
+  workspace.innerHTML = renderer();
   sideNav.classList.remove("open");
   window.scrollTo({ top: 0, behavior: "instant" });
 }
@@ -2224,9 +2235,12 @@ document.querySelectorAll(".side-item").forEach((btn) => {
   });
 });
 
-document.getElementById("collapseNav").addEventListener("click", () => {
-  sideNav.classList.toggle("collapsed");
-});
+const collapseBtn = document.getElementById("collapseNav");
+if (collapseBtn) {
+  collapseBtn.addEventListener("click", () => {
+    sideNav.classList.toggle("collapsed");
+  });
+}
 
 workspace.addEventListener("click", (e) => {
   const goto = e.target.closest("[data-goto]");
@@ -2509,8 +2523,13 @@ coachPane.addEventListener("click", (e) => {
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     if (coachPane && !coachPane.hidden) closeCoachPane();
-    else if (!crmPane.hidden) closeCrmPane();
+    else if (crmPane && !crmPane.hidden) closeCrmPane();
   }
 });
 
-render("interactions");
+try {
+  render("interactions");
+} catch (err) {
+  console.error(err);
+  workspace.innerHTML = `<div class="card"><h3>Wireframe failed to load</h3><p class="hint">${String(err && err.message ? err.message : err)}</p><p class="hint">From repo root: <code>git checkout cursor/autoqra-feature-wireframe-a131 && cd autoqra-wireframe && python3 -m http.server 8765</code></p></div>`;
+}

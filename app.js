@@ -826,7 +826,7 @@ function renderAuditForm(ix) {
   const modeBadge = `<span class="chip">${auditModeLabel(ix.auditMode)}</span>`;
   const statusBanner =
     isNotAudited
-      ? `<div class="callout">Not Audited — empty monitoring form for manual QA. Advanced Insights not shown.</div>`
+      ? `<div class="callout">Not Audited — empty monitoring form for manual QA.</div>`
       : isLlm
         ? `<div class="callout">LLM Audited — AI scores present, not submitted. Human override enabled.</div>`
         : isQaReviewed
@@ -934,7 +934,6 @@ function renderAuditForm(ix) {
 
 function renderInteractionDetail(ix) {
   const isNotAudited = ix.status === "Not Audited";
-  const showInsights = !isNotAudited;
 
   const details = `
     <h3 style="margin:0 0 0.55rem;font-size:0.95rem">Conversation details</h3>
@@ -988,62 +987,20 @@ function renderInteractionDetail(ix) {
   const audit = renderAuditForm(ix);
   const sideBody = ixSideTab === "details" ? details : ixSideTab === "history" ? history : audit;
 
-  const insightsBody = `
-    <div class="ix-insights-section">
-      <h4>Sentiment analysis</h4>
-      <div class="sentiment-row" style="margin:0.45rem 0">
-        <div class="sent-pill pos">Pos<br/><b>28%</b></div>
-        <div class="sent-pill neu">Neu<br/><b>54%</b></div>
-        <div class="sent-pill neg">Neg<br/><b>18%</b></div>
+  const settingsPane = `
+    <aside class="ix-insights ${ixInsightsOpen ? "open" : "collapsed"}">
+      <button class="ix-insights-toggle" type="button" data-ix-insights-toggle aria-expanded="${ixInsightsOpen}">
+        <span class="ix-insights-toggle-label">Advanced Settings</span>
+        <span class="ix-insights-chevron">${ixInsightsOpen ? "»" : "«"}</span>
+      </button>
+      <div class="ix-insights-body" ${ixInsightsOpen ? "" : "hidden"}>
+        <div class="ix-empty-pane">
+          <p class="hint" style="margin:0">Advanced Settings — empty pane (placeholder).</p>
+        </div>
       </div>
-      <p style="font-size:0.82rem;margin:0;color:var(--muted)">Customer tone: ${ix.sentiment}. Peak negative near unauthorized-charge mention.</p>
-    </div>
-    <div class="ix-insights-section">
-      <h4>Predictive analysis</h4>
-      <p style="font-size:0.86rem;line-height:1.4;margin:0 0 0.45rem">Similar fraud intents show <strong>+12%</strong> escalate risk when soft-skills score &lt; 18/20.</p>
-      <button class="btn" type="button" style="width:100%">Open risk signals</button>
-    </div>
-    <div class="ix-insights-section">
-      <h4>Intent analytics</h4>
-      <p><span class="chip">${ix.intent}</span></p>
-      <p style="font-size:0.82rem;margin:0.4rem 0 0;color:var(--muted)">Primary intent confidence 0.91 · related: account_security</p>
-    </div>
-    <div class="ix-insights-section">
-      <h4>Behavioral scoring</h4>
-      <table class="table">
-        <tbody>
-          <tr><td>Empathy</td><td>4.2</td></tr>
-          <tr><td>Ownership</td><td>4.5</td></tr>
-          <tr><td>Clarity</td><td>4.0</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="ix-insights-section">
-      <h4>Anomaly highlights</h4>
-      <ul class="opt-list">
-        <li>Escalation flag on this conversation</li>
-        <li>Sentiment shift mid-chat (neutral → concerned)</li>
-        <li>No disclosure anomaly on this interaction</li>
-      </ul>
-    </div>`;
+    </aside>`;
 
-  const insightsPane = showInsights
-    ? `<aside class="ix-insights ${ixInsightsOpen ? "open" : "collapsed"}">
-          <button class="ix-insights-toggle" type="button" data-ix-insights-toggle aria-expanded="${ixInsightsOpen}">
-            <span class="ix-insights-toggle-label">Advanced Insights*</span>
-            <span class="ix-insights-chevron">${ixInsightsOpen ? "»" : "«"}</span>
-          </button>
-          <div class="ix-insights-body" ${ixInsightsOpen ? "" : "hidden"}>
-            ${insightsBody}
-          </div>
-        </aside>`
-    : "";
-
-  const layoutClass = showInsights
-    ? ixInsightsOpen
-      ? "insights-open"
-      : "insights-closed"
-    : "no-insights";
+  const layoutClass = ixInsightsOpen ? "insights-open" : "insights-closed";
 
   return `
     <div class="ix-detail-page">
@@ -1078,7 +1035,7 @@ function renderInteractionDetail(ix) {
           <div class="ix-side-body">${sideBody}</div>
         </section>
 
-        ${insightsPane}
+        ${settingsPane}
       </div>
     </div>`;
 }
@@ -1874,54 +1831,9 @@ function renderAdminCalibrationBody() {
 
 function renderAdminAdvancedBody() {
   return `
-    <p class="page-sub" style="margin-top:0">Sentiment analysis, predictive QA, intent analytics, and behavioral scoring signals.</p>
-    <div class="adv-grid">
-      <div class="adv-card">
-        <h3>Sentiment analysis</h3>
-        <div class="sentiment-row">
-          <div class="sent-pill pos">Positive<br/><b>41%</b></div>
-          <div class="sent-pill neu">Neutral<br/><b>46%</b></div>
-          <div class="sent-pill neg">Negative<br/><b>13%</b></div>
-        </div>
-        <p style="font-size:0.86rem;margin:0">Negative spikes correlate with fraud and payment_arrangement intents.</p>
-      </div>
-      <div class="adv-card">
-        <h3>Predictive analysis</h3>
-        <p style="font-size:0.88rem;line-height:1.45;margin:0 0 0.55rem">Cards chat fail risk <strong>+18%</strong> tomorrow from promo script variance.</p>
-        <button class="btn primary" type="button">Open risk plan</button>
-      </div>
-      <div class="adv-card">
-        <h3>Intent analytics</h3>
-        <table class="table">
-          <tbody>
-            <tr><td>rx_refill_request</td><td>18%</td></tr>
-            <tr><td>fraud-unauthorized-charges</td><td>14%</td></tr>
-            <tr><td>address_update</td><td>11%</td></tr>
-            <tr><td>payment_arrangement</td><td>9%</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div class="grid-2" style="margin-top:0.75rem">
-      <div class="card">
-        <h3>Behavioral scoring trends</h3>
-        <table class="table">
-          <thead><tr><th>Dimension</th><th>Avg</th><th>WoW</th></tr></thead>
-          <tbody>
-            <tr><td>Empathy</td><td>4.2</td><td>+0.1</td></tr>
-            <tr><td>Ownership</td><td>4.5</td><td>0</td></tr>
-            <tr><td>Clarity</td><td>3.9</td><td>-0.2</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="card">
-        <h3>Anomaly highlights</h3>
-        <ul class="opt-list">
-          <li>Override rate ↑ Cards LOB</li>
-          <li>Sentiment negative cluster · payment_arrangement</li>
-          <li>Predictive alert · promo script variance</li>
-        </ul>
-      </div>
+    <div class="card">
+      <h3>Advanced Settings</h3>
+      <p class="hint" style="margin:0">Empty pane — placeholder for future advanced settings.</p>
     </div>`;
 }
 
@@ -1935,13 +1847,13 @@ function renderAdmin() {
 
   return `
     <h1 class="page-title">Settings*</h1>
-    <p class="page-sub">Not available now (marked with *). Preview of Admin / Calibration / Advanced Insights tabs.</p>
-    <div class="callout">Settings* is unavailable in this release. Advanced Insights* is also marked unavailable.</div>
+    <p class="page-sub">Not available now (marked with *). Preview of Admin / Calibration / Advanced Settings tabs.</p>
+    <div class="callout">Settings* is unavailable in this release.</div>
     ${tenantRow()}
     <div class="tabs">
       <button class="tab ${settingsTab === "admin" ? "active" : ""}" type="button" data-settings-tab="admin">Admin</button>
       <button class="tab ${settingsTab === "calibration" ? "active" : ""}" type="button" data-settings-tab="calibration">Calibration &amp; AI Opt</button>
-      <button class="tab ${settingsTab === "advanced" ? "active" : ""}" type="button" data-settings-tab="advanced">Advanced Insights*</button>
+      <button class="tab ${settingsTab === "advanced" ? "active" : ""}" type="button" data-settings-tab="advanced">Advanced Settings</button>
     </div>
     <div class="unavailable-preview">${body}</div>`;
 }

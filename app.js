@@ -987,20 +987,64 @@ function renderInteractionDetail(ix) {
   const audit = renderAuditForm(ix);
   const sideBody = ixSideTab === "details" ? details : ixSideTab === "history" ? history : audit;
 
-  const settingsPane = `
-    <aside class="ix-insights ${ixInsightsOpen ? "open" : "collapsed"}">
-      <button class="ix-insights-toggle" type="button" data-ix-insights-toggle aria-expanded="${ixInsightsOpen}">
-        <span class="ix-insights-toggle-label">Advanced Settings</span>
-        <span class="ix-insights-chevron">${ixInsightsOpen ? "»" : "«"}</span>
-      </button>
-      <div class="ix-insights-body" ${ixInsightsOpen ? "" : "hidden"}>
-        <div class="ix-empty-pane">
-          <p class="hint" style="margin:0">Advanced Settings — empty pane (placeholder).</p>
-        </div>
-      </div>
-    </aside>`;
+  const showInsights = !isNotAudited;
 
-  const layoutClass = ixInsightsOpen ? "insights-open" : "insights-closed";
+  const insightsBody = `
+    <div class="ix-insights-section">
+      <h4>Sentiment analysis</h4>
+      <div class="sentiment-row" style="margin:0.45rem 0">
+        <div class="sent-pill pos">Pos<br/><b>28%</b></div>
+        <div class="sent-pill neu">Neu<br/><b>54%</b></div>
+        <div class="sent-pill neg">Neg<br/><b>18%</b></div>
+      </div>
+      <p style="font-size:0.82rem;margin:0;color:var(--muted)">Customer tone: ${ix.sentiment}. Peak negative near unauthorized-charge mention.</p>
+    </div>
+    <div class="ix-insights-section">
+      <h4>Predictive analysis</h4>
+      <p style="font-size:0.86rem;line-height:1.4;margin:0 0 0.45rem">Similar fraud intents show <strong>+12%</strong> escalate risk when soft-skills score &lt; 18/20.</p>
+      <button class="btn" type="button" style="width:100%">Open risk signals</button>
+    </div>
+    <div class="ix-insights-section">
+      <h4>Intent analytics</h4>
+      <p><span class="chip">${ix.intent}</span></p>
+      <p style="font-size:0.82rem;margin:0.4rem 0 0;color:var(--muted)">Primary intent confidence 0.91 · related: account_security</p>
+    </div>
+    <div class="ix-insights-section">
+      <h4>Behavioral scoring</h4>
+      <table class="table">
+        <tbody>
+          <tr><td>Empathy</td><td>4.2</td></tr>
+          <tr><td>Ownership</td><td>4.5</td></tr>
+          <tr><td>Clarity</td><td>4.0</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="ix-insights-section">
+      <h4>Anomaly highlights</h4>
+      <ul class="opt-list">
+        <li>Escalation flag on this conversation</li>
+        <li>Sentiment shift mid-chat (neutral → concerned)</li>
+        <li>No disclosure anomaly on this interaction</li>
+      </ul>
+    </div>`;
+
+  const insightsPane = showInsights
+    ? `<aside class="ix-insights ${ixInsightsOpen ? "open" : "collapsed"}">
+          <button class="ix-insights-toggle" type="button" data-ix-insights-toggle aria-expanded="${ixInsightsOpen}">
+            <span class="ix-insights-toggle-label">Advanced Insights*</span>
+            <span class="ix-insights-chevron">${ixInsightsOpen ? "»" : "«"}</span>
+          </button>
+          <div class="ix-insights-body" ${ixInsightsOpen ? "" : "hidden"}>
+            ${insightsBody}
+          </div>
+        </aside>`
+    : "";
+
+  const layoutClass = showInsights
+    ? ixInsightsOpen
+      ? "insights-open"
+      : "insights-closed"
+    : "no-insights";
 
   return `
     <div class="ix-detail-page">
@@ -1035,7 +1079,7 @@ function renderInteractionDetail(ix) {
           <div class="ix-side-body">${sideBody}</div>
         </section>
 
-        ${settingsPane}
+        ${insightsPane}
       </div>
     </div>`;
 }

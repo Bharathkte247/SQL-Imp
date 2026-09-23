@@ -5,12 +5,22 @@
 | Nav | Description |
 | --- | --- |
 | **Feature Map** | All 31 AutoQRA capabilities |
-| **Interactions** | Filterable list → detail (audit + GenAI summary) |
+| **Interactions** | Status filter: Not Audited · LLM Audited · QA Reviewed · Pending Dispute · Complete → detail modes |
 | **Import and export** | Techclient ingest + AutoQRA CSV export |
 | **Jobs** | Jobs & results first, then New job (AutoQRA scoring runs) |
-| **Coaching** | Long filterable list + example audits / coaching plan |
-| **Reporting & Insights** | Filters, top agents, LOB leaderboard |
-| **Admin** | Tabs: **Admin** · **Calibration & AI Opt** · **Advanced Insights** (previous options kept) |
+| **Coaching\*** | Not available now (preview) |
+| **Reporting & Insights\*** | Not available now (preview) |
+| **Settings\*** | Not available now · Admin / Calibration / Advanced Insights\* tabs |
+
+## Interaction status modes
+
+| Status | Detail behavior |
+| --- | --- |
+| **Not Audited** | Empty monitoring form for manual QA · no Advanced Insights pane |
+| **LLM Audited** | AI-scored form, not submitted · human override enabled |
+| **QA Reviewed** | Manual or Hybrid · human override greyed out |
+| **Pending Dispute** | Manual or Hybrid · human override enabled |
+| **Complete** | Agent feedback acknowledged · audit locked |
 
 ## Run
 

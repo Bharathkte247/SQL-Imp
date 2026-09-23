@@ -5,12 +5,12 @@
 | Nav | Description |
 | --- | --- |
 | **Feature Map** | All 31 AutoQRA capabilities |
-| **Interactions** | Filterable list → detail (audit form + GenAI summary) |
-| **Import / Export** | Techclient ingest + AutoQRA CSV export |
-| **QA Job** | Job-centric AutoQRA runs (QA jobs first, then Create QA job) |
-| **Coaching** | Long filterable opportunity list + example audits / coaching plan |
-| **Reporting & Insights** | Filters, top agents, LOB leaderboard, Superset placeholder |
-| **Settings** | Admin & CRM/KB · Calibration & AI Opt · Advanced Insights |
+| **Interactions** | Filterable list → detail (audit + GenAI summary) |
+| **Import and export** | Techclient ingest + AutoQRA CSV export |
+| **Jobs** | Jobs & results first, then New job (AutoQRA scoring runs) |
+| **Coaching** | Long filterable list + example audits / coaching plan |
+| **Reporting & Insights** | Filters, top agents, LOB leaderboard |
+| **Admin** | Tabs: **Admin** · **Calibration & AI Opt** · **Advanced Insights** (previous options kept) |
 
 ## Run
 

@@ -415,6 +415,7 @@ const coachPaneSub = document.getElementById("coachPaneSub");
 let currentView = "interactions";
 let selectedIx = null; // null = list view
 let ixSideTab = "audit";
+let ixInsightsOpen = true;
 let dataTab = "ingest";
 let samplingTab = "jobs";
 let settingsTab = "admin";
@@ -691,51 +692,88 @@ function renderInteractionDetail(ix) {
 
   const sideBody = ixSideTab === "details" ? details : ixSideTab === "history" ? history : audit;
 
+  const insightsBody = `
+    <div class="ix-insights-section">
+      <h4>Sentiment analysis</h4>
+      <div class="sentiment-row" style="margin:0.45rem 0">
+        <div class="sent-pill pos">Pos<br/><b>28%</b></div>
+        <div class="sent-pill neu">Neu<br/><b>54%</b></div>
+        <div class="sent-pill neg">Neg<br/><b>18%</b></div>
+      </div>
+      <p style="font-size:0.82rem;margin:0;color:var(--muted)">Customer tone: ${ix.sentiment}. Peak negative near unauthorized-charge mention.</p>
+    </div>
+    <div class="ix-insights-section">
+      <h4>Predictive analysis</h4>
+      <p style="font-size:0.86rem;line-height:1.4;margin:0 0 0.45rem">Similar fraud intents show <strong>+12%</strong> escalate risk when soft-skills score &lt; 18/20.</p>
+      <button class="btn" type="button" style="width:100%">Open risk signals</button>
+    </div>
+    <div class="ix-insights-section">
+      <h4>Intent analytics</h4>
+      <p><span class="chip">${ix.intent}</span></p>
+      <p style="font-size:0.82rem;margin:0.4rem 0 0;color:var(--muted)">Primary intent confidence 0.91 · related: account_security</p>
+    </div>
+    <div class="ix-insights-section">
+      <h4>Behavioral scoring</h4>
+      <table class="table">
+        <tbody>
+          <tr><td>Empathy</td><td>4.2</td></tr>
+          <tr><td>Ownership</td><td>4.5</td></tr>
+          <tr><td>Clarity</td><td>4.0</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="ix-insights-section">
+      <h4>Anomaly highlights</h4>
+      <ul class="opt-list">
+        <li>Escalation flag on this conversation</li>
+        <li>Sentiment shift mid-chat (neutral → concerned)</li>
+        <li>No disclosure anomaly on this interaction</li>
+      </ul>
+    </div>`;
+
   return `
-    <div class="ix-layout">
-      <section class="ix-list">
-        <div class="ix-list-head">
-          <h2>Interactions</h2>
-          <button class="link-btn" type="button" data-ix-back style="font-size:0.8rem">← All interactions</button>
-        </div>
-        <div class="ix-items">
-          ${filteredInteractions().map(
-            (i) => `
-            <button class="ix-item ${i.id === ix.id ? "active" : ""}" type="button" data-open-ix="${i.id}">
-              <div class="id">${i.short}</div>
-              <div class="meta">${i.queue}</div>
-              <div class="sub">${i.agentName} · ${i.score} · ${i.status}</div>
-            </button>`
-          ).join("")}
-        </div>
-      </section>
-
-      <section class="ix-transcript">
-        <div class="ix-trans-head">
-          <div>
-            <h2>Transcript</h2>
-            <div class="ix-trans-meta">${ix.id} · ${ix.duration} · ${ix.agentName}</div>
+    <div class="ix-detail-page">
+      <div class="ix-detail-toolbar">
+        <button class="btn" type="button" data-ix-back>← Back to list</button>
+        <div class="ix-trans-meta">${ix.short} · ${ix.queue} · ${ix.agentName} · ${ix.duration}</div>
+      </div>
+      <div class="ix-layout ${ixInsightsOpen ? "insights-open" : "insights-closed"}">
+        <section class="ix-transcript">
+          <div class="ix-trans-head">
+            <div>
+              <h2>Transcript</h2>
+              <div class="ix-trans-meta">${ix.id}</div>
+            </div>
           </div>
-          <button class="btn" type="button" data-ix-back>← Back to list</button>
-        </div>
-        <div class="search-row"><input placeholder="Search transcript..." /></div>
-        <div class="transcript-body">
-          <div class="bubble bot"><div class="who">Bot · 11:45 AM</div>Welcome to 247client1 support. I can help with unauthorized charges.</div>
-          <div class="bubble visitor"><div class="who">Visitor · 11:45 AM</div>I see a charge I didn't make on my account.</div>
-          <div class="bubble bot"><div class="who">Bot · 11:46 AM</div>I'm sorry about that. Let's verify your identity, then I'll connect you to a specialist.</div>
-          <div class="bubble visitor"><div class="who">Visitor · 11:47 AM</div>OK — last four of member number is 4912.</div>
-          <div class="bubble bot"><div class="who">Bot · 11:48 AM</div>Verified. Escalating to fraud review now. You'll get a confirmation shortly.</div>
-        </div>
-      </section>
+          <div class="search-row"><input placeholder="Search transcript..." /></div>
+          <div class="transcript-body">
+            <div class="bubble bot"><div class="who">Bot · 11:45 AM</div>Welcome to 247client1 support. I can help with unauthorized charges.</div>
+            <div class="bubble visitor"><div class="who">Visitor · 11:45 AM</div>I see a charge I didn't make on my account.</div>
+            <div class="bubble bot"><div class="who">Bot · 11:46 AM</div>I'm sorry about that. Let's verify your identity, then I'll connect you to a specialist.</div>
+            <div class="bubble visitor"><div class="who">Visitor · 11:47 AM</div>OK — last four of member number is 4912.</div>
+            <div class="bubble bot"><div class="who">Bot · 11:48 AM</div>Verified. Escalating to fraud review now. You'll get a confirmation shortly.</div>
+          </div>
+        </section>
 
-      <section class="ix-side">
-        <div class="ix-side-tabs">
-          <button class="tab ${ixSideTab === "details" ? "active" : ""}" type="button" data-ix-tab="details">Details</button>
-          <button class="tab ${ixSideTab === "audit" ? "active" : ""}" type="button" data-ix-tab="audit">Audit</button>
-          <button class="tab ${ixSideTab === "history" ? "active" : ""}" type="button" data-ix-tab="history">History</button>
-        </div>
-        <div class="ix-side-body">${sideBody}</div>
-      </section>
+        <section class="ix-side">
+          <div class="ix-side-tabs">
+            <button class="tab ${ixSideTab === "details" ? "active" : ""}" type="button" data-ix-tab="details">Details</button>
+            <button class="tab ${ixSideTab === "audit" ? "active" : ""}" type="button" data-ix-tab="audit">Audit</button>
+            <button class="tab ${ixSideTab === "history" ? "active" : ""}" type="button" data-ix-tab="history">History</button>
+          </div>
+          <div class="ix-side-body">${sideBody}</div>
+        </section>
+
+        <aside class="ix-insights ${ixInsightsOpen ? "open" : "collapsed"}">
+          <button class="ix-insights-toggle" type="button" data-ix-insights-toggle aria-expanded="${ixInsightsOpen}">
+            <span class="ix-insights-toggle-label">Advanced Insights</span>
+            <span class="ix-insights-chevron">${ixInsightsOpen ? "»" : "«"}</span>
+          </button>
+          <div class="ix-insights-body" ${ixInsightsOpen ? "" : "hidden"}>
+            ${insightsBody}
+          </div>
+        </aside>
+      </div>
     </div>`;
 }
 
@@ -1630,6 +1668,12 @@ workspace.addEventListener("click", (e) => {
   const ixTab = e.target.closest("[data-ix-tab]");
   if (ixTab) {
     ixSideTab = ixTab.dataset.ixTab;
+    render("interactions");
+    return;
+  }
+
+  if (e.target.closest("[data-ix-insights-toggle]")) {
+    ixInsightsOpen = !ixInsightsOpen;
     render("interactions");
     return;
   }

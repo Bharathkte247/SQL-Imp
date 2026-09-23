@@ -269,7 +269,7 @@ a { color: var(--accent); }
 .ix-side-tabs .tab { flex: 1; text-align: center; }
 .ix-side-body { flex: 1; overflow: auto; padding: 0.85rem; }
 
-/* Advanced Insights collapsible pane */
+/* Advanced Settings collapsible pane */
 .ix-insights {
   background: #fff; border: 1px solid var(--line); border-radius: 10px;
   overflow: hidden; display: flex; flex-direction: column; min-width: 0;

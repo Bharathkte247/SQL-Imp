@@ -919,18 +919,42 @@ function renderInteractionDetail(ix) {
   const sideBody = ixSideTab === "details" ? details : ixSideTab === "history" ? history : audit;
 
   const insightsBody = `
-    <div class="callout">Advanced Insights* is not available in this release.</div>
-    <div class="ix-insights-section" style="opacity:0.55;pointer-events:none">
+    <div class="ix-insights-section">
       <h4>Sentiment analysis</h4>
-      <p style="font-size:0.82rem;color:var(--muted)">Coming soon</p>
+      <div class="sentiment-row" style="margin:0.45rem 0">
+        <div class="sent-pill pos">Pos<br/><b>28%</b></div>
+        <div class="sent-pill neu">Neu<br/><b>54%</b></div>
+        <div class="sent-pill neg">Neg<br/><b>18%</b></div>
+      </div>
+      <p style="font-size:0.82rem;margin:0;color:var(--muted)">Customer tone: ${ix.sentiment}. Peak negative near unauthorized-charge mention.</p>
     </div>
-    <div class="ix-insights-section" style="opacity:0.55;pointer-events:none">
+    <div class="ix-insights-section">
       <h4>Predictive analysis</h4>
-      <p style="font-size:0.82rem;color:var(--muted)">Coming soon</p>
+      <p style="font-size:0.86rem;line-height:1.4;margin:0 0 0.45rem">Similar fraud intents show <strong>+12%</strong> escalate risk when soft-skills score &lt; 18/20.</p>
+      <button class="btn" type="button" style="width:100%">Open risk signals</button>
     </div>
-    <div class="ix-insights-section" style="opacity:0.55;pointer-events:none">
+    <div class="ix-insights-section">
       <h4>Intent analytics</h4>
-      <p style="font-size:0.82rem;color:var(--muted)">Coming soon</p>
+      <p><span class="chip">${ix.intent}</span></p>
+      <p style="font-size:0.82rem;margin:0.4rem 0 0;color:var(--muted)">Primary intent confidence 0.91 · related: account_security</p>
+    </div>
+    <div class="ix-insights-section">
+      <h4>Behavioral scoring</h4>
+      <table class="table">
+        <tbody>
+          <tr><td>Empathy</td><td>4.2</td></tr>
+          <tr><td>Ownership</td><td>4.5</td></tr>
+          <tr><td>Clarity</td><td>4.0</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="ix-insights-section">
+      <h4>Anomaly highlights</h4>
+      <ul class="opt-list">
+        <li>Escalation flag on this conversation</li>
+        <li>Sentiment shift mid-chat (neutral → concerned)</li>
+        <li>No disclosure anomaly on this interaction</li>
+      </ul>
     </div>`;
 
   const insightsPane = showInsights

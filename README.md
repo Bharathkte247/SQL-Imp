@@ -10,13 +10,13 @@
 | **Jobs** | Jobs & results first, then New job (AutoQRA scoring runs) |
 | **Coaching\*** | Not available now · **Overall** = period themes for all agents · **Team** = team/queue · **Agent** = per-agent plans (former Overall list) |
 | **Reporting & Insights\*** | Not available now (preview) |
-| **Settings\*** | Not available now · Admin / Calibration / Advanced Insights\* tabs |
+| **Settings\*** | Not available now · Admin / Calibration / Advanced Settings (empty) tabs |
 
 ## Interaction status modes
 
 | Status | Detail behavior |
 | --- | --- |
-| **Not Audited** | Empty monitoring form for manual QA · no Advanced Insights pane |
+| **Not Audited** | Empty monitoring form for manual QA |
 | **LLM Audited** | AI-scored form, not submitted · human override enabled |
 | **QA Reviewed** | Manual or Hybrid · human override greyed out |
 | **Pending Dispute** | Manual or Hybrid · human override enabled |

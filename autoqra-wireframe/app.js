@@ -564,6 +564,50 @@ const OVERALL_THEMES = [
   },
 ];
 
+
+const CLOUD_CONNECTIONS = [
+  {
+    id: "aws-s3",
+    name: "Amazon S3",
+    provider: "AWS",
+    status: "Connected",
+    region: "us-east-1",
+    bucket: "247client1-autoqra-ingest",
+    path: "inbound/qra/",
+    direction: "Ingest + Export",
+  },
+  {
+    id: "azure-blob",
+    name: "Azure Blob Storage",
+    provider: "Azure",
+    status: "Available",
+    region: "eastus",
+    bucket: "autoqra-container",
+    path: "imports/",
+    direction: "Ingest",
+  },
+  {
+    id: "gcp-gcs",
+    name: "Google Cloud Storage",
+    provider: "GCP",
+    status: "Available",
+    region: "us-central1",
+    bucket: "247client1-gcs-qra",
+    path: "autoqra/",
+    direction: "Export",
+  },
+  {
+    id: "aws-s3-export",
+    name: "Amazon S3 (export)",
+    provider: "AWS",
+    status: "Connected",
+    region: "us-west-2",
+    bucket: "247client1-autoqra-export",
+    path: "outbound/results/",
+    direction: "Export / Push",
+  },
+];
+
 const CRMS = [
   { id: "salesforce", name: "Salesforce Service Cloud", type: "CRM", status: "Connected", endpoint: "https://example.my.salesforce.com" },
   { id: "dynamics", name: "Microsoft Dynamics 365", type: "CRM", status: "Available", endpoint: "—" },
@@ -589,6 +633,7 @@ let selectedIx = null; // null = list view
 let ixSideTab = "audit";
 let ixInsightsOpen = true;
 let dataTab = "ingest";
+let selectedCloud = "aws-s3";
 let samplingTab = "jobs";
 let settingsTab = "admin";
 let selectedCoach = null;
@@ -1093,7 +1138,7 @@ function renderInteractions() {
 
 function renderDataImport() {
   const ingest = `
-    <p class="hint" style="margin:0 0 0.75rem">Upload CSV or run SFTP / bucket ingest for this techclient tenant.</p>
+    <p class="hint" style="margin:0 0 0.75rem">Upload CSV, pull from SFTP, or ingest from a connected cloud bucket for this techclient tenant.</p>
     <div class="grid-2">
       <div class="card" style="margin:0">
         <h3>Upload CSV</h3>
@@ -1105,14 +1150,35 @@ function renderDataImport() {
         <div class="footer-actions"><span></span><button class="btn" type="button" disabled>Upload &amp; queue</button></div>
       </div>
       <div class="card" style="margin:0">
-        <h3>Selected job <span class="status ok">COMPLETED</span></h3>
-        <dl class="kv">
-          <dt>Job</dt><dd style="font-family:var(--mono);font-size:0.75rem">${selectedIngestJob}</dd>
-          <dt>File</dt><dd>qra-input-sample (4).csv</dd>
-          <dt>Rows</dt><dd>16 success / 0 failed / 16 total</dd>
-          <dt>Source</dt><dd>csv · techclient</dd>
-        </dl>
+        <h3>SFTP pull (ingest)</h3>
+        <p class="hint">Pull files from a remote SFTP folder on a schedule or on demand.</p>
+        <div class="grid-filters">
+          <div class="field"><label>Host</label><input value="sftp.247client1.com" /></div>
+          <div class="field"><label>Port</label><input value="22" /></div>
+          <div class="field"><label>Remote path</label><input value="/outbound/qra/" /></div>
+          <div class="field"><label>File pattern</label><input value="*.csv" /></div>
+        </div>
+        <div class="footer-actions">
+          <span class="hint">Auth: SSH key · last pull 2026-09-10 06:00 UTC</span>
+          <button class="btn primary" type="button">Run SFTP pull</button>
+        </div>
       </div>
+    </div>
+    <div class="card" style="margin-top:0.85rem">
+      <h3 style="margin:0 0 0.45rem">Cloud bucket ingest</h3>
+      <p class="hint" style="margin:0 0 0.65rem">Ingest from a connected cloud. Manage connections under the Cloud connections tab.</p>
+      <div class="grid-filters">
+        <div class="field"><label>Cloud</label>
+          <select>
+            <option>Amazon S3 · 247client1-autoqra-ingest</option>
+            <option>Azure Blob · autoqra-container</option>
+            <option>Google Cloud Storage · 247client1-gcs-qra</option>
+          </select>
+        </div>
+        <div class="field"><label>Path prefix</label><input value="inbound/qra/" /></div>
+        <div class="field"><label>Pattern</label><input value="*.csv" /></div>
+      </div>
+      <div class="footer-actions"><span class="hint">Uses Cloud connections credentials</span><button class="btn primary" type="button">Run cloud ingest</button></div>
     </div>
     <div class="card" style="margin-top:0.85rem">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap">
@@ -1144,6 +1210,22 @@ function renderDataImport() {
             <td>16/16</td>
             <td>2026-09-10 11:56:44</td>
           </tr>
+          <tr class="clickable" data-job="ing_sftp_4412">
+            <td style="font-family:var(--mono);font-size:0.75rem">ing_sftp_4412…</td>
+            <td><span class="chip">sftp</span></td>
+            <td>/outbound/qra/batch_0910.csv</td>
+            <td><span class="status ok">COMPLETED</span></td>
+            <td>420/420</td>
+            <td>2026-09-10 06:02:18</td>
+          </tr>
+          <tr class="clickable" data-job="ing_s3_8821">
+            <td style="font-family:var(--mono);font-size:0.75rem">ing_s3_8821…</td>
+            <td><span class="chip">aws_s3</span></td>
+            <td>s3://…/inbound/qra/day=2026-09-09/</td>
+            <td><span class="status ok">COMPLETED</span></td>
+            <td>1102/1102</td>
+            <td>2026-09-09 22:15:03</td>
+          </tr>
           <tr class="clickable" data-job="ing_api_9912">
             <td style="font-family:var(--mono);font-size:0.75rem">ing_api_9912…</td>
             <td><span class="chip">api_pull</span></td>
@@ -1157,10 +1239,10 @@ function renderDataImport() {
     </div>`;
 
   const exportTab = `
-    <p class="hint" style="margin:0 0 0.75rem">Export completed AutoQRA as QRA-Output CSV.</p>
+    <p class="hint" style="margin:0 0 0.75rem">Export completed AutoQRA as QRA-Output CSV, or push results via SFTP / cloud (see SFTP Push and Cloud connections).</p>
     <div class="grid-2">
       <div class="card" style="margin:0">
-        <h3>Export AutoQRA</h3>
+        <h3>Export AutoQRA (download)</h3>
         <p class="hint">Export COMPLETED AutoQRA rows. <a href="#">Download column sample</a></p>
         <div class="grid-filters">
           <div class="field"><label>Date from</label><input placeholder="mm/dd/yyyy" /></div>
@@ -1172,18 +1254,185 @@ function renderDataImport() {
         <h3>Selected job</h3>
         <p class="hint">Select an export job to download artifacts.</p>
       </div>
+    </div>
+    <div class="card" style="margin-top:0.85rem">
+      <h3 style="margin:0 0 0.45rem">Recent export jobs</h3>
+      <table class="table">
+        <thead><tr><th>Job</th><th>Destination</th><th>Status</th><th>Rows</th><th>Updated</th></tr></thead>
+        <tbody>
+          <tr>
+            <td style="font-family:var(--mono);font-size:0.75rem">exp_csv_2201…</td>
+            <td><span class="chip">download</span></td>
+            <td><span class="status ok">COMPLETED</span></td>
+            <td>860</td>
+            <td>2026-09-10 10:12</td>
+          </tr>
+          <tr>
+            <td style="font-family:var(--mono);font-size:0.75rem">exp_sftp_1188…</td>
+            <td><span class="chip">sftp_push</span></td>
+            <td><span class="status ok">COMPLETED</span></td>
+            <td>860</td>
+            <td>2026-09-10 10:14</td>
+          </tr>
+        </tbody>
+      </table>
     </div>`;
+
+  const sftpPush = `
+    <p class="hint" style="margin:0 0 0.75rem">Push AutoQRA export files to a remote SFTP server after scoring completes.</p>
+    <div class="grid-2">
+      <div class="card" style="margin:0">
+        <h3>SFTP Push configuration</h3>
+        <div class="grid-filters">
+          <div class="field"><label>Host</label><input value="sftp.partner-bank.com" /></div>
+          <div class="field"><label>Port</label><input value="22" /></div>
+          <div class="field"><label>Username</label><input value="autoqra_push" /></div>
+          <div class="field"><label>Auth</label>
+            <select><option>SSH private key</option><option>Password</option></select>
+          </div>
+          <div class="field"><label>Remote path</label><input value="/inbound/autoqra/results/" /></div>
+          <div class="field"><label>File name pattern</label><input value="qra_output_{date}.csv" /></div>
+          <div class="field"><label>Schedule</label>
+            <select><option>After each QA job completes</option><option>Daily 02:00 UTC</option><option>Manual only</option></select>
+          </div>
+          <div class="field"><label>Compression</label>
+            <select><option>None</option><option>gzip</option><option>zip</option></select>
+          </div>
+        </div>
+        <div class="footer-actions">
+          <button class="btn" type="button">Test connection</button>
+          <button class="btn primary" type="button">Save &amp; enable push</button>
+        </div>
+      </div>
+      <div class="card" style="margin:0">
+        <h3>Push status <span class="status ok">Enabled</span></h3>
+        <dl class="kv">
+          <dt>Last push</dt><dd>2026-09-10 10:14:22 UTC</dd>
+          <dt>Last file</dt><dd>qra_output_20260910.csv</dd>
+          <dt>Bytes</dt><dd>1.4 MB · 860 rows</dd>
+          <dt>Result</dt><dd><span class="status ok">OK</span></dd>
+          <dt>Next run</dt><dd>On next QA job complete</dd>
+        </dl>
+        <div class="footer-actions" style="margin-top:0.75rem">
+          <span></span>
+          <button class="btn primary" type="button">Push now</button>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:0.85rem">
+      <h3 style="margin:0 0 0.45rem">Recent SFTP push jobs</h3>
+      <table class="table">
+        <thead><tr><th>Job</th><th>Host / path</th><th>File</th><th>Status</th><th>Rows</th><th>Updated</th></tr></thead>
+        <tbody>
+          <tr>
+            <td style="font-family:var(--mono);font-size:0.75rem">push_1188…</td>
+            <td>sftp.partner-bank.com:/inbound/autoqra/results/</td>
+            <td>qra_output_20260910.csv</td>
+            <td><span class="status ok">COMPLETED</span></td>
+            <td>860</td>
+            <td>2026-09-10 10:14</td>
+          </tr>
+          <tr>
+            <td style="font-family:var(--mono);font-size:0.75rem">push_1044…</td>
+            <td>sftp.partner-bank.com:/inbound/autoqra/results/</td>
+            <td>qra_output_20260909.csv</td>
+            <td><span class="status ok">COMPLETED</span></td>
+            <td>742</td>
+            <td>2026-09-09 10:11</td>
+          </tr>
+          <tr>
+            <td style="font-family:var(--mono);font-size:0.75rem">push_0991…</td>
+            <td>sftp.partner-bank.com:/inbound/autoqra/results/</td>
+            <td>qra_output_20260908.csv</td>
+            <td><span class="status bad">FAILED</span></td>
+            <td>—</td>
+            <td>2026-09-08 10:09</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>`;
+
+  const cloud = CLOUD_CONNECTIONS.find((c) => c.id === selectedCloud) || CLOUD_CONNECTIONS[0];
+  const cloudCards = CLOUD_CONNECTIONS.map(
+    (c) => `
+    <button class="cloud-card ${c.id === selectedCloud ? "selected" : ""}" type="button" data-select-cloud="${c.id}">
+      <div class="cloud-card-top">
+        <strong>${c.name}</strong>
+        <span class="status ${c.status === "Connected" ? "ok" : "neutral"}">${c.status}</span>
+      </div>
+      <div class="hint">${c.provider} · ${c.region}</div>
+      <div class="hint" style="margin-top:0.25rem">${c.bucket}</div>
+      <div class="chip" style="margin-top:0.45rem">${c.direction}</div>
+    </button>`
+  ).join("");
+
+  const cloudsTab = `
+    <p class="hint" style="margin:0 0 0.75rem">Connect AutoQRA to cloud object stores for ingest and export / push. Select a provider to configure.</p>
+    <div class="cloud-grid">${cloudCards}</div>
+    <div class="card" style="margin-top:0.85rem">
+      <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-start">
+        <div>
+          <h3 style="margin:0">${cloud.name}</h3>
+          <p class="hint" style="margin:0.3rem 0 0">${cloud.provider} · ${cloud.status} · ${cloud.direction}</p>
+        </div>
+        <div class="btn-row">
+          <button class="btn" type="button">Test connection</button>
+          <button class="btn primary" type="button">${cloud.status === "Connected" ? "Save config" : "Connect"}</button>
+        </div>
+      </div>
+      <div class="grid-filters" style="margin-top:0.75rem">
+        <div class="field"><label>Region</label><input value="${cloud.region}" /></div>
+        <div class="field"><label>Bucket / container</label><input value="${cloud.bucket}" /></div>
+        <div class="field"><label>Path prefix</label><input value="${cloud.path}" /></div>
+        <div class="field"><label>Direction</label>
+          <select>
+            <option ${cloud.direction.includes("Ingest") && cloud.direction.includes("Export") ? "selected" : ""}>Ingest + Export</option>
+            <option ${cloud.direction === "Ingest" ? "selected" : ""}>Ingest only</option>
+            <option ${cloud.direction.includes("Export") && !cloud.direction.includes("Ingest") ? "selected" : ""}>Export / Push only</option>
+          </select>
+        </div>
+        <div class="field"><label>Auth</label>
+          <select>
+            <option>${cloud.provider === "AWS" ? "IAM role / access key" : cloud.provider === "Azure" ? "Service principal / SAS" : "Service account JSON"}</option>
+            <option>Workload identity</option>
+          </select>
+        </div>
+        <div class="field"><label>Encryption</label>
+          <select><option>SSE (provider managed)</option><option>Customer managed key (CMK)</option><option>None</option></select>
+        </div>
+      </div>
+      <p class="hint" style="margin:0.75rem 0 0">Wireframe only — credentials are not stored. Use Cloud connections here, then pick the destination under Ingest or SFTP Push / Export jobs.</p>
+    </div>
+    <div class="card" style="margin-top:0.85rem">
+      <h3 style="margin:0 0 0.45rem">Add another cloud</h3>
+      <div class="btn-row">
+        <button class="btn" type="button">+ Amazon S3</button>
+        <button class="btn" type="button">+ Azure Blob</button>
+        <button class="btn" type="button">+ Google Cloud Storage</button>
+        <button class="btn" type="button">+ Other (S3-compatible)</button>
+      </div>
+    </div>`;
+
+  const body =
+    dataTab === "export"
+      ? exportTab
+      : dataTab === "sftp-push"
+        ? sftpPush
+        : dataTab === "clouds"
+          ? cloudsTab
+          : ingest;
 
   return `
     <h1 class="page-title">Import and export</h1>
-    <p class="page-sub">Ingest, pull, and export conversation data for the selected techclient tenant.</p>
+    <p class="page-sub">CSV ingest, SFTP pull / push, cloud connections (AWS · Azure · GCP), and AutoQRA export for this techclient tenant.</p>
     ${tenantRow()}
-    ${failedBar()}
     <div class="tabs">
-      <button class="tab ${dataTab === "ingest" ? "active" : ""}" type="button" data-data-tab="ingest">Ingest <span class="badge">2</span></button>
+      <button class="tab ${dataTab === "ingest" ? "active" : ""}" type="button" data-data-tab="ingest">Ingest <span class="badge">4</span></button>
       <button class="tab ${dataTab === "export" ? "active" : ""}" type="button" data-data-tab="export">Export</button>
+      <button class="tab ${dataTab === "sftp-push" ? "active" : ""}" type="button" data-data-tab="sftp-push">SFTP Push</button>
+      <button class="tab ${dataTab === "clouds" ? "active" : ""}" type="button" data-data-tab="clouds">Cloud connections</button>
     </div>
-    ${dataTab === "ingest" ? ingest : exportTab}`;
+    ${body}`;
 }
 
 function renderDataImportTitle() {
@@ -2087,6 +2336,14 @@ workspace.addEventListener("click", (e) => {
   const dTab = e.target.closest("[data-data-tab]");
   if (dTab) {
     dataTab = dTab.dataset.dataTab;
+    render("data-import");
+    return;
+  }
+
+  const cloudSel = e.target.closest("[data-select-cloud]");
+  if (cloudSel) {
+    selectedCloud = cloudSel.dataset.selectCloud;
+    dataTab = "clouds";
     render("data-import");
     return;
   }

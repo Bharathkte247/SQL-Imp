@@ -11,26 +11,26 @@ const FEATURES = [
   { id: "multi-lob", name: "Multi-LOB support", tier: "core", view: "sampling" },
   { id: "audit-trail", name: "Audit Trail and Log", tier: "core", view: "interactions" },
   { id: "human-override", name: "Human override workflow", tier: "core", view: "interactions" },
-  { id: "crm-docs", name: "Access to CRM and Documentation", tier: "advanced", view: "settings" },
-  { id: "calibration", name: "Calibration sessions", tier: "advanced", view: "settings" },
+  { id: "crm-docs", name: "Access to CRM and Documentation", tier: "advanced", view: "admin" },
+  { id: "calibration", name: "Calibration sessions", tier: "advanced", view: "admin" },
   { id: "compliance-alerts", name: "Compliance Detection and Alerts", tier: "advanced", view: "interactions" },
   { id: "tech-ingestion", name: "Technology Client — Data ingestion", tier: "advanced", view: "data-import" },
   { id: "autonomous-scoring", name: "Fully autonomous scoring", tier: "advanced", view: "sampling" },
   { id: "advanced-dashboards", name: "Advanced dashboards", tier: "advanced", view: "reporting" },
   { id: "cloud-integrations", name: "Cloud integrations", tier: "advanced", view: "data-import" },
   { id: "csv-ingestion", name: "CSV ingestion", tier: "advanced", view: "data-import" },
-  { id: "queue-mapping", name: "Queue mapping", tier: "advanced", view: "settings" },
-  { id: "sentiment", name: "Sentiment analysis", tier: "advanced", view: "settings" },
+  { id: "queue-mapping", name: "Queue mapping", tier: "advanced", view: "admin" },
+  { id: "sentiment", name: "Sentiment analysis", tier: "advanced", view: "admin" },
   { id: "coaching", name: "Agent coaching recommendations", tier: "insight", view: "coaching" },
-  { id: "rbac", name: "RBAC", tier: "insight", view: "settings" },
-  { id: "self-serve", name: "Self-serve Capabilities (Based on RBAC)", tier: "insight", view: "settings" },
+  { id: "rbac", name: "RBAC", tier: "insight", view: "admin" },
+  { id: "self-serve", name: "Self-serve Capabilities (Based on RBAC)", tier: "insight", view: "admin" },
   { id: "multi-language", name: "Multi-language QA", tier: "insight", view: "interactions" },
   { id: "realtime", name: "Real-time auditing", tier: "insight", view: "interactions" },
-  { id: "monitoring-form", name: "New / Modification of the Monitoring Form", tier: "insight", view: "settings" },
-  { id: "anomaly", name: "AI anomaly detection", tier: "insight", view: "settings" },
+  { id: "monitoring-form", name: "New / Modification of the Monitoring Form", tier: "insight", view: "admin" },
+  { id: "anomaly", name: "AI anomaly detection", tier: "insight", view: "admin" },
   { id: "genai-summaries", name: "GenAI summaries", tier: "insight", view: "interactions" },
-  { id: "intent", name: "Intent analytics", tier: "insight", view: "settings" },
-  { id: "predictive", name: "Predictive QA insights", tier: "insight", view: "settings" },
+  { id: "intent", name: "Intent analytics", tier: "insight", view: "admin" },
+  { id: "predictive", name: "Predictive QA insights", tier: "insight", view: "admin" },
   { id: "behavioral", name: "Behavioral scoring", tier: "insight", view: "interactions" },
 ];
 
@@ -460,7 +460,7 @@ function renderOverview() {
 
   return `
     <h1 class="page-title">AutoQRA feature map</h1>
-    <p class="page-sub">31 capabilities across Interactions, Import / Export, QA Job, Coaching, Reporting & Insights, and Settings.</p>
+    <p class="page-sub">31 capabilities across Interactions, Import and export, Jobs, Coaching, Reporting & Insights, and Admin.</p>
     <div class="stat-row">
       <div class="stat"><div class="label">Total</div><div class="value">31</div></div>
       <div class="stat"><div class="label">Core</div><div class="value">${core.length}</div></div>
@@ -768,8 +768,8 @@ function renderDataImport() {
     </div>`;
 
   return `
-    <h1 class="page-title">Import / Export</h1>
-    <p class="page-sub">Bring conversation data into AutoQRA for this techclient, and export completed QA results.</p>
+    <h1 class="page-title">Import and export</h1>
+    <p class="page-sub">Ingest, pull, and export conversation data for the selected techclient tenant.</p>
     ${tenantRow()}
     ${failedBar()}
     <div class="tabs">
@@ -781,14 +781,14 @@ function renderDataImport() {
 
 function renderDataImportTitle() {
   return `
-    <h1 class="page-title">Import / Export</h1>
-    <p class="page-sub">Bring conversation data into AutoQRA for this techclient, and export completed QA results.</p>`;
+    <h1 class="page-title">Import and export</h1>
+    <p class="page-sub">Ingest, pull, and export conversation data for the selected techclient tenant.</p>`;
 }
 
 function renderSampling() {
   const jobs = `
     <div class="card">
-      <h3>QA jobs — track AutoQRA scoring runs</h3>
+      <h3>Jobs &amp; results — track AutoQRA scoring runs</h3>
       <p class="hint">Each job selects interactions, runs AutoQRA scoring / enrichment / evaluation, and stores results for review and coaching.</p>
       <table class="table">
         <thead><tr><th>Job ID</th><th>Purpose</th><th>Scope</th><th>Requested</th><th>Status</th><th>Scored</th><th>Updated</th></tr></thead>
@@ -832,14 +832,14 @@ function renderSampling() {
         </tbody>
       </table>
       <div class="btn-row" style="margin-top:0.75rem">
-        <button class="btn primary" type="button" data-samp-tab="new">+ Create QA job</button>
+        <button class="btn primary" type="button" data-samp-tab="new">+ New job</button>
         <button class="btn" type="button">Refresh</button>
       </div>
     </div>`;
 
   const newJob = `
     <div class="card">
-      <h3>Create QA job</h3>
+      <h3>New job</h3>
       <p class="hint">Define which ingested interactions to score. This queues an AutoQRA job — it does not open the audit form itself. Results appear under QA jobs when complete.</p>
       <div class="grid-filters">
         <div class="field"><label>Job name</label><input value="247client1 weekly AutoQRA" /></div>
@@ -865,19 +865,19 @@ function renderSampling() {
         <div class="field"><label>Requested count</label><input type="number" value="10" /></div>
       </div>
       <div class="footer-actions">
-        <p class="hint">After you start the job, return to <strong>QA jobs</strong> to watch progress and open scored interactions.</p>
-        <button class="btn primary" type="button">Start QA job</button>
+        <p class="hint">After you start the job, return to <strong>Jobs &amp; results</strong> to watch progress and open scored interactions.</p>
+        <button class="btn primary" type="button">Start job</button>
       </div>
     </div>`;
 
   return `
-    <h1 class="page-title">QA Job</h1>
-    <p class="page-sub">Create and monitor AutoQRA scoring jobs — select interactions, run QA at scale, then review results.</p>
+    <h1 class="page-title">Jobs</h1>
+    <p class="page-sub">Create and monitor AutoQRA scoring jobs. Select interactions, run QA at scale, then review results.</p>
     ${tenantRow()}
     ${failedBar()}
     <div class="tabs">
-      <button class="tab ${samplingTab === "jobs" ? "active" : ""}" type="button" data-samp-tab="jobs">QA jobs</button>
-      <button class="tab ${samplingTab === "new" ? "active" : ""}" type="button" data-samp-tab="new">Create QA job</button>
+      <button class="tab ${samplingTab === "jobs" ? "active" : ""}" type="button" data-samp-tab="jobs">Jobs &amp; results</button>
+      <button class="tab ${samplingTab === "new" ? "active" : ""}" type="button" data-samp-tab="new">New job</button>
     </div>
     ${samplingTab === "jobs" ? jobs : newJob}`;
 }
@@ -1124,8 +1124,9 @@ function renderReporting() {
     </div>`;
 }
 
-function renderSettingsAdminBody() {
+function renderAdminTenantBody() {
   return `
+    <p class="page-sub" style="margin-top:0">Tenant configuration, CRM / KB integration, ingestion, RBAC, and monitoring forms.</p>
     <div class="card">
       <h3>CRM &amp; Knowledge Base integration</h3>
       <p class="hint">Connect CRMs and KB sources so AutoQRA can pull case context and policy articles during review.</p>
@@ -1144,24 +1145,49 @@ function renderSettingsAdminBody() {
   "quota_timezone": "UTC",
   "transcript_report_id": "get_ingested_transcript",
   "max_csv_bytes": 52428800,
-  "uses_agentic_runtime": true
+  "uses_agentic_runtime": true,
+  "enable_ai_coworker_tab": false
 }</pre>
     </div>
     <div class="grid-2">
       <div class="card">
-        <h3>API Pull / SFTP / Bucket</h3>
+        <h3>API Pull (Data ingestion)</h3>
         <dl class="kv">
-          <dt>API pull</dt><dd>Enabled · dasng</dd>
-          <dt>SFTP</dt><dd>Disabled</dd>
-          <dt>Bucket ingest</dt><dd>Enabled · *.csv</dd>
+          <dt>Enable</dt><dd>Yes</dd>
+          <dt>Last watermark</dt><dd>2026-08-31T23:59:59Z</dd>
+          <dt>Connector</dt><dd>dasng</dd>
+          <dt>Report ID</dt><dd>get_conversations</dd>
+          <dt>Page size</dt><dd>100</dd>
+          <dt>Overlap</dt><dd>300 seconds</dd>
         </dl>
       </div>
       <div class="card">
-        <h3>RBAC &amp; monitoring forms</h3>
+        <h3>SFTP / Cloud bucket</h3>
+        <dl class="kv">
+          <dt>SFTP</dt><dd>Disabled · pattern *.csv</dd>
+          <dt>Bucket ingest</dt><dd>Enabled · *.csv</dd>
+          <dt>Path prefix</dt><dd>—</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <h3>RBAC</h3>
+        <table class="table">
+          <thead><tr><th>Role</th><th>Audits</th><th>Override</th><th>Config</th></tr></thead>
+          <tbody>
+            <tr><td>QA Analyst</td><td>✓</td><td>✓</td><td>—</td></tr>
+            <tr><td>QA Manager</td><td>✓</td><td>✓</td><td>✓</td></tr>
+            <tr><td>System Admin</td><td>✓</td><td>✓</td><td>✓</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Monitoring form scoring</h3>
         <ul style="margin:0;padding-left:1.1rem;font-size:0.9rem;line-height:1.55">
-          <li>QA Analyst / Manager / System Admin roles</li>
-          <li>247client1 Chat QA form v3 — published</li>
+          <li>247client1 Chat QA form v3 — published (scoring + GenAI summary)</li>
           <li>Queue <code>247client1_Web_Chat</code> → scorecard v3</li>
+          <li>Queue <code>UHC_Rx_Refill_Chat</code> → Pharmacy form v1.4</li>
         </ul>
         <div class="btn-row" style="margin-top:0.65rem">
           <button class="btn primary" type="button">Modify monitoring form</button>
@@ -1171,8 +1197,9 @@ function renderSettingsAdminBody() {
     </div>`;
 }
 
-function renderSettingsCalibrationBody() {
+function renderAdminCalibrationBody() {
   return `
+    <p class="page-sub" style="margin-top:0">Align human and AI scoring, tune thresholds, and optimize prompts / models from disagreement patterns.</p>
     <div class="calib-grid">
       <div class="card">
         <h3>Calibration sessions</h3>
@@ -1212,8 +1239,9 @@ function renderSettingsCalibrationBody() {
     </div>`;
 }
 
-function renderSettingsAdvancedBody() {
+function renderAdminAdvancedBody() {
   return `
+    <p class="page-sub" style="margin-top:0">Sentiment analysis, predictive QA, intent analytics, and behavioral scoring signals.</p>
     <div class="adv-grid">
       <div class="adv-card">
         <h3>Sentiment analysis</h3>
@@ -1264,20 +1292,20 @@ function renderSettingsAdvancedBody() {
     </div>`;
 }
 
-function renderSettings() {
+function renderAdmin() {
   const body =
     settingsTab === "calibration"
-      ? renderSettingsCalibrationBody()
+      ? renderAdminCalibrationBody()
       : settingsTab === "advanced"
-        ? renderSettingsAdvancedBody()
-        : renderSettingsAdminBody();
+        ? renderAdminAdvancedBody()
+        : renderAdminTenantBody();
 
   return `
-    <h1 class="page-title">Settings</h1>
-    <p class="page-sub">Admin configuration, calibration &amp; AI optimization, and advanced insight signals — in one place.</p>
+    <h1 class="page-title">Admin</h1>
+    <p class="page-sub">Tenant admin, CRM / KB, calibration &amp; AI optimization, and advanced insights — previous options kept as tabs.</p>
     ${tenantRow()}
     <div class="tabs">
-      <button class="tab ${settingsTab === "admin" ? "active" : ""}" type="button" data-settings-tab="admin">Admin &amp; CRM / KB</button>
+      <button class="tab ${settingsTab === "admin" ? "active" : ""}" type="button" data-settings-tab="admin">Admin</button>
       <button class="tab ${settingsTab === "calibration" ? "active" : ""}" type="button" data-settings-tab="calibration">Calibration &amp; AI Opt</button>
       <button class="tab ${settingsTab === "advanced" ? "active" : ""}" type="button" data-settings-tab="advanced">Advanced Insights</button>
     </div>
@@ -1330,7 +1358,7 @@ const RENDERERS = {
   sampling: renderSampling,
   coaching: renderCoaching,
   reporting: renderReporting,
-  settings: renderSettings,
+  admin: renderAdmin,
 };
 
 function setNav(view) {
@@ -1476,7 +1504,7 @@ workspace.addEventListener("click", (e) => {
   const settingsTabBtn = e.target.closest("[data-settings-tab]");
   if (settingsTabBtn) {
     settingsTab = settingsTabBtn.dataset.settingsTab;
-    render("settings");
+    render("admin");
     return;
   }
 

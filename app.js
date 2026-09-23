@@ -34,7 +34,51 @@ const FEATURES = [
   { id: "behavioral", name: "Behavioral scoring", tier: "insight", view: "interactions" },
 ];
 
+const AUDIT_STATUSES = [
+  "Not Audited",
+  "LLM Audited",
+  "QA Reviewed",
+  "Pending Dispute",
+  "Complete",
+];
+
 const INTERACTIONS = [
+  {
+    id: "na-001-4e6d-4d1f-a8a8-8ca18a4601aa",
+    short: "na-001…01aa",
+    agent: "k.lee",
+    agentName: "K. Lee",
+    duration: "4m 05s",
+    queue: "247client1_Web_Chat",
+    lob: "Retail",
+    channel: "ude",
+    source: "api_pull",
+    intent: "balance_inquiry",
+    sentiment: "neutral",
+    escalated: false,
+    status: "Not Audited",
+    auditMode: "none",
+    score: "—",
+    date: "2026-09-10",
+  },
+  {
+    id: "na-002-91b2-4a11-9c44-77f0aa0011bb",
+    short: "na-002…11bb",
+    agent: "s.okonkwo",
+    agentName: "S. Okonkwo",
+    duration: "3m 12s",
+    queue: "247client1_Web_Chat",
+    lob: "Test_Lob",
+    channel: "ude",
+    source: "csv",
+    intent: "password_reset",
+    sentiment: "positive",
+    escalated: false,
+    status: "Not Audited",
+    auditMode: "none",
+    score: "—",
+    date: "2026-09-09",
+  },
   {
     id: "0459517b-4e6d-4d1f-a8a8-8ca18a4601fe",
     short: "0459517b…601fe",
@@ -48,7 +92,8 @@ const INTERACTIONS = [
     intent: "fraud-unauthorized-charges",
     sentiment: "neutral",
     escalated: true,
-    status: "COMPLETED",
+    status: "LLM Audited",
+    auditMode: "llm",
     score: "92",
     date: "2026-09-10",
   },
@@ -65,7 +110,8 @@ const INTERACTIONS = [
     intent: "address_update",
     sentiment: "positive",
     escalated: false,
-    status: "COMPLETED",
+    status: "LLM Audited",
+    auditMode: "llm",
     score: "88",
     date: "2026-09-09",
   },
@@ -82,8 +128,9 @@ const INTERACTIONS = [
     intent: "rx_refill_request",
     sentiment: "neutral",
     escalated: false,
-    status: "IN_REVIEW",
-    score: "—",
+    status: "QA Reviewed",
+    auditMode: "hybrid",
+    score: "84",
     date: "2026-09-10",
   },
   {
@@ -99,9 +146,46 @@ const INTERACTIONS = [
     intent: "payment_arrangement",
     sentiment: "negative",
     escalated: false,
-    status: "COMPLETED",
+    status: "QA Reviewed",
+    auditMode: "manual",
     score: "71",
     date: "2026-09-08",
+  },
+  {
+    id: "pd-010-3344-4aa0-9b12-aabbccddee01",
+    short: "pd-010…ee01",
+    agent: "l.ramirez",
+    agentName: "L. Ramirez",
+    duration: "5m 50s",
+    queue: "247client1_Web_Chat",
+    lob: "Retail",
+    channel: "ude",
+    source: "api_pull",
+    intent: "fee_waiver",
+    sentiment: "negative",
+    escalated: false,
+    status: "Pending Dispute",
+    auditMode: "hybrid",
+    score: "68",
+    date: "2026-09-08",
+  },
+  {
+    id: "pd-011-3344-4aa0-9b12-aabbccddee02",
+    short: "pd-011…ee02",
+    agent: "h.cho",
+    agentName: "H. Cho",
+    duration: "4m 22s",
+    queue: "UHC_Rx_Refill_Chat",
+    lob: "Commercial Pharmacy",
+    channel: "ude",
+    source: "csv",
+    intent: "rx_refill_request",
+    sentiment: "neutral",
+    escalated: false,
+    status: "Pending Dispute",
+    auditMode: "manual",
+    score: "74",
+    date: "2026-09-07",
   },
   {
     id: "dd0f11e-3344-4aa0-9b12-aabbccddeeff",
@@ -116,9 +200,28 @@ const INTERACTIONS = [
     intent: "rx_refill_request",
     sentiment: "positive",
     escalated: false,
-    status: "COMPLETED",
+    status: "Complete",
+    auditMode: "hybrid",
     score: "95",
     date: "2026-09-07",
+  },
+  {
+    id: "cp-020-4e6d-4d1f-a8a8-8ca18a4602ff",
+    short: "cp-020…02ff",
+    agent: "t.morales",
+    agentName: "T. Morales",
+    duration: "3m 40s",
+    queue: "247client1_Web_Chat",
+    lob: "Retail",
+    channel: "ude",
+    source: "api_pull",
+    intent: "product_inquiry",
+    sentiment: "positive",
+    escalated: false,
+    status: "Complete",
+    auditMode: "manual",
+    score: "90",
+    date: "2026-09-06",
   },
 ];
 
@@ -534,6 +637,21 @@ function renderOverview() {
     <div class="card"><h3>Insights / Admin</h3><div class="feature-grid">${insight.map(tile).join("")}</div></div>`;
 }
 
+
+function statusClass(status) {
+  if (status === "Complete" || status === "QA Reviewed") return "ok";
+  if (status === "Pending Dispute") return "bad";
+  if (status === "LLM Audited") return "warn";
+  return "neutral";
+}
+
+function auditModeLabel(mode) {
+  if (mode === "manual") return "Manual audit";
+  if (mode === "hybrid") return "Hybrid audit";
+  if (mode === "llm") return "LLM audit";
+  return "Not audited";
+}
+
 function renderInteractionsList() {
   const rowsData = filteredInteractions();
   const rows = rowsData
@@ -546,7 +664,7 @@ function renderInteractionsList() {
       <td>${i.lob}</td>
       <td>${i.agentName}</td>
       <td>${i.intent}</td>
-      <td><span class="status ${i.status === "COMPLETED" ? "ok" : "warn"}">${i.status}</span></td>
+      <td><span class="status ${statusClass(i.status)}">${i.status}</span></td>
       <td>${i.score}</td>
       <td>${i.duration}</td>
     </tr>`
@@ -560,7 +678,7 @@ function renderInteractionsList() {
   return `
     <div class="ix-list-page">
       <h1 class="page-title">Interactions</h1>
-      <p class="page-sub">Browse audited conversations. Use multi-select filters, then select a row to open detail.</p>
+      <p class="page-sub">Filter by audit status (Not Audited · LLM Audited · QA Reviewed · Pending Dispute · Complete). Select a row for the matching audit workspace.</p>
       ${tenantRow()}
       <div class="list-toolbar">
         <div class="filters-inline">
@@ -570,7 +688,7 @@ function renderInteractionsList() {
           ${msField("LOB", "lobs", uniqueValues("lob"))}
           ${msField("Agent", "agents", uniqueValues("agentName"))}
           ${msField("Intent", "intents", uniqueValues("intent"))}
-          ${msField("Status", "statuses", uniqueValues("status"))}
+          ${msField("Status", "statuses", AUDIT_STATUSES)}
           ${msField("Source", "sources", uniqueValues("source"))}
         </div>
         <div class="filter-actions">
@@ -593,11 +711,167 @@ function renderInteractionsList() {
     </div>`;
 }
 
+function renderAuditForm(ix) {
+  const isNotAudited = ix.status === "Not Audited";
+  const isLlm = ix.status === "LLM Audited";
+  const isQaReviewed = ix.status === "QA Reviewed";
+  const isDispute = ix.status === "Pending Dispute";
+  const isComplete = ix.status === "Complete";
+
+  const overrideDisabled = isQaReviewed || isComplete;
+  const showAi = !isNotAudited;
+  const showAck = isComplete;
+  const showScores = !isNotAudited;
+
+  const emptyQs = AUDIT_QUESTIONS.map(
+    (q) => `
+    <div class="q-card">
+      <span class="priority">high</span>
+      <div class="q-title">${q.q}</div>
+      <div class="ai-note" style="color:var(--muted)">No AI rationale — manual scoring</div>
+      <div class="choice-row">
+        <button class="choice" type="button">Yes (${q.points})</button>
+        <button class="choice" type="button">No</button>
+        <button class="choice" type="button">NA</button>
+      </div>
+      <div class="field"><textarea placeholder="Enter auditor rationale…"></textarea></div>
+    </div>`
+  ).join("");
+
+  const filledQs = AUDIT_QUESTIONS.map(
+    (q) => `
+    <div class="q-card">
+      <span class="priority">high</span>
+      <div class="q-title">${q.q}</div>
+      ${showAi ? `<div class="ai-note">${q.ai}</div>` : ""}
+      <div class="choice-row">
+        <button class="choice ${q.choice === "Yes" ? "selected" : ""}" type="button" ${overrideDisabled ? "disabled" : ""}>Yes (${q.points})</button>
+        <button class="choice ${q.choice === "No" ? "selected" : ""}" type="button" ${overrideDisabled ? "disabled" : ""}>No ✓</button>
+        <button class="choice" type="button" ${overrideDisabled ? "disabled" : ""}>NA</button>
+      </div>
+      <div class="field"><textarea ${overrideDisabled ? "readonly" : ""}>${q.ai.replace(/^AI:\s*/, "")}</textarea></div>
+    </div>`
+  ).join("");
+
+  const modeBadge = `<span class="chip">${auditModeLabel(ix.auditMode)}</span>`;
+  const statusBanner =
+    isNotAudited
+      ? `<div class="callout">Not Audited — empty monitoring form for manual QA. Advanced Insights not shown.</div>`
+      : isLlm
+        ? `<div class="callout">LLM Audited — AI scores present, not submitted. Human override enabled.</div>`
+        : isQaReviewed
+          ? `<div class="callout">QA Reviewed (${auditModeLabel(ix.auditMode)}) — human override greyed out.</div>`
+          : isDispute
+            ? `<div class="callout">Pending Dispute — human override enabled for ${auditModeLabel(ix.auditMode)}.</div>`
+            : `<div class="callout">Complete — agent feedback acknowledged. Audit locked.</div>`;
+
+  return `
+    <div class="audit-form">
+      <h3>247client1 Chat Quality Assurance Monitoring Form</h3>
+      <p class="hint" style="margin:0 0 0.55rem">Status: <strong>${ix.status}</strong> · ${modeBadge}</p>
+      ${statusBanner}
+
+      ${
+        showAi
+          ? `<div class="genai-box">
+        <strong>GenAI summary</strong>
+        Member reported an unauthorized charge. Bot verified identity, apologized, and escalated to fraud review with confirmation of next steps. Soft-skills section scored 20/20; no disclosure defects on this interaction.
+      </div>`
+          : `<div class="genai-box" style="opacity:0.7">
+        <strong>GenAI summary</strong>
+        Not available until LLM or hybrid audit runs. Complete the monitoring form manually.
+      </div>`
+      }
+
+      ${
+        showScores
+          ? `<div class="score-summary">
+        <div class="score-chip"><b>${ix.score === "—" ? "…" : ix.score}</b>Overall</div>
+        <div class="score-chip"><b>20/20</b>Soft skills</div>
+        <div class="score-chip"><b>Pass</b>Compliance</div>
+        <div class="score-chip"><b>v3</b>Form version</div>
+      </div>`
+          : `<div class="score-summary">
+        <div class="score-chip"><b>—</b>Overall</div>
+        <div class="score-chip"><b>—/20</b>Soft skills</div>
+        <div class="score-chip"><b>—</b>Compliance</div>
+        <div class="score-chip"><b>v3</b>Form version</div>
+      </div>`
+      }
+
+      <div class="audit-meta">
+        <div class="field"><label>Agent EmpId</label><input value="A10482" readonly /></div>
+        <div class="field"><label>Manager Name</label><input value="S. Miles" readonly /></div>
+        <div class="field"><label>Customer Name</label><input value="Jordan Lee" readonly /></div>
+        <div class="field"><label>Agent Category</label><input value="Chat Tier 1" readonly /></div>
+        <div class="field"><label>Evaluator</label><input value="${isNotAudited ? "" : "ci_autoqra"}" placeholder="Assign evaluator" ${isComplete ? "readonly" : ""} /></div>
+        <div class="field"><label>Audit Type</label>
+          <select ${isComplete || isQaReviewed ? "disabled" : ""}>
+            <option ${ix.auditMode === "llm" || ix.auditMode === "hybrid" ? "selected" : ""}>Auto QA</option>
+            <option ${ix.auditMode === "manual" || isNotAudited ? "selected" : ""}>Manual QA</option>
+          </select>
+        </div>
+      </div>
+      <p style="font-size:0.82rem;margin:0 0 0.55rem">AutoQRA status: <strong>${ix.status}</strong>
+        <button class="btn" type="button" style="margin-left:0.5rem" ${isComplete ? "disabled" : ""}>▶ Start timer</button>
+      </p>
+      ${
+        showAck
+          ? `<div class="ack-box">
+        <span class="status ok">Acknowledged</span>
+        <strong>Agent acknowledgment</strong><br/>
+        Agent decision: <strong>Accept</strong> · Comments: <strong>Looks Good</strong> · Feedback completed
+      </div>`
+          : isDispute
+            ? `<div class="ack-box" style="border-color:#e0b36a;background:var(--warn-bg)">
+        <span class="status warn">Dispute open</span>
+        <strong>Agent dispute</strong><br/>
+        Agent decision: <strong>Dispute</strong> · Comments: <strong>Score unfair on disclosure item</strong>
+      </div>`
+            : ""
+      }
+      <div class="section-block">
+        <div class="section-head">
+          <span>Soft Skills and Professionalism</span>
+          <span>${isNotAudited ? "—/20" : "20/20"}</span>
+        </div>
+        ${isNotAudited ? emptyQs : filledQs}
+      </div>
+      <div class="btn-row">
+        ${
+          isNotAudited
+            ? `<button class="btn primary" type="button">Save manual audit</button>
+               <button class="btn" type="button">Submit for QA review</button>`
+            : isLlm
+              ? `<button class="btn primary" type="button">Save override</button>
+                 <button class="btn" type="button">Submit QA review</button>
+                 <button class="btn" type="button">Human override…</button>`
+              : isQaReviewed
+                ? `<button class="btn primary" type="button" disabled title="Override greyed out after QA review">Save override</button>
+                   <button class="btn" type="button" disabled>Human override…</button>
+                   <button class="btn" type="button">Export pack</button>`
+                : isDispute
+                  ? `<button class="btn primary" type="button">Save override</button>
+                     <button class="btn" type="button">Human override…</button>
+                     <button class="btn" type="button">Resolve dispute</button>`
+                  : `<button class="btn" type="button" disabled>Save override</button>
+                     <button class="btn" type="button" disabled>Human override…</button>
+                     <button class="btn" type="button">View acknowledgment</button>`
+        }
+      </div>
+    </div>`;
+}
+
 function renderInteractionDetail(ix) {
+  const isNotAudited = ix.status === "Not Audited";
+  const showInsights = !isNotAudited;
+
   const details = `
     <h3 style="margin:0 0 0.55rem;font-size:0.95rem">Conversation details</h3>
     <dl class="kv">
       <dt>Conversation ID</dt><dd>${ix.id}</dd>
+      <dt>Status</dt><dd><span class="status ${statusClass(ix.status)}">${ix.status}</span></dd>
+      <dt>Audit mode</dt><dd>${auditModeLabel(ix.auditMode)}</dd>
       <dt>Channel</dt><dd>${ix.channel}</dd>
       <dt>Source</dt><dd>${ix.source}</dd>
       <dt>Escalation</dt><dd>${ix.escalated ? '<span class="status warn">Escalated</span>' : "None"}</dd>
@@ -616,128 +890,74 @@ function renderInteractionDetail(ix) {
       <p style="margin-top:0.3rem"><strong>KB:</strong> ADR-221 Fraud verification script</p>
     </div>`;
 
-  const auditQs = AUDIT_QUESTIONS.map(
-    (q) => `
-    <div class="q-card">
-      <span class="priority">high</span>
-      <div class="q-title">${q.q}</div>
-      <div class="ai-note">${q.ai}</div>
-      <div class="choice-row">
-        <button class="choice ${q.choice === "Yes" ? "selected" : ""}" type="button">Yes (${q.points})</button>
-        <button class="choice ${q.choice === "No" ? "selected" : ""}" type="button">No ✓</button>
-        <button class="choice" type="button">NA</button>
-      </div>
-      <div class="field"><textarea readonly>${q.ai.replace(/^AI:\s*/, "")}</textarea></div>
-    </div>`
-  ).join("");
-
-  const audit = `
-    <div class="audit-form">
-      <h3>247client1 Chat Quality Assurance Monitoring Form</h3>
-      <p class="hint" style="margin:0 0 0.55rem">Monitoring form scoring + GenAI summary · identity from CSV / API pull</p>
-
-      <div class="genai-box">
-        <strong>GenAI summary</strong>
-        Member reported an unauthorized charge. Bot verified identity, apologized, and escalated to fraud review with confirmation of next steps. Soft-skills section scored 20/20; no disclosure defects on this interaction.
-      </div>
-
-      <div class="score-summary">
-        <div class="score-chip"><b>${ix.score === "—" ? "…" : ix.score}</b>Overall</div>
-        <div class="score-chip"><b>20/20</b>Soft skills</div>
-        <div class="score-chip"><b>Pass</b>Compliance</div>
-        <div class="score-chip"><b>v3</b>Form version</div>
-      </div>
-
-      <div class="audit-meta">
-        <div class="field"><label>Agent EmpId</label><input value="A10482" readonly /></div>
-        <div class="field"><label>Manager Name</label><input value="S. Miles" readonly /></div>
-        <div class="field"><label>Customer Name</label><input value="Jordan Lee" readonly /></div>
-        <div class="field"><label>Agent Category</label><input value="Chat Tier 1" readonly /></div>
-        <div class="field"><label>Evaluator</label><input value="ci_autoqra" readonly /></div>
-        <div class="field"><label>Audit Type</label><select><option>Auto QA</option><option>Manual QA</option></select></div>
-      </div>
-      <p style="font-size:0.82rem;margin:0 0 0.55rem">AutoQRA status: <strong>${ix.status}</strong> · monitoring form scoring active
-        <button class="btn" type="button" style="margin-left:0.5rem">▶ Start timer</button>
-      </p>
-      <div class="ack-box">
-        <span class="status ok">Acknowledged</span>
-        <strong>Agent acknowledgment</strong><br/>
-        Agent decision: <strong>Accept</strong> · Comments: <strong>Looks Good</strong>
-      </div>
-      <div class="section-block">
-        <div class="section-head">
-          <span>Soft Skills and Professionalism</span>
-          <span>20/20</span>
-        </div>
-        ${auditQs}
-      </div>
-      <div class="btn-row">
-        <button class="btn primary" type="button">Save override</button>
-        <button class="btn" type="button">Open dispute</button>
-        <button class="btn" type="button">Human override…</button>
-      </div>
-    </div>`;
+  const historyEvents =
+    isNotAudited
+      ? `<tr><td>—</td><td>No audit events yet · awaiting manual monitoring</td></tr>`
+      : ix.status === "LLM Audited"
+        ? `<tr><td>08:11</td><td>LLM scoring · 247client1 Chat v3</td></tr>
+           <tr><td>08:12</td><td>GenAI summary generated</td></tr>
+           <tr><td>08:12</td><td>Awaiting human override / submit</td></tr>`
+        : ix.status === "QA Reviewed"
+          ? `<tr><td>08:11</td><td>${ix.auditMode === "manual" ? "Manual audit completed" : "LLM + human hybrid review"}</td></tr>
+             <tr><td>09:05</td><td>QA Reviewed · override locked</td></tr>`
+          : ix.status === "Pending Dispute"
+            ? `<tr><td>08:11</td><td>Audit completed (${auditModeLabel(ix.auditMode)})</td></tr>
+               <tr><td>10:20</td><td>Agent opened dispute</td></tr>
+               <tr><td>10:21</td><td>Human override re-enabled</td></tr>`
+            : `<tr><td>08:11</td><td>Audit completed</td></tr>
+               <tr><td>11:00</td><td>Agent acknowledgment · Accept</td></tr>
+               <tr><td>11:01</td><td>Feedback completed · Complete</td></tr>`;
 
   const history = `
     <h3 style="margin:0 0 0.55rem;font-size:0.95rem">Audit Trail and Log</h3>
     <table class="table">
       <thead><tr><th>When</th><th>Event</th></tr></thead>
-      <tbody>
-        <tr><td>08:11</td><td>Autonomous scoring · 247client1 Chat v3</td></tr>
-        <tr><td>08:12</td><td>GenAI summary generated</td></tr>
-        <tr><td>08:12</td><td>Monitoring form scoring · Soft Skills 20/20</td></tr>
-        <tr><td>09:18</td><td>Agent acknowledgment · Accept</td></tr>
-      </tbody>
+      <tbody>${historyEvents}</tbody>
     </table>`;
 
+  const audit = renderAuditForm(ix);
   const sideBody = ixSideTab === "details" ? details : ixSideTab === "history" ? history : audit;
 
   const insightsBody = `
-    <div class="ix-insights-section">
+    <div class="callout">Advanced Insights* is not available in this release.</div>
+    <div class="ix-insights-section" style="opacity:0.55;pointer-events:none">
       <h4>Sentiment analysis</h4>
-      <div class="sentiment-row" style="margin:0.45rem 0">
-        <div class="sent-pill pos">Pos<br/><b>28%</b></div>
-        <div class="sent-pill neu">Neu<br/><b>54%</b></div>
-        <div class="sent-pill neg">Neg<br/><b>18%</b></div>
-      </div>
-      <p style="font-size:0.82rem;margin:0;color:var(--muted)">Customer tone: ${ix.sentiment}. Peak negative near unauthorized-charge mention.</p>
+      <p style="font-size:0.82rem;color:var(--muted)">Coming soon</p>
     </div>
-    <div class="ix-insights-section">
+    <div class="ix-insights-section" style="opacity:0.55;pointer-events:none">
       <h4>Predictive analysis</h4>
-      <p style="font-size:0.86rem;line-height:1.4;margin:0 0 0.45rem">Similar fraud intents show <strong>+12%</strong> escalate risk when soft-skills score &lt; 18/20.</p>
-      <button class="btn" type="button" style="width:100%">Open risk signals</button>
+      <p style="font-size:0.82rem;color:var(--muted)">Coming soon</p>
     </div>
-    <div class="ix-insights-section">
+    <div class="ix-insights-section" style="opacity:0.55;pointer-events:none">
       <h4>Intent analytics</h4>
-      <p><span class="chip">${ix.intent}</span></p>
-      <p style="font-size:0.82rem;margin:0.4rem 0 0;color:var(--muted)">Primary intent confidence 0.91 · related: account_security</p>
-    </div>
-    <div class="ix-insights-section">
-      <h4>Behavioral scoring</h4>
-      <table class="table">
-        <tbody>
-          <tr><td>Empathy</td><td>4.2</td></tr>
-          <tr><td>Ownership</td><td>4.5</td></tr>
-          <tr><td>Clarity</td><td>4.0</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="ix-insights-section">
-      <h4>Anomaly highlights</h4>
-      <ul class="opt-list">
-        <li>Escalation flag on this conversation</li>
-        <li>Sentiment shift mid-chat (neutral → concerned)</li>
-        <li>No disclosure anomaly on this interaction</li>
-      </ul>
+      <p style="font-size:0.82rem;color:var(--muted)">Coming soon</p>
     </div>`;
+
+  const insightsPane = showInsights
+    ? `<aside class="ix-insights ${ixInsightsOpen ? "open" : "collapsed"}">
+          <button class="ix-insights-toggle" type="button" data-ix-insights-toggle aria-expanded="${ixInsightsOpen}">
+            <span class="ix-insights-toggle-label">Advanced Insights*</span>
+            <span class="ix-insights-chevron">${ixInsightsOpen ? "»" : "«"}</span>
+          </button>
+          <div class="ix-insights-body" ${ixInsightsOpen ? "" : "hidden"}>
+            ${insightsBody}
+          </div>
+        </aside>`
+    : "";
+
+  const layoutClass = showInsights
+    ? ixInsightsOpen
+      ? "insights-open"
+      : "insights-closed"
+    : "no-insights";
 
   return `
     <div class="ix-detail-page">
       <div class="ix-detail-toolbar">
         <button class="btn" type="button" data-ix-back>← Back to list</button>
-        <div class="ix-trans-meta">${ix.short} · ${ix.queue} · ${ix.agentName} · ${ix.duration}</div>
+        <div class="ix-trans-meta">${ix.short} · ${ix.status} · ${ix.queue} · ${ix.agentName} · ${ix.duration}</div>
       </div>
-      <div class="ix-layout ${ixInsightsOpen ? "insights-open" : "insights-closed"}">
+      <div class="ix-layout ${layoutClass}">
         <section class="ix-transcript">
           <div class="ix-trans-head">
             <div>
@@ -764,18 +984,11 @@ function renderInteractionDetail(ix) {
           <div class="ix-side-body">${sideBody}</div>
         </section>
 
-        <aside class="ix-insights ${ixInsightsOpen ? "open" : "collapsed"}">
-          <button class="ix-insights-toggle" type="button" data-ix-insights-toggle aria-expanded="${ixInsightsOpen}">
-            <span class="ix-insights-toggle-label">Advanced Insights</span>
-            <span class="ix-insights-chevron">${ixInsightsOpen ? "»" : "«"}</span>
-          </button>
-          <div class="ix-insights-body" ${ixInsightsOpen ? "" : "hidden"}>
-            ${insightsBody}
-          </div>
-        </aside>
+        ${insightsPane}
       </div>
     </div>`;
 }
+
 
 function renderInteractions() {
   if (!selectedIx) return renderInteractionsList();
@@ -1238,15 +1451,16 @@ function renderCoaching() {
         : renderCoachingOverall();
 
   return `
-    <h1 class="page-title">Coaching</h1>
-    <p class="page-sub">Overall opportunities, team coaching with filters, and agent-level coaching with monitoring counts.</p>
+    <h1 class="page-title">Coaching*</h1>
+    <p class="page-sub">Not available now (marked with *). Preview of planned Overall / Team / Agent coaching.</p>
+    <div class="callout">Coaching* is unavailable in this release.</div>
     ${tenantRow()}
     <div class="tabs">
       <button class="tab ${coachingTab === "overall" ? "active" : ""}" type="button" data-coach-tab="overall">Overall Coaching</button>
       <button class="tab ${coachingTab === "team" ? "active" : ""}" type="button" data-coach-tab="team">Team</button>
       <button class="tab ${coachingTab === "agent" ? "active" : ""}" type="button" data-coach-tab="agent">Agent level coaching</button>
     </div>
-    ${body}`;
+    <div class="unavailable-preview">${body}</div>`;
 }
 
 function renderReporting() {
@@ -1273,8 +1487,9 @@ function renderReporting() {
       : topAgents.filter((a) => a.lob === reportFilters.lob || (reportFilters.lob === "Pharmacy" && a.lob.includes("Pharmacy")));
 
   return `
-    <h1 class="page-title">Reporting &amp; Insights</h1>
-    <p class="page-sub">Superset-backed AutoQRA insights — filter by period / LOB / queue, then review top agents and LOB leaderboard.</p>
+    <h1 class="page-title">Reporting &amp; Insights*</h1>
+    <p class="page-sub">Not available now (marked with *). Preview of planned Superset-backed insights.</p>
+    <div class="callout">Reporting &amp; Insights* is unavailable in this release.</div>
     ${tenantRow()}
     <div class="card" style="padding:0.75rem 1rem;margin-bottom:0.85rem">
       <div class="filters-inline">
@@ -1552,15 +1767,16 @@ function renderAdmin() {
         : renderAdminTenantBody();
 
   return `
-    <h1 class="page-title">Admin</h1>
-    <p class="page-sub">Tenant admin, CRM / KB, calibration &amp; AI optimization, and advanced insights — previous options kept as tabs.</p>
+    <h1 class="page-title">Settings*</h1>
+    <p class="page-sub">Not available now (marked with *). Preview of Admin / Calibration / Advanced Insights tabs.</p>
+    <div class="callout">Settings* is unavailable in this release. Advanced Insights* is also marked unavailable.</div>
     ${tenantRow()}
     <div class="tabs">
       <button class="tab ${settingsTab === "admin" ? "active" : ""}" type="button" data-settings-tab="admin">Admin</button>
       <button class="tab ${settingsTab === "calibration" ? "active" : ""}" type="button" data-settings-tab="calibration">Calibration &amp; AI Opt</button>
-      <button class="tab ${settingsTab === "advanced" ? "active" : ""}" type="button" data-settings-tab="advanced">Advanced Insights</button>
+      <button class="tab ${settingsTab === "advanced" ? "active" : ""}" type="button" data-settings-tab="advanced">Advanced Insights*</button>
     </div>
-    ${body}`;
+    <div class="unavailable-preview">${body}</div>`;
 }
 
 function renderCrmPaneBody() {

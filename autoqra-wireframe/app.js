@@ -337,6 +337,61 @@ const COACHING = [
   },
 ];
 
+// Normalize team vs agent coaching records
+COACHING.forEach((c) => {
+  const isTeam = String(c.agent).startsWith("Team ");
+  c.level = isTeam ? "team" : "agent";
+  c.team = isTeam
+    ? c.agent
+    : c.lob === "Cards"
+      ? "Team Cards-B"
+      : c.lob.includes("Pharmacy")
+        ? "Team Pharmacy"
+        : c.lob === "Test_Lob"
+          ? "Team Test"
+          : "Team Retail-A";
+  c.monitoring = c.audits; // number of monitoring forms / audits
+});
+
+// Extra team rows for Team tab coverage
+COACHING.push(
+  {
+    id: "c13",
+    agent: "Team Pharmacy",
+    team: "Team Pharmacy",
+    level: "team",
+    lob: "Commercial Pharmacy",
+    queue: "UHC_Rx_Refill_Chat",
+    audits: 86,
+    monitoring: 86,
+    fails: 12,
+    severity: "high",
+    opportunity: "Team-wide disclosure misses on refill scripts. Run huddle with calibrated examples.",
+    theme: "Disclosures",
+    sampleAudits: [
+      { id: "AUD-7601", score: 64, defect: "Team disclosure gap", date: "2026-09-09" },
+      { id: "AUD-7588", score: 67, defect: "Script drift", date: "2026-09-08" },
+    ],
+  },
+  {
+    id: "c14",
+    agent: "Team Test",
+    team: "Team Test",
+    level: "team",
+    lob: "Test_Lob",
+    queue: "247client1_Web_Chat",
+    audits: 40,
+    monitoring: 40,
+    fails: 3,
+    severity: "low",
+    opportunity: "Stable team scores; use as control group for calibration.",
+    theme: "Peer coach",
+    sampleAudits: [
+      { id: "AUD-7500", score: 91, defect: "Minor clarity", date: "2026-09-07" },
+    ],
+  }
+);
+
 const CRMS = [
   { id: "salesforce", name: "Salesforce Service Cloud", type: "CRM", status: "Connected", endpoint: "https://example.my.salesforce.com" },
   { id: "dynamics", name: "Microsoft Dynamics 365", type: "CRM", status: "Available", endpoint: "—" },
@@ -352,6 +407,10 @@ const quotaBox = document.getElementById("quotaBox");
 const sideNav = document.getElementById("sideNav");
 const crmPane = document.getElementById("crmPane");
 const crmPaneBody = document.getElementById("crmPaneBody");
+const coachPane = document.getElementById("coachPane");
+const coachPaneBody = document.getElementById("coachPaneBody");
+const coachPaneTitle = document.getElementById("coachPaneTitle");
+const coachPaneSub = document.getElementById("coachPaneSub");
 
 let currentView = "interactions";
 let selectedIx = null; // null = list view
@@ -360,8 +419,10 @@ let dataTab = "ingest";
 let samplingTab = "jobs";
 let settingsTab = "admin";
 let selectedCoach = null;
+let coachingTab = "overall";
 let reportFilters = { lob: "All", queue: "All", period: "MTD" };
-let coachFilters = { severity: [], themes: [], agents: [] };
+let coachFilters = { severity: [], themes: [], agents: [], teams: [], lobs: [] };
+let teamFilters = { teams: [], lobs: [], themes: [], severity: [] };
 let selectedIngestJob = "ing_340ceb2fe31747c8b771e871a15ec2356";
 let selectedCrm = "salesforce";
 let openMsKey = null; // which multi-select dropdown is open
@@ -882,7 +943,59 @@ function renderSampling() {
     ${samplingTab === "jobs" ? jobs : newJob}`;
 }
 
-function filteredCoaching() {
+function coachingPlanHtml(c) {
+  const audits = (c.sampleAudits || [])
+    .map(
+      (a) => `
+      <tr>
+        <td style="font-family:var(--mono);font-size:0.75rem">${a.id}</td>
+        <td>${a.date}</td>
+        <td>${a.score}</td>
+        <td>${a.defect}</td>
+        <td><button class="link-btn" type="button">Open audit</button></td>
+      </tr>`
+    )
+    .join("");
+  return `
+    <span class="severity ${c.severity}">${c.severity.toUpperCase()}</span>
+    <dl class="coach-pane-meta">
+      <dt>${c.level === "team" ? "Team" : "Agent"}</dt><dd>${c.agent}</dd>
+      <dt>Team</dt><dd>${c.team}</dd>
+      <dt>LOB</dt><dd>${c.lob}</dd>
+      <dt>Queue</dt><dd>${c.queue}</dd>
+      <dt>Monitoring</dt><dd>${c.monitoring ?? c.audits}</dd>
+      <dt>Defect hits</dt><dd>${c.fails}</dd>
+      <dt>Theme</dt><dd>${c.theme}</dd>
+      <dt>Level</dt><dd>${c.level}</dd>
+    </dl>
+    <p style="font-size:0.9rem;line-height:1.45;margin:0 0 0.85rem">${c.opportunity}</p>
+    <h3 style="margin:0 0 0.45rem;font-size:0.95rem">Example audits leading to this plan</h3>
+    <table class="table">
+      <thead><tr><th>Audit</th><th>Date</th><th>Score</th><th>Defect</th><th></th></tr></thead>
+      <tbody>${audits || `<tr><td colspan="5" style="color:var(--muted)">No sample audits</td></tr>`}</tbody>
+    </table>
+    <div class="btn-row" style="margin-top:0.85rem">
+      <button class="btn primary" type="button">Open coaching plan</button>
+      <button class="btn" type="button">Assign to coach</button>
+      <button class="btn" type="button">Schedule session</button>
+    </div>`;
+}
+
+function openCoachPane(id) {
+  const c = COACHING.find((x) => x.id === id);
+  if (!c || !coachPane) return;
+  selectedCoach = id;
+  coachPaneTitle.textContent = `Coaching plan · ${c.agent}`;
+  coachPaneSub.textContent = `${c.level === "team" ? "Team" : "Agent"} coaching · ${c.monitoring ?? c.audits} monitoring · ${c.theme}`;
+  coachPaneBody.innerHTML = coachingPlanHtml(c);
+  coachPane.hidden = false;
+}
+
+function closeCoachPane() {
+  if (coachPane) coachPane.hidden = true;
+}
+
+function filteredOverall() {
   return COACHING.filter((c) => {
     if (coachFilters.severity.length && !coachFilters.severity.includes(c.severity)) return false;
     if (coachFilters.themes.length && !coachFilters.themes.includes(c.theme)) return false;
@@ -891,111 +1004,211 @@ function filteredCoaching() {
   });
 }
 
-function renderCoaching() {
-  const list = filteredCoaching();
+function filteredTeams() {
+  return COACHING.filter((c) => c.level === "team").filter((c) => {
+    if (teamFilters.teams.length && !teamFilters.teams.includes(c.team)) return false;
+    if (teamFilters.lobs.length && !teamFilters.lobs.includes(c.lob)) return false;
+    if (teamFilters.themes.length && !teamFilters.themes.includes(c.theme)) return false;
+    if (teamFilters.severity.length && !teamFilters.severity.includes(c.severity)) return false;
+    return true;
+  });
+}
+
+function agentRecords() {
+  return COACHING.filter((c) => c.level === "agent");
+}
+
+function renderCoachingOverall() {
+  const list = filteredOverall();
   const rows = list
     .map(
       (c) => `
-    <tr class="clickable ${selectedCoach === c.id ? "selected" : ""}" data-coach="${c.id}">
+    <tr>
       <td><span class="severity ${c.severity}">${c.severity.toUpperCase()}</span></td>
-      <td><strong>${c.agent}</strong></td>
+      <td><strong>${c.agent}</strong><div style="font-size:0.72rem;color:var(--muted)">${c.level} · ${c.team}</div></td>
       <td>${c.lob}</td>
-      <td>${c.queue}</td>
       <td>${c.theme}</td>
-      <td>${c.audits}</td>
+      <td>${c.monitoring ?? c.audits}</td>
       <td>${c.fails}</td>
-      <td style="max-width:280px;font-size:0.82rem">${c.opportunity}</td>
+      <td style="max-width:240px;font-size:0.82rem">${c.opportunity}</td>
+      <td><button class="btn primary" type="button" data-view-coach="${c.id}">View coaching</button></td>
     </tr>`
     )
     .join("");
 
-  const selected = COACHING.find((c) => c.id === selectedCoach) || list[0] || null;
-  const audits = selected
-    ? selected.sampleAudits
-        .map(
-          (a) => `
-      <tr>
-        <td style="font-family:var(--mono);font-size:0.75rem">${a.id}</td>
-        <td>${a.date}</td>
-        <td>${a.score}</td>
-        <td>${a.defect}</td>
-        <td><button class="link-btn" type="button">Open audit</button></td>
-      </tr>`
-        )
-        .join("")
-    : "";
+  return `
+    <div class="stat-row">
+      <div class="stat"><div class="label">All opportunities</div><div class="value">${list.length}</div></div>
+      <div class="stat"><div class="label">Teams</div><div class="value">${list.filter((c) => c.level === "team").length}</div></div>
+      <div class="stat"><div class="label">Agents</div><div class="value">${list.filter((c) => c.level === "agent").length}</div></div>
+      <div class="stat"><div class="label">Monitoring total</div><div class="value">${list.reduce((s, c) => s + (c.monitoring || c.audits), 0)}</div></div>
+    </div>
+    <div class="card">
+      <h3>Overall coaching opportunities</h3>
+      <p class="hint">Combined team and agent opportunities from AutoQRA monitoring volume.</p>
+      <div class="ix-table-wrap" style="border:none">
+        <table class="table">
+          <thead>
+            <tr><th>Priority</th><th>Who</th><th>LOB</th><th>Theme</th><th>Monitoring</th><th>Fails</th><th>Opportunity</th><th></th></tr>
+          </thead>
+          <tbody>${rows || `<tr><td colspan="8" style="text-align:center;color:var(--muted)">No rows</td></tr>`}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function renderCoachingTeam() {
+  const teams = filteredTeams();
+  const teamNames = [...new Set(COACHING.filter((c) => c.level === "team").map((c) => c.team))];
+  const lobs = [...new Set(COACHING.filter((c) => c.level === "team").map((c) => c.lob))];
+  const themes = [...new Set(COACHING.filter((c) => c.level === "team").map((c) => c.theme))];
+  const sevs = [...new Set(COACHING.filter((c) => c.level === "team").map((c) => c.severity))];
+
+  const rows = teams
+    .map(
+      (c) => `
+    <tr>
+      <td><span class="severity ${c.severity}">${c.severity.toUpperCase()}</span></td>
+      <td><strong>${c.team}</strong></td>
+      <td>${c.lob}</td>
+      <td>${c.queue}</td>
+      <td>${c.theme}</td>
+      <td>${c.monitoring ?? c.audits}</td>
+      <td>${c.fails}</td>
+      <td style="max-width:220px;font-size:0.82rem">${c.opportunity}</td>
+      <td><button class="btn primary" type="button" data-view-coach="${c.id}">View coaching</button></td>
+    </tr>`
+    )
+    .join("");
+
+  return `
+    <div class="card">
+      <h3>Team coaching</h3>
+      <p class="hint">Filter at team level, then open the coaching pane over this window.</p>
+      <div class="filters-inline" style="margin-bottom:0.75rem">
+        <div class="field"><label>Team</label>
+          <select data-team-filter="teams" multiple size="3" style="min-height:64px">
+            ${teamNames.map((s) => `<option value="${s}" ${teamFilters.teams.includes(s) ? "selected" : ""}>${s}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field"><label>LOB</label>
+          <select data-team-filter="lobs" multiple size="3" style="min-height:64px">
+            ${lobs.map((s) => `<option value="${s}" ${teamFilters.lobs.includes(s) ? "selected" : ""}>${s}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field"><label>Theme</label>
+          <select data-team-filter="themes" multiple size="3" style="min-height:64px">
+            ${themes.map((s) => `<option value="${s}" ${teamFilters.themes.includes(s) ? "selected" : ""}>${s}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field"><label>Severity</label>
+          <select data-team-filter="severity" multiple size="3" style="min-height:64px">
+            ${sevs.map((s) => `<option value="${s}" ${teamFilters.severity.includes(s) ? "selected" : ""}>${s}</option>`).join("")}
+          </select>
+        </div>
+        <div class="filter-actions">
+          <button class="btn primary" type="button" data-team-apply>Apply filters</button>
+          <button class="btn" type="button" data-team-clear>Clear</button>
+        </div>
+      </div>
+      <p class="hint" style="margin:0 0 0.45rem">Showing ${teams.length} team coaching plans. Click <strong>View coaching</strong> to open the pane.</p>
+      <div class="ix-table-wrap" style="border:none">
+        <table class="table">
+          <thead>
+            <tr><th>Priority</th><th>Team</th><th>LOB</th><th>Queue</th><th>Theme</th><th>Monitoring</th><th>Fails</th><th>Opportunity</th><th></th></tr>
+          </thead>
+          <tbody>${rows || `<tr><td colspan="9" style="text-align:center;color:var(--muted)">No teams match filters.</td></tr>`}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function renderCoachingAgent() {
+  const agents = agentRecords();
+  const selected = agents.find((c) => c.id === selectedCoach && c.level === "agent") || null;
+
+  const rows = agents
+    .map(
+      (c) => `
+    <tr class="clickable ${selectedCoach === c.id ? "selected" : ""}" data-agent-coach="${c.id}">
+      <td><strong>${c.agent}</strong></td>
+      <td>${c.team}</td>
+      <td>${c.lob}</td>
+      <td>${c.queue}</td>
+      <td><strong>${c.monitoring ?? c.audits}</strong></td>
+      <td>${c.fails}</td>
+      <td><span class="severity ${c.severity}">${c.severity.toUpperCase()}</span></td>
+      <td>${c.theme}</td>
+    </tr>`
+    )
+    .join("");
 
   const detail = selected
     ? `
     <div class="card" style="margin-top:0.85rem">
       <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-start">
         <div>
-          <h3 style="margin:0">Coaching plan · ${selected.agent}</h3>
-          <p class="hint" style="margin:0.35rem 0 0">${selected.audits} audits · ${selected.fails} defect hits · ${selected.theme} · ${selected.lob}</p>
+          <h3 style="margin:0">Agent coaching · ${selected.agent}</h3>
+          <p class="hint" style="margin:0.35rem 0 0">${selected.monitoring ?? selected.audits} monitoring · ${selected.fails} defect hits · ${selected.team} · ${selected.lob}</p>
         </div>
-        <span class="severity ${selected.severity}">${selected.severity.toUpperCase()}</span>
+        <div class="btn-row">
+          <button class="btn primary" type="button" data-view-coach="${selected.id}">Open coaching pane</button>
+        </div>
+      </div>
+      <div class="stat-row" style="margin:0.75rem 0">
+        <div class="stat"><div class="label">Monitoring</div><div class="value">${selected.monitoring ?? selected.audits}</div></div>
+        <div class="stat"><div class="label">Defect hits</div><div class="value">${selected.fails}</div></div>
+        <div class="stat"><div class="label">Avg focus score</div><div class="value">${Math.round((selected.sampleAudits || []).reduce((s, a) => s + a.score, 0) / Math.max(1, (selected.sampleAudits || []).length)) || "—"}</div></div>
+        <div class="stat"><div class="label">Priority</div><div class="value" style="font-size:1rem">${selected.severity.toUpperCase()}</div></div>
       </div>
       <p style="font-size:0.9rem;line-height:1.45">${selected.opportunity}</p>
-      <h3 style="margin:0.85rem 0 0.45rem;font-size:0.95rem">Example audits leading to this plan</h3>
+      <h3 style="margin:0.75rem 0 0.45rem;font-size:0.95rem">Monitoring examples</h3>
       <table class="table">
-        <thead><tr><th>Audit</th><th>Date</th><th>Score</th><th>Defect</th><th></th></tr></thead>
-        <tbody>${audits}</tbody>
+        <thead><tr><th>Audit</th><th>Date</th><th>Score</th><th>Defect</th></tr></thead>
+        <tbody>
+          ${(selected.sampleAudits || [])
+            .map((a) => `<tr><td style="font-family:var(--mono);font-size:0.75rem">${a.id}</td><td>${a.date}</td><td>${a.score}</td><td>${a.defect}</td></tr>`)
+            .join("")}
+        </tbody>
       </table>
-      <div class="btn-row" style="margin-top:0.75rem">
-        <button class="btn primary" type="button">Open coaching plan</button>
-        <button class="btn" type="button">Assign to coach</button>
-        <button class="btn" type="button">Schedule session</button>
-      </div>
     </div>`
-    : `<div class="card" style="margin-top:0.85rem"><p class="hint">Select an agent row to see example audits and coaching plan.</p></div>`;
-
-  const sevOpts = [...new Set(COACHING.map((c) => c.severity))];
-  const themeOpts = [...new Set(COACHING.map((c) => c.theme))];
-  const agentOpts = [...new Set(COACHING.map((c) => c.agent))];
+    : `<div class="card" style="margin-top:0.85rem"><p class="hint">Select an agent row to see coaching details and monitoring count.</p></div>`;
 
   return `
-    <h1 class="page-title">Coaching</h1>
-    <p class="page-sub">Long list of coaching opportunities from AutoQRA audit volume. Filter, then open a plan with example audits.</p>
-    ${tenantRow()}
-    <div class="stat-row">
-      <div class="stat"><div class="label">Opportunities</div><div class="value">${list.length}</div></div>
-      <div class="stat"><div class="label">Total in catalog</div><div class="value">${COACHING.length}</div></div>
-      <div class="stat"><div class="label">High priority</div><div class="value">${list.filter((c) => c.severity === "high").length}</div></div>
-      <div class="stat"><div class="label">Audits represented</div><div class="value">${list.reduce((s, c) => s + c.audits, 0)}</div></div>
-    </div>
-    <div class="card" style="padding:0.75rem 1rem">
-      <div class="filters-inline" style="margin-bottom:0.65rem">
-        <div class="field"><label>Severity</label>
-          <select data-coach-filter="severity" multiple size="3" style="min-height:64px">
-            ${sevOpts.map((s) => `<option value="${s}" ${coachFilters.severity.includes(s) ? "selected" : ""}>${s}</option>`).join("")}
-          </select>
-        </div>
-        <div class="field"><label>Theme</label>
-          <select data-coach-filter="themes" multiple size="3" style="min-height:64px">
-            ${themeOpts.map((s) => `<option value="${s}" ${coachFilters.themes.includes(s) ? "selected" : ""}>${s}</option>`).join("")}
-          </select>
-        </div>
-        <div class="field"><label>Agent / team</label>
-          <select data-coach-filter="agents" multiple size="3" style="min-height:64px">
-            ${agentOpts.map((s) => `<option value="${s}" ${coachFilters.agents.includes(s) ? "selected" : ""}>${s}</option>`).join("")}
-          </select>
-        </div>
-        <div class="filter-actions">
-          <button class="btn primary" type="button" data-coach-apply>Apply filters</button>
-          <button class="btn" type="button" data-coach-clear>Clear</button>
-        </div>
-      </div>
-      <p class="hint" style="margin:0 0 0.45rem">Hold Ctrl/Cmd to multi-select. Showing ${list.length} of ${COACHING.length} opportunities.</p>
+    <div class="card">
+      <h3>Agent-level coaching</h3>
+      <p class="hint">All agents with AutoQRA monitoring volume. Click an agent for coaching details and monitoring count.</p>
+      <p class="hint" style="margin:0 0 0.45rem">${agents.length} agents listed.</p>
       <div class="ix-table-wrap" style="border:none">
         <table class="table">
           <thead>
-            <tr><th>Priority</th><th>Agent / team</th><th>LOB</th><th>Queue</th><th>Theme</th><th>Audits</th><th>Fails</th><th>Opportunity</th></tr>
+            <tr><th>Agent</th><th>Team</th><th>LOB</th><th>Queue</th><th>Monitoring</th><th>Fails</th><th>Priority</th><th>Theme</th></tr>
           </thead>
-          <tbody>${rows || `<tr><td colspan="8" style="text-align:center;color:var(--muted)">No coaching rows match filters.</td></tr>`}</tbody>
+          <tbody>${rows}</tbody>
         </table>
       </div>
     </div>
     ${detail}`;
+}
+
+function renderCoaching() {
+  const body =
+    coachingTab === "team"
+      ? renderCoachingTeam()
+      : coachingTab === "agent"
+        ? renderCoachingAgent()
+        : renderCoachingOverall();
+
+  return `
+    <h1 class="page-title">Coaching</h1>
+    <p class="page-sub">Overall opportunities, team coaching with filters, and agent-level coaching with monitoring counts.</p>
+    ${tenantRow()}
+    <div class="tabs">
+      <button class="tab ${coachingTab === "overall" ? "active" : ""}" type="button" data-coach-tab="overall">Overall Coaching</button>
+      <button class="tab ${coachingTab === "team" ? "active" : ""}" type="button" data-coach-tab="team">Team</button>
+      <button class="tab ${coachingTab === "agent" ? "active" : ""}" type="button" data-coach-tab="agent">Agent level coaching</button>
+    </div>
+    ${body}`;
 }
 
 function renderReporting() {
@@ -1371,6 +1584,7 @@ function setNav(view) {
 function render(view) {
   currentView = view;
   if (view !== "interactions") selectedIx = null;
+  if (view !== "coaching") closeCoachPane();
   setNav(view);
   workspace.innerHTML = RENDERERS[view]();
   sideNav.classList.remove("open");
@@ -1508,6 +1722,44 @@ workspace.addEventListener("click", (e) => {
     return;
   }
 
+  const coachTabBtn = e.target.closest("[data-coach-tab]");
+  if (coachTabBtn) {
+    coachingTab = coachTabBtn.dataset.coachTab;
+    selectedCoach = null;
+    render("coaching");
+    return;
+  }
+
+  const viewCoach = e.target.closest("[data-view-coach]");
+  if (viewCoach) {
+    openCoachPane(viewCoach.dataset.viewCoach);
+    return;
+  }
+
+  const agentCoach = e.target.closest("[data-agent-coach]");
+  if (agentCoach) {
+    selectedCoach = agentCoach.dataset.agentCoach;
+    render("coaching");
+    return;
+  }
+
+  if (e.target.closest("[data-team-apply]")) {
+    workspace.querySelectorAll("[data-team-filter]").forEach((sel) => {
+      teamFilters[sel.dataset.teamFilter] = [...sel.selectedOptions].map((o) => o.value);
+    });
+    render("coaching");
+    return;
+  }
+
+  if (e.target.closest("[data-team-clear]")) {
+    teamFilters.teams = [];
+    teamFilters.lobs = [];
+    teamFilters.themes = [];
+    teamFilters.severity = [];
+    render("coaching");
+    return;
+  }
+
   const coachRow = e.target.closest("[data-coach]");
   if (coachRow) {
     selectedCoach = coachRow.dataset.coach;
@@ -1603,8 +1855,15 @@ crmPane.addEventListener("click", (e) => {
   }
 });
 
+coachPane.addEventListener("click", (e) => {
+  if (e.target.closest("[data-close-coach-pane]")) closeCoachPane();
+});
+
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !crmPane.hidden) closeCrmPane();
+  if (e.key === "Escape") {
+    if (coachPane && !coachPane.hidden) closeCoachPane();
+    else if (!crmPane.hidden) closeCrmPane();
+  }
 });
 
 render("interactions");

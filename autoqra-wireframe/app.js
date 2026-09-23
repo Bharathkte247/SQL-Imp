@@ -735,29 +735,9 @@ function failedBar() {
 }
 
 function renderOverview() {
-  const core = FEATURES.filter((f) => f.tier === "core");
-  const advanced = FEATURES.filter((f) => f.tier === "advanced");
-  const insight = FEATURES.filter((f) => f.tier === "insight");
-  const tile = (f) => `
-    <button class="feature-tile ${f.tier}" type="button" data-goto="${f.view}">
-      <div class="ft-name">${f.name}</div>
-      <div class="ft-meta">→ ${f.view}</div>
-    </button>`;
-
-  return `
-    <h1 class="page-title">AutoQRA feature map</h1>
-    <p class="page-sub">31 capabilities across Interactions, Import and export, Jobs, Coaching, Reporting & Insights, and Admin.</p>
-    <div class="stat-row">
-      <div class="stat"><div class="label">Total</div><div class="value">31</div></div>
-      <div class="stat"><div class="label">Core</div><div class="value">${core.length}</div></div>
-      <div class="stat"><div class="label">Advanced</div><div class="value">${advanced.length}</div></div>
-      <div class="stat"><div class="label">Insights</div><div class="value">${insight.length}</div></div>
-    </div>
-    <div class="card"><h3>Core QA</h3><div class="feature-grid">${core.map(tile).join("")}</div></div>
-    <div class="card"><h3>Advanced / Integration</h3><div class="feature-grid">${advanced.map(tile).join("")}</div></div>
-    <div class="card"><h3>Insights / Admin</h3><div class="feature-grid">${insight.map(tile).join("")}</div></div>`;
+  // Kept for compatibility; Feature Map lives under Settings → About
+  return renderAboutBody();
 }
-
 
 function statusClass(status) {
   if (status === "Complete" || status === "QA Reviewed") return "ok";
@@ -2128,6 +2108,36 @@ function renderAdminCalibrationBody() {
     </div>`;
 }
 
+function renderAboutBody() {
+  const rows = FEATURES.map(
+    (f, idx) => `
+    <tr class="clickable" data-goto="${f.view}">
+      <td style="color:var(--muted);width:2.5rem">${idx + 1}</td>
+      <td><strong>${f.name}</strong></td>
+      <td><span class="chip">${f.tier}</span></td>
+      <td style="color:var(--muted);font-size:0.82rem">${f.view}</td>
+    </tr>`
+  ).join("");
+
+  const core = FEATURES.filter((f) => f.tier === "core").length;
+  const advanced = FEATURES.filter((f) => f.tier === "advanced").length;
+  const insight = FEATURES.filter((f) => f.tier === "insight").length;
+
+  return `
+    <div class="card">
+      <h3 style="margin:0 0 0.35rem">About · AutoQRA feature list</h3>
+      <p class="hint" style="margin:0 0 0.75rem">Former Feature Map. ${FEATURES.length} capabilities (Core ${core} · Advanced ${advanced} · Insights ${insight}). Click a row to open the related screen.</p>
+      <div class="ix-table-wrap" style="border:none">
+        <table class="table">
+          <thead>
+            <tr><th>#</th><th>Feature</th><th>Tier</th><th>Screen</th></tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
 function renderAdminAdvancedBody() {
   return `
     <div class="card">
@@ -2142,17 +2152,20 @@ function renderAdmin() {
       ? renderAdminCalibrationBody()
       : settingsTab === "advanced"
         ? renderAdminAdvancedBody()
-        : renderAdminTenantBody();
+        : settingsTab === "about"
+          ? renderAboutBody()
+          : renderAdminTenantBody();
 
   return `
     <h1 class="page-title">Settings*</h1>
-    <p class="page-sub">Not available now (marked with *). Preview of Admin / Calibration / Advanced Settings tabs.</p>
+    <p class="page-sub">Not available now (marked with *). Admin / Calibration / Advanced Settings / About.</p>
     <div class="callout">Settings* is unavailable in this release.</div>
     ${tenantRow()}
     <div class="tabs">
       <button class="tab ${settingsTab === "admin" ? "active" : ""}" type="button" data-settings-tab="admin">Admin</button>
       <button class="tab ${settingsTab === "calibration" ? "active" : ""}" type="button" data-settings-tab="calibration">Calibration &amp; AI Opt</button>
       <button class="tab ${settingsTab === "advanced" ? "active" : ""}" type="button" data-settings-tab="advanced">Advanced Settings</button>
+      <button class="tab ${settingsTab === "about" ? "active" : ""}" type="button" data-settings-tab="about">About</button>
     </div>
     <div class="unavailable-preview">${body}</div>`;
 }
@@ -2197,7 +2210,6 @@ function closeCrmPane() {
 }
 
 const RENDERERS = {
-  overview: renderOverview,
   interactions: renderInteractions,
   "data-import": renderDataImport,
   sampling: renderSampling,
@@ -2214,6 +2226,11 @@ function setNav(view) {
 }
 
 function render(view) {
+  // Feature Map removed from nav — open Settings → About instead
+  if (view === "overview") {
+    settingsTab = "about";
+    view = "admin";
+  }
   currentView = view;
   if (view !== "interactions") selectedIx = null;
   if (view !== "coaching") closeCoachPane();

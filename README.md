@@ -22,10 +22,34 @@
 | **Pending Dispute** | Manual or Hybrid · human override enabled |
 | **Complete** | Agent feedback acknowledged · audit locked |
 
-## Run
+## Run locally
+
+> **Important:** This folder is on branch `cursor/autoqra-feature-wireframe-a131`.  
+> It is **not** on `main`. Checkout that branch first or you will not see `autoqra-wireframe/`.
 
 ```bash
+# from repo root
+git fetch origin
 git checkout cursor/autoqra-feature-wireframe-a131
+
 cd autoqra-wireframe
 python3 -m http.server 8765
 ```
+
+Open: **http://127.0.0.1:8765/**
+
+Helper script (same thing):
+
+```bash
+cd autoqra-wireframe
+./start.sh
+```
+
+### Troubleshooting
+
+| Symptom | Fix |
+| --- | --- |
+| `autoqra-wireframe` folder missing | You are on `main`. Run `git checkout cursor/autoqra-feature-wireframe-a131` |
+| Blank page / files 404 | Serve from **inside** `autoqra-wireframe` (not the repo root). Do not open `index.html` via `file://` if assets fail to load. |
+| Port in use | `python3 -m http.server 8766` then open that port |
+| Old UI after pull | Hard refresh: Ctrl+Shift+R (Cmd+Shift+R on Mac) |

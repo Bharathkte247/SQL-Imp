@@ -237,6 +237,7 @@ a { color: var(--accent); }
 .status.warn { background: var(--warn-bg); color: var(--warn); }
 .status.bad { background: var(--bad-bg); color: var(--bad); }
 .status.neutral { background: #eef1f5; color: var(--muted); }
+.status.direct { background: #e8f1fb; color: #1a5fb4; }
 
 /* Interactions layout */
 .ix-detail-toolbar {

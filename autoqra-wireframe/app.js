@@ -37,10 +37,26 @@ const FEATURES = [
 const AUDIT_STATUSES = [
   "Not Audited",
   "LLM Audited",
+  "QA Direct",
   "QA Reviewed",
   "Pending Dispute",
   "Complete",
 ];
+
+const FORM_VERSIONS = [
+  { id: "llm", name: "LLM form" },
+  { id: "qra", name: "QRA form" },
+  { id: "short-call", name: "Short call monitoring" },
+  { id: "supervisor", name: "Supervisor monitoring" },
+];
+
+const JOB_FORM_VERSIONS = [
+  { id: "llm", name: "LLM form" },
+  { id: "short-form", name: "Short form monitoring" },
+  { id: "custom", name: "Custom form" },
+];
+
+const RUBRIC_AREAS = ["Soft skills", "Compliance", "Disclosures", "Resolution", "Empathy"];
 
 const INTERACTIONS = [
   {
@@ -78,6 +94,46 @@ const INTERACTIONS = [
     auditMode: "none",
     score: "—",
     date: "2026-09-09",
+  },
+  {
+    id: "qd-014-77c1-4b20-a901-qa-direct-0014",
+    short: "qd-014…0014",
+    agent: "j.brooks",
+    agentName: "J. Brooks",
+    duration: "1m 40s",
+    queue: "UHC_Refill_Status",
+    lob: "Medicaid Pharmacy",
+    channel: "ude",
+    source: "api_pull",
+    intent: "rx_refill_request",
+    sentiment: "neutral",
+    escalated: false,
+    status: "QA Direct",
+    auditMode: "qa-direct",
+    formVersion: "short-call",
+    score: "91",
+    date: "2026-09-10",
+    llmExcluded: true,
+  },
+  {
+    id: "qd-015-88d2-4c31-b012-qa-direct-0015",
+    short: "qd-015…0015",
+    agent: "p.ellis",
+    agentName: "P. Ellis",
+    duration: "6m 05s",
+    queue: "247client1_Web_Chat",
+    lob: "Cards",
+    channel: "ude",
+    source: "csv",
+    intent: "fee_waiver",
+    sentiment: "negative",
+    escalated: false,
+    status: "QA Direct",
+    auditMode: "qa-direct",
+    formVersion: "supervisor",
+    score: "78",
+    date: "2026-09-09",
+    llmExcluded: true,
   },
   {
     id: "0459517b-4e6d-4d1f-a8a8-8ca18a4601fe",
@@ -257,6 +313,45 @@ const AUDIT_QUESTIONS = [
     points: "-10",
   },
 ];
+
+const SHORT_CALL_QUESTIONS = [
+  { q: "SC1 Greeting and identification completed", choice: "No", points: "-10" },
+  { q: "SC2 Issue resolved or next step stated", choice: "No", points: "-10" },
+  { q: "SC3 Required compliance statement delivered", choice: "No", points: "-15" },
+];
+
+const SUPERVISOR_QUESTIONS = [
+  { q: "SV1 Observed behavior matches policy", choice: "No", points: "-10" },
+  { q: "SV2 Customer outcome acceptable", choice: "No", points: "-10" },
+  { q: "SV3 Coaching note captured for the agent", choice: "No", points: "-5" },
+];
+
+function formName(id) {
+  return FORM_VERSIONS.find((f) => f.id === id)?.name || JOB_FORM_VERSIONS.find((f) => f.id === id)?.name || "QRA form";
+}
+
+function isPartialForm(id) {
+  return id === "short-call" || id === "supervisor";
+}
+
+function questionsForForm(id) {
+  if (id === "short-call") return SHORT_CALL_QUESTIONS;
+  if (id === "supervisor") return SUPERVISOR_QUESTIONS;
+  return AUDIT_QUESTIONS;
+}
+
+function sectionTitleForForm(id) {
+  if (id === "short-call") return "Short call checks";
+  if (id === "supervisor") return "Supervisor observation";
+  return "Soft Skills and Professionalism";
+}
+
+INTERACTIONS.forEach((i) => {
+  if (i.formVersion) return;
+  if (i.auditMode === "llm" || i.auditMode === "hybrid") i.formVersion = "llm";
+  else if (i.auditMode === "manual") i.formVersion = "qra";
+  else i.formVersion = "";
+});
 
 const COACHING = [
   {
@@ -454,6 +549,19 @@ COACHING.forEach((c) => {
           ? "Team Test"
           : "Team Retail-A";
   c.monitoring = c.audits; // number of monitoring forms / audits
+  if (c.level === "agent") {
+    c.assignedBy = ["c1", "c3", "c6", "c9"].includes(c.id) ? "human" : "llm";
+    c.defectRate = `${Math.round((c.fails / c.audits) * 100)}%`;
+    const actionPack = {
+      Disclosures: ["Review the disclosure script before the next chat", "Complete the disclosure quiz", "Compare one gold-standard refill call"],
+      "Soft skills": ["Use the empathy opener before escalating", "Replay two escalate turns", "Confirm the soft-skills checklist with your coach"],
+      Resolution: ["Close every chat with the next-step checklist", "Practice the payment or refill confirm", "Mark one recent chat that missed the close"],
+      Compliance: ["Complete primary and secondary verification", "Pin the auth script on the desktop", "Review the five missed-verification audits"],
+      "Peer coach": ["Keep the current approach", "Share one example in the team huddle", "Stay available as a calibration peer"],
+      Clarity: ["Name the product before the upsell", "Slow the close by one beat", "Check the last three product chats"],
+    };
+    c.actions = actionPack[c.theme] || ["Review recent audits", "Practice the focus behavior", "Confirm the plan with your coach"];
+  }
 });
 
 // Extra team rows for Team tab coverage
@@ -645,7 +753,17 @@ let settingsTab = "admin";
 let selectedCoach = null;
 let coachingTab = "overall";
 let overallPeriod = "MTD";
-let reportFilters = { lob: "All", queue: "All", period: "MTD" };
+let reportFilters = { lob: "All", queue: "All", period: "MTD", section: "Soft skills", rank: "Top 10" };
+let selectedAgentView = "R. Patel";
+let agentPeriod = "MTD";
+let jobName = "247client1 weekly AutoQRA";
+let jobType = "AutoQRA scoring";
+let jobDateFrom = "2026-09-01";
+let jobDateTo = "2026-09-10";
+let jobOpenEnded = false;
+let jobFormVersion = "llm";
+let jobRubrics = ["Disclosures"];
+let jobRequested = "10";
 let coachFilters = { severity: [], themes: [], agents: [], teams: [], lobs: [] };
 let teamFilters = { teams: [], lobs: [], queues: [], themes: [], severity: [] };
 let selectedIngestJob = "ing_340ceb2fe31747c8b771e871a15ec2356";
@@ -743,6 +861,7 @@ function statusClass(status) {
   if (status === "Complete" || status === "QA Reviewed") return "ok";
   if (status === "Pending Dispute") return "bad";
   if (status === "LLM Audited") return "warn";
+  if (status === "QA Direct") return "direct";
   return "neutral";
 }
 
@@ -750,7 +869,20 @@ function auditModeLabel(mode) {
   if (mode === "manual") return "Manual audit";
   if (mode === "hybrid") return "Hybrid audit";
   if (mode === "llm") return "LLM audit";
+  if (mode === "qa-direct") return "QA Direct";
   return "Not audited";
+}
+
+function interactionFormForJob(jobForm) {
+  if (jobForm === "llm") return "llm";
+  if (jobForm === "short-form" || jobForm === "short-call") return "short-call";
+  return "qra";
+}
+
+function activeFormId(ix) {
+  if (ix.formVersion) return ix.formVersion;
+  if (ix.auditMode === "llm" || ix.auditMode === "hybrid") return "llm";
+  return interactionFormForJob(jobFormVersion);
 }
 
 function renderInteractionsList() {
@@ -779,7 +911,7 @@ function renderInteractionsList() {
   return `
     <div class="ix-list-page">
       <h1 class="page-title">Interactions</h1>
-      <p class="page-sub">Filter by audit status (Not Audited · LLM Audited · QA Reviewed · Pending Dispute · Complete). Select a row for the matching audit workspace.</p>
+      <p class="page-sub">Filter by audit status (Not Audited · LLM Audited · QA Direct · QA Reviewed · Pending Dispute · Complete). QA Direct is scored by a person with no LLM review.</p>
       ${tenantRow()}
       <div class="list-toolbar">
         <div class="filters-inline">
@@ -815,61 +947,63 @@ function renderInteractionsList() {
 function renderAuditForm(ix) {
   const isNotAudited = ix.status === "Not Audited";
   const isLlm = ix.status === "LLM Audited";
+  const isQaDirect = ix.status === "QA Direct";
   const isQaReviewed = ix.status === "QA Reviewed";
   const isDispute = ix.status === "Pending Dispute";
   const isComplete = ix.status === "Complete";
+  const formId = activeFormId(ix);
+  const formLocked = isQaDirect || isQaReviewed || isComplete;
+  const questions = questionsForForm(formId);
+  const partial = isPartialForm(formId);
 
-  const overrideDisabled = isQaReviewed || isComplete;
-  const showAi = !isNotAudited;
+  const overrideDisabled = isQaReviewed || isComplete || isQaDirect;
+  const showAi = formId === "llm" && !isNotAudited && !isQaDirect;
   const showAck = isComplete;
   const showScores = !isNotAudited;
 
-  const emptyQs = AUDIT_QUESTIONS.map(
-    (q) => `
+  const questionCards = questions.map((q) => {
+    const selected = isNotAudited ? "" : q.choice || "No";
+    const note = showAi && q.ai
+      ? `<div class="ai-note">${q.ai}</div>`
+      : `<div class="ai-note" style="color:var(--muted)">${isQaDirect ? "Human rationale — no LLM review on this conversation" : "No AI rationale — manual scoring"}</div>`;
+    const rationale = isNotAudited ? "" : (q.ai || "Scored directly by QA.").replace(/^AI:\s*/, "");
+    return `
     <div class="q-card">
-      <span class="priority">high</span>
+      <span class="priority">${partial ? "partial" : "high"}</span>
       <div class="q-title">${q.q}</div>
-      <div class="ai-note" style="color:var(--muted)">No AI rationale — manual scoring</div>
+      ${note}
       <div class="choice-row">
-        <button class="choice" type="button">Yes (${q.points})</button>
-        <button class="choice" type="button">No</button>
-        <button class="choice" type="button">NA</button>
-      </div>
-      <div class="field"><textarea placeholder="Enter auditor rationale…"></textarea></div>
-    </div>`
-  ).join("");
-
-  const filledQs = AUDIT_QUESTIONS.map(
-    (q) => `
-    <div class="q-card">
-      <span class="priority">high</span>
-      <div class="q-title">${q.q}</div>
-      ${showAi ? `<div class="ai-note">${q.ai}</div>` : ""}
-      <div class="choice-row">
-        <button class="choice ${q.choice === "Yes" ? "selected" : ""}" type="button" ${overrideDisabled ? "disabled" : ""}>Yes (${q.points})</button>
-        <button class="choice ${q.choice === "No" ? "selected" : ""}" type="button" ${overrideDisabled ? "disabled" : ""}>No ✓</button>
+        <button class="choice ${selected === "Yes" ? "selected" : ""}" type="button" ${overrideDisabled ? "disabled" : ""}>Yes (${q.points})</button>
+        <button class="choice ${selected === "No" ? "selected" : ""}" type="button" ${overrideDisabled ? "disabled" : ""}>No${selected === "No" ? " ✓" : ""}</button>
         <button class="choice" type="button" ${overrideDisabled ? "disabled" : ""}>NA</button>
       </div>
-      <div class="field"><textarea ${overrideDisabled ? "readonly" : ""}>${q.ai.replace(/^AI:\s*/, "")}</textarea></div>
-    </div>`
-  ).join("");
+      <div class="field"><textarea ${overrideDisabled ? "readonly" : ""} placeholder="Enter auditor rationale…">${rationale}</textarea></div>
+    </div>`;
+  }).join("");
 
+  const formOptions = FORM_VERSIONS.map(
+    (f) => `<option value="${f.id}" ${formId === f.id ? "selected" : ""}>${f.name}</option>`
+  ).join("");
   const modeBadge = `<span class="chip">${auditModeLabel(ix.auditMode)}</span>`;
-  const statusBanner =
-    isNotAudited
-      ? `<div class="callout">Not Audited — empty monitoring form for manual QA.</div>`
+  const formBadge = `<span class="chip">${formName(formId)}${partial ? " · partial" : ""}</span>`;
+  const statusBanner = isNotAudited
+    ? `<div class="callout">Not Audited — pick a form and score this conversation directly. Submitting creates a QA Direct audit. The LLM will not review it, and the ratings feed LLM improvement.</div>`
+    : isQaDirect
+      ? `<div class="callout">QA Direct — a person scored this conversation with no LLM review. Later scoring jobs skip it. These ratings are queued as feedback to improve the LLM.</div>`
       : isLlm
-        ? `<div class="callout">LLM Audited — AI scores present, not submitted. Human override enabled.</div>`
+        ? `<div class="callout">LLM Audited — AI scores present, not submitted. Human override enabled. Switch the form if this should be scored on a partial monitoring form.</div>`
         : isQaReviewed
-          ? `<div class="callout">QA Reviewed (${auditModeLabel(ix.auditMode)}) — human override greyed out.</div>`
+          ? `<div class="callout">QA Reviewed (${auditModeLabel(ix.auditMode)}) — review after an LLM audit. Human override greyed out.</div>`
           : isDispute
             ? `<div class="callout">Pending Dispute — human override enabled for ${auditModeLabel(ix.auditMode)}.</div>`
             : `<div class="callout">Complete — agent feedback acknowledged. Audit locked.</div>`;
 
+  const sectionScore = isNotAudited ? "—" : partial ? `${questions.length}/${questions.length}` : "20/20";
+
   return `
     <div class="audit-form">
       <h3>247client1 Chat Quality Assurance Monitoring Form</h3>
-      <p class="hint" style="margin:0 0 0.55rem">Status: <strong>${ix.status}</strong> · ${modeBadge}</p>
+      <p class="hint" style="margin:0 0 0.55rem">Status: <strong>${ix.status}</strong> · ${modeBadge} · ${formBadge}</p>
       ${statusBanner}
 
       ${
@@ -878,43 +1012,40 @@ function renderAuditForm(ix) {
         <strong>GenAI summary</strong>
         Member reported an unauthorized charge. Bot verified identity, apologized, and escalated to fraud review with confirmation of next steps. Soft-skills section scored 20/20; no disclosure defects on this interaction.
       </div>`
-          : `<div class="genai-box" style="opacity:0.7">
+          : isQaDirect
+            ? `<div class="ack-box">
+        <span class="status direct">LLM excluded</span>
+        <strong>QA feedback loop</strong><br/>
+        Ratings on ${formName(formId)} are queued to improve the LLM. This conversation is excluded from later scoring jobs.
+      </div>`
+            : `<div class="genai-box" style="opacity:0.7">
         <strong>GenAI summary</strong>
-        Not available until LLM or hybrid audit runs. Complete the monitoring form manually.
+        Not used on this form. ${partial ? "Partial form — only the short monitoring items are scored." : "Complete the monitoring form manually."}
       </div>`
       }
 
-      ${
-        showScores
-          ? `<div class="score-summary">
-        <div class="score-chip"><b>${ix.score === "—" ? "…" : ix.score}</b>Overall</div>
-        <div class="score-chip"><b>20/20</b>Soft skills</div>
-        <div class="score-chip"><b>Pass</b>Compliance</div>
-        <div class="score-chip"><b>v3</b>Form version</div>
-      </div>`
-          : `<div class="score-summary">
-        <div class="score-chip"><b>—</b>Overall</div>
-        <div class="score-chip"><b>—/20</b>Soft skills</div>
-        <div class="score-chip"><b>—</b>Compliance</div>
-        <div class="score-chip"><b>v3</b>Form version</div>
-      </div>`
-      }
+      <div class="score-summary">
+        <div class="score-chip"><b>${showScores && ix.score !== "—" ? ix.score : "—"}</b>Overall</div>
+        <div class="score-chip"><b>${sectionScore}</b>${partial ? "Items" : "Soft skills"}</div>
+        <div class="score-chip"><b>${showScores ? "Pass" : "—"}</b>Compliance</div>
+        <div class="score-chip"><b>${formName(formId)}</b>Form</div>
+      </div>
 
       <div class="audit-meta">
         <div class="field"><label>Agent EmpId</label><input value="A10482" readonly /></div>
         <div class="field"><label>Manager Name</label><input value="S. Miles" readonly /></div>
         <div class="field"><label>Customer Name</label><input value="Jordan Lee" readonly /></div>
         <div class="field"><label>Agent Category</label><input value="Chat Tier 1" readonly /></div>
-        <div class="field"><label>Evaluator</label><input value="${isNotAudited ? "" : "ci_autoqra"}" placeholder="Assign evaluator" ${isComplete ? "readonly" : ""} /></div>
-        <div class="field"><label>Audit Type</label>
-          <select ${isComplete || isQaReviewed ? "disabled" : ""}>
-            <option ${ix.auditMode === "llm" || ix.auditMode === "hybrid" ? "selected" : ""}>Auto QA</option>
-            <option ${ix.auditMode === "manual" || isNotAudited ? "selected" : ""}>Manual QA</option>
+        <div class="field"><label>Evaluator</label><input value="${isNotAudited ? "" : isQaDirect ? "QA Analyst" : "ci_autoqra"}" placeholder="Assign evaluator" ${isComplete || isQaDirect ? "readonly" : ""} /></div>
+        <div class="field"><label>Form version</label>
+          <select data-ix-form ${formLocked ? "disabled" : ""}>
+            ${formOptions}
           </select>
         </div>
       </div>
+      <p class="hint" style="margin:0 0 0.55rem">Job default is <strong>${formName(jobFormVersion)}</strong>. The form selected here overrides that default for this conversation.</p>
       <p style="font-size:0.82rem;margin:0 0 0.55rem">AutoQRA status: <strong>${ix.status}</strong>
-        <button class="btn" type="button" style="margin-left:0.5rem" ${isComplete ? "disabled" : ""}>▶ Start timer</button>
+        <button class="btn" type="button" style="margin-left:0.5rem" ${isComplete || isQaDirect ? "disabled" : ""}>▶ Start timer</button>
       </p>
       ${
         showAck
@@ -933,31 +1064,34 @@ function renderAuditForm(ix) {
       }
       <div class="section-block">
         <div class="section-head">
-          <span>Soft Skills and Professionalism</span>
-          <span>${isNotAudited ? "—/20" : "20/20"}</span>
+          <span>${sectionTitleForForm(formId)}</span>
+          <span>${sectionScore}</span>
         </div>
-        ${isNotAudited ? emptyQs : filledQs}
+        ${questionCards}
       </div>
       <div class="btn-row">
         ${
           isNotAudited
-            ? `<button class="btn primary" type="button">Save manual audit</button>
-               <button class="btn" type="button">Submit for QA review</button>`
-            : isLlm
-              ? `<button class="btn primary" type="button">Save override</button>
-                 <button class="btn" type="button">Submit QA review</button>
-                 <button class="btn" type="button">Human override…</button>`
-              : isQaReviewed
-                ? `<button class="btn primary" type="button" disabled title="Override greyed out after QA review">Save override</button>
-                   <button class="btn" type="button" disabled>Human override…</button>
-                   <button class="btn" type="button">Export pack</button>`
-                : isDispute
-                  ? `<button class="btn primary" type="button">Save override</button>
-                     <button class="btn" type="button">Human override…</button>
-                     <button class="btn" type="button">Resolve dispute</button>`
-                  : `<button class="btn" type="button" disabled>Save override</button>
+            ? `<button class="btn primary" type="button" data-qa-direct-submit>Submit QA Direct audit</button>
+               <button class="btn" type="button">Save draft</button>`
+            : isQaDirect
+              ? `<button class="btn" type="button" disabled title="LLM will not review a QA Direct conversation">Send to LLM</button>
+                 <button class="btn" type="button">View feedback record</button>`
+              : isLlm
+                ? `<button class="btn primary" type="button">Save override</button>
+                   <button class="btn" type="button">Submit QA review</button>
+                   <button class="btn" type="button">Human override…</button>`
+                : isQaReviewed
+                  ? `<button class="btn primary" type="button" disabled title="Override greyed out after QA review">Save override</button>
                      <button class="btn" type="button" disabled>Human override…</button>
-                     <button class="btn" type="button">View acknowledgment</button>`
+                     <button class="btn" type="button">Export pack</button>`
+                  : isDispute
+                    ? `<button class="btn primary" type="button">Save override</button>
+                       <button class="btn" type="button">Human override…</button>
+                       <button class="btn" type="button">Resolve dispute</button>`
+                    : `<button class="btn" type="button" disabled>Save override</button>
+                       <button class="btn" type="button" disabled>Human override…</button>
+                       <button class="btn" type="button">View acknowledgment</button>`
         }
       </div>
     </div>`;
@@ -965,6 +1099,7 @@ function renderAuditForm(ix) {
 
 function renderInteractionDetail(ix) {
   const isNotAudited = ix.status === "Not Audited";
+  const isQaDirect = ix.status === "QA Direct";
 
   const details = `
     <h3 style="margin:0 0 0.55rem;font-size:0.95rem">Conversation details</h3>
@@ -972,6 +1107,8 @@ function renderInteractionDetail(ix) {
       <dt>Conversation ID</dt><dd>${ix.id}</dd>
       <dt>Status</dt><dd><span class="status ${statusClass(ix.status)}">${ix.status}</span></dd>
       <dt>Audit mode</dt><dd>${auditModeLabel(ix.auditMode)}</dd>
+      <dt>Form</dt><dd>${ix.formVersion ? formName(ix.formVersion) : "Not selected"}</dd>
+      <dt>LLM review</dt><dd>${isQaDirect ? '<span class="status direct">Excluded</span>' : isNotAudited ? "Not run" : "Eligible"}</dd>
       <dt>Channel</dt><dd>${ix.channel}</dd>
       <dt>Source</dt><dd>${ix.source}</dd>
       <dt>Escalation</dt><dd>${ix.escalated ? '<span class="status warn">Escalated</span>' : "None"}</dd>
@@ -992,8 +1129,12 @@ function renderInteractionDetail(ix) {
 
   const historyEvents =
     isNotAudited
-      ? `<tr><td>—</td><td>No audit events yet · awaiting manual monitoring</td></tr>`
-      : ix.status === "LLM Audited"
+      ? `<tr><td>—</td><td>No audit events yet · QA can score this conversation directly</td></tr>`
+      : isQaDirect
+        ? `<tr><td>09:40</td><td>QA Direct audit submitted · ${formName(ix.formVersion)}</td></tr>
+           <tr><td>09:40</td><td>LLM review skipped — conversation excluded from scoring jobs</td></tr>
+           <tr><td>09:41</td><td>Ratings queued for the LLM improvement feedback loop</td></tr>`
+        : ix.status === "LLM Audited"
         ? `<tr><td>08:11</td><td>LLM scoring · 247client1 Chat v3</td></tr>
            <tr><td>08:12</td><td>GenAI summary generated</td></tr>
            <tr><td>08:12</td><td>Awaiting human override / submit</td></tr>`
@@ -1018,7 +1159,7 @@ function renderInteractionDetail(ix) {
   const audit = renderAuditForm(ix);
   const sideBody = ixSideTab === "details" ? details : ixSideTab === "history" ? history : audit;
 
-  const showInsights = !isNotAudited;
+  const showInsights = !isNotAudited && !isQaDirect;
 
   const insightsBody = `
     <div class="ix-insights-section">
@@ -1406,14 +1547,17 @@ function renderDataImport() {
         ? sftpPush
         : dataTab === "clouds"
           ? cloudsTab
-          : ingest;
+          : dataTab === "schedule"
+            ? renderScheduledPull()
+            : ingest;
 
   return `
     <h1 class="page-title">Import and export</h1>
-    <p class="page-sub">CSV ingest, SFTP pull / push, cloud connections (AWS · Azure · GCP), and AutoQRA export for this techclient tenant.</p>
+    <p class="page-sub">CSV ingest, scheduled transcript pull, SFTP pull / push, cloud connections (AWS · Azure · GCP), and AutoQRA export for this techclient tenant.</p>
     ${tenantRow()}
     <div class="tabs">
       <button class="tab ${dataTab === "ingest" ? "active" : ""}" type="button" data-data-tab="ingest">Ingest <span class="badge">4</span></button>
+      <button class="tab ${dataTab === "schedule" ? "active" : ""}" type="button" data-data-tab="schedule">Scheduled pull</button>
       <button class="tab ${dataTab === "export" ? "active" : ""}" type="button" data-data-tab="export">Export</button>
       <button class="tab ${dataTab === "sftp-push" ? "active" : ""}" type="button" data-data-tab="sftp-push">SFTP Push</button>
       <button class="tab ${dataTab === "clouds" ? "active" : ""}" type="button" data-data-tab="clouds">Cloud connections</button>
@@ -1427,67 +1571,146 @@ function renderDataImportTitle() {
     <p class="page-sub">Ingest, pull, and export conversation data for the selected techclient tenant.</p>`;
 }
 
+const SCORING_JOBS = [
+  {
+    id: "qaj_44a1c2",
+    purpose: "Weekly pharmacy AutoQRA batch",
+    scope: "UHC · Rx intent",
+    from: "2026-09-01",
+    to: "2026-09-10",
+    openEnded: false,
+    form: "llm",
+    rubrics: [],
+    requested: 10,
+    status: "COMPLETED",
+    scored: "10 / 10",
+    updated: "2026-09-10 12:04",
+  },
+  {
+    id: "qaj_91bc88",
+    purpose: "247client1 web chat custom deep dive",
+    scope: "247client1_Web_Chat",
+    from: "2026-09-03",
+    to: "",
+    openEnded: true,
+    form: "custom",
+    rubrics: ["Soft skills", "Empathy"],
+    requested: 25,
+    status: "RUNNING",
+    scored: "12 / 25",
+    updated: "2026-09-10 12:10",
+  },
+  {
+    id: "qaj_22fe01",
+    purpose: "Short form monitoring batch",
+    scope: "Retail · fraud intent",
+    from: "2026-09-01",
+    to: "2026-09-09",
+    openEnded: false,
+    form: "short-form",
+    rubrics: [],
+    requested: 15,
+    status: "COMPLETED",
+    scored: "15 / 15",
+    updated: "2026-09-09 16:22",
+  },
+  {
+    id: "qaj_77aa09",
+    purpose: "Disclosure concern deep dive",
+    scope: "Cards LOB",
+    from: "2026-08-01",
+    to: "",
+    openEnded: true,
+    form: "custom",
+    rubrics: ["Disclosures", "Compliance"],
+    requested: 50,
+    status: "QUEUED",
+    scored: "0 / 50",
+    updated: "2026-09-10 12:15",
+  },
+];
+
+function jobStatusClass(status) {
+  if (status === "COMPLETED") return "ok";
+  if (status === "RUNNING") return "warn";
+  return "neutral";
+}
+
+function jobDateScope(job) {
+  return job.openEnded || !job.to ? `${job.from} → ongoing` : `${job.from} → ${job.to}`;
+}
+
 function renderSampling() {
+  const rows = SCORING_JOBS.map(
+    (job) => `
+    <tr>
+      <td style="font-family:var(--mono);font-size:0.75rem">${job.id}…</td>
+      <td>${job.purpose}</td>
+      <td>${job.scope}</td>
+      <td>${jobDateScope(job)}</td>
+      <td>${formName(job.form)}</td>
+      <td>${job.form === "custom" && job.rubrics.length ? job.rubrics.join(", ") : "—"}</td>
+      <td>${job.requested}</td>
+      <td><span class="status ${jobStatusClass(job.status)}">${job.status}</span></td>
+      <td>${job.scored}</td>
+      <td>${job.updated}</td>
+    </tr>`
+  ).join("");
+
   const jobs = `
     <div class="card">
       <h3>Jobs &amp; results — track AutoQRA scoring runs</h3>
-      <p class="hint">Each job selects interactions, runs AutoQRA scoring / enrichment / evaluation, and stores results for review and coaching.</p>
+      <p class="hint">Each job selects interactions, runs AutoQRA scoring, and stores results. QA Direct conversations are skipped. Their ratings stay in the LLM feedback loop.</p>
+      <div style="overflow-x:auto">
       <table class="table">
-        <thead><tr><th>Job ID</th><th>Purpose</th><th>Scope</th><th>Requested</th><th>Status</th><th>Scored</th><th>Updated</th></tr></thead>
-        <tbody>
-          <tr class="clickable">
-            <td style="font-family:var(--mono);font-size:0.75rem">qaj_44a1c2…</td>
-            <td>Weekly pharmacy AutoQRA batch</td>
-            <td>UHC · Rx intent</td>
-            <td>10</td>
-            <td><span class="status ok">COMPLETED</span></td>
-            <td>10 / 10</td>
-            <td>2026-09-10 12:04</td>
-          </tr>
-          <tr class="clickable">
-            <td style="font-family:var(--mono);font-size:0.75rem">qaj_91bc88…</td>
-            <td>247client1 web chat QA run</td>
-            <td>247client1_Web_Chat</td>
-            <td>25</td>
-            <td><span class="status warn">RUNNING</span></td>
-            <td>12 / 25</td>
-            <td>2026-09-10 12:10</td>
-          </tr>
-          <tr class="clickable">
-            <td style="font-family:var(--mono);font-size:0.75rem">qaj_22fe01…</td>
-            <td>Calibration sample pack</td>
-            <td>Retail · fraud intent</td>
-            <td>15</td>
-            <td><span class="status ok">COMPLETED</span></td>
-            <td>15 / 15</td>
-            <td>2026-09-09 16:22</td>
-          </tr>
-          <tr class="clickable">
-            <td style="font-family:var(--mono);font-size:0.75rem">qaj_77aa09…</td>
-            <td>Backfill re-score (prompt v14)</td>
-            <td>Cards LOB</td>
-            <td>50</td>
-            <td><span class="status neutral">QUEUED</span></td>
-            <td>0 / 50</td>
-            <td>2026-09-10 12:15</td>
-          </tr>
-        </tbody>
+        <thead><tr><th>Job ID</th><th>Purpose</th><th>Scope</th><th>Dates</th><th>Form</th><th>Rubric</th><th>Requested</th><th>Status</th><th>Scored</th><th>Updated</th></tr></thead>
+        <tbody>${rows}</tbody>
       </table>
+      </div>
       <div class="btn-row" style="margin-top:0.75rem">
         <button class="btn primary" type="button" data-samp-tab="new">+ New job</button>
         <button class="btn" type="button">Refresh</button>
       </div>
     </div>`;
 
+  const rubricPills = RUBRIC_AREAS.map(
+    (area) => `<button class="pill ${jobRubrics.includes(area) ? "active" : ""}" type="button" data-job-rubric="${area}">${area}</button>`
+  ).join("");
+  const formOptions = JOB_FORM_VERSIONS.map(
+    (f) => `<option value="${f.id}" ${jobFormVersion === f.id ? "selected" : ""}>${f.name}</option>`
+  ).join("");
+  const rubricField = jobFormVersion === "custom"
+    ? `<div class="field"><label>Rubric area</label>
+          <div class="pill-filters" data-job-rubrics>${rubricPills}</div>
+          <p class="hint" style="margin:0.35rem 0 0">Use rubric areas for a deep dive after a concern is identified. ${jobRubrics.length ? jobRubrics.join(", ") : "None selected"}.</p>
+        </div>`
+    : "";
+
   const newJob = `
     <div class="card">
       <h3>New job</h3>
-      <p class="hint">Define which ingested interactions to score. This queues an AutoQRA job — it does not open the audit form itself. Results appear under QA jobs when complete.</p>
+      <p class="hint">Define which ingested interactions to score. Leave the end date empty to include every interaction from the start date. QA Direct conversations are excluded and used as LLM feedback.</p>
       <div class="grid-filters">
-        <div class="field"><label>Job name</label><input value="247client1 weekly AutoQRA" /></div>
-        <div class="field"><label>Job type</label><select><option>AutoQRA scoring</option><option>Calibration sample</option><option>Re-score / backfill</option></select></div>
-        <div class="field"><label>Date from</label><input value="09/01/2026" /></div>
-        <div class="field"><label>Date to</label><input value="09/10/2026" /></div>
+        <div class="field"><label>Job name</label><input data-job-name value="${jobName}" /></div>
+        <div class="field"><label>Job type</label>
+          <select data-job-type>
+            <option ${jobType === "AutoQRA scoring" ? "selected" : ""}>AutoQRA scoring</option>
+            <option ${jobType === "Calibration sample" ? "selected" : ""}>Calibration sample</option>
+            <option ${jobType === "Re-score / backfill" ? "selected" : ""}>Re-score / backfill</option>
+          </select>
+        </div>
+        <div class="field"><label>Date from</label><input type="date" data-job-from value="${jobDateFrom}" /></div>
+        <div class="field"><label>Date to</label><input type="date" data-job-to value="${jobOpenEnded ? "" : jobDateTo}" ${jobOpenEnded ? "disabled" : ""} /></div>
+        <div class="field" style="grid-column: 1 / -1">
+          <label class="ms-option" style="padding-left:0">
+            <input type="checkbox" data-job-open-ended ${jobOpenEnded ? "checked" : ""} />
+            <span>No end date — all interactions from the start date</span>
+          </label>
+        </div>
+        <div class="field"><label>Form version</label>
+          <select data-job-form>${formOptions}</select>
+        </div>
+        ${rubricField}
         <div class="field"><label>Queue</label>
           <div class="chip-select">
             <span class="chip">UHC_Refill_Status <button type="button">×</button></span>
@@ -1504,11 +1727,11 @@ function renderSampling() {
         <div class="field"><label>Intent</label>
           <div class="chip-select"><span class="chip">rx_refill_request <button type="button">×</button></span></div>
         </div>
-        <div class="field"><label>Requested count</label><input type="number" value="10" /></div>
+        <div class="field"><label>Requested count</label><input type="number" data-job-count value="${jobRequested}" /></div>
       </div>
       <div class="footer-actions">
-        <p class="hint">After you start the job, return to <strong>Jobs &amp; results</strong> to watch progress and open scored interactions.</p>
-        <button class="btn primary" type="button">Start job</button>
+        <p class="hint">LLM form and Short form monitoring use a fixed form. Custom form adds rubric areas for a deep dive. QA Direct rows are not selected.</p>
+        <button class="btn primary" type="button" data-start-job>Start job</button>
       </div>
     </div>`;
 
@@ -1746,103 +1969,112 @@ function renderCoachingTeam() {
 }
 
 function renderCoachingAgent() {
-  // Former Overall screen — agent-level opportunities list + filters + detail
-  const list = agentRecords();
-  const agents = [...new Set(COACHING.filter((c) => c.level === "agent").map((c) => c.agent))];
-  const themes = [...new Set(COACHING.filter((c) => c.level === "agent").map((c) => c.theme))];
-  const sevs = [...new Set(COACHING.filter((c) => c.level === "agent").map((c) => c.severity))];
-  const selected = list.find((c) => c.id === selectedCoach) || null;
+  const agents = [...new Set(COACHING.filter((c) => c.level === "agent").map((c) => c.agent))].sort();
+  if (!agents.includes(selectedAgentView)) selectedAgentView = agents[0] || "";
+  const plans = COACHING.filter((c) => c.level === "agent" && c.agent === selectedAgentView);
+  const chats = INTERACTIONS.filter((i) => i.agentName === selectedAgentView);
+  const high = plans.filter((c) => c.severity === "high").length;
 
-  const rows = list
-    .map(
-      (c) => `
-    <tr class="clickable ${selectedCoach === c.id ? "selected" : ""}" data-agent-coach="${c.id}">
-      <td><span class="severity ${c.severity}">${c.severity.toUpperCase()}</span></td>
-      <td><strong>${c.agent}</strong><div style="font-size:0.72rem;color:var(--muted)">${c.team}</div></td>
-      <td>${c.lob}</td>
-      <td>${c.queue}</td>
-      <td>${c.theme}</td>
-      <td><strong>${c.monitoring ?? c.audits}</strong></td>
-      <td>${c.fails}</td>
-      <td style="max-width:220px;font-size:0.82rem">${c.opportunity}</td>
-      <td><button class="btn primary" type="button" data-view-coach="${c.id}">View coaching</button></td>
-    </tr>`
-    )
-    .join("");
-
-  const detail = selected
-    ? `
-    <div class="card" style="margin-top:0.85rem">
-      <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-start">
+  const cards = plans
+    .map((c) => {
+      const source = c.assignedBy === "human" ? "Human assigned" : "LLM assigned";
+      return `
+    <div class="card" style="margin:0">
+      <div style="display:flex;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;align-items:flex-start">
         <div>
-          <h3 style="margin:0">Agent coaching · ${selected.agent}</h3>
-          <p class="hint" style="margin:0.35rem 0 0">${selected.monitoring ?? selected.audits} monitoring · ${selected.fails} defect hits · ${selected.team} · ${selected.queue}</p>
+          <h3 style="margin:0">${c.theme}</h3>
+          <p class="hint" style="margin:0.3rem 0 0">${source} · ${c.agent} · Period ${agentPeriod}</p>
         </div>
-        <div class="btn-row">
-          <button class="btn primary" type="button" data-view-coach="${selected.id}">Open coaching pane</button>
-        </div>
+        <span class="severity ${c.severity}">${c.severity.toUpperCase()}</span>
       </div>
-      <div class="stat-row" style="margin:0.75rem 0">
-        <div class="stat"><div class="label">Monitoring</div><div class="value">${selected.monitoring ?? selected.audits}</div></div>
-        <div class="stat"><div class="label">Defect hits</div><div class="value">${selected.fails}</div></div>
-        <div class="stat"><div class="label">Avg focus score</div><div class="value">${Math.round((selected.sampleAudits || []).reduce((s, a) => s + a.score, 0) / Math.max(1, (selected.sampleAudits || []).length)) || "—"}</div></div>
-        <div class="stat"><div class="label">Priority</div><div class="value" style="font-size:1rem">${selected.severity.toUpperCase()}</div></div>
+      <div class="stat-row" style="margin:0.65rem 0">
+        <div class="stat"><div class="label">Monitoring</div><div class="value">${c.monitoring ?? c.audits}</div></div>
+        <div class="stat"><div class="label">Defect rate</div><div class="value">${c.defectRate || "—"}</div></div>
+        <div class="stat"><div class="label">Sample audits</div><div class="value">${(c.sampleAudits || []).length}</div></div>
       </div>
-      <p style="font-size:0.9rem;line-height:1.45">${selected.opportunity}</p>
-      <h3 style="margin:0.75rem 0 0.45rem;font-size:0.95rem">Monitoring examples</h3>
+      <p style="font-size:0.9rem;line-height:1.45;margin:0 0 0.55rem">${c.opportunity}</p>
+      <p style="margin:0 0 0.55rem"><span class="chip">${source}</span></p>
+      <h4 style="margin:0 0 0.35rem;font-size:0.85rem">Recommended actions</h4>
+      <ul class="opt-list" style="margin-bottom:0.65rem">
+        ${(c.actions || []).map((a) => `<li>${a}</li>`).join("")}
+      </ul>
+      <h4 style="margin:0 0 0.35rem;font-size:0.85rem">Audited conversations illustrating this theme</h4>
       <table class="table">
         <thead><tr><th>Audit</th><th>Date</th><th>Score</th><th>Defect</th></tr></thead>
         <tbody>
-          ${(selected.sampleAudits || [])
-            .map((a) => `<tr><td style="font-family:var(--mono);font-size:0.75rem">${a.id}</td><td>${a.date}</td><td>${a.score}</td><td>${a.defect}</td></tr>`)
+          ${(c.sampleAudits || [])
+            .map(
+              (a) =>
+                `<tr><td style="font-family:var(--mono);font-size:0.75rem">${a.id}</td><td>${a.date}</td><td>${a.score}</td><td>${a.defect}</td></tr>`
+            )
             .join("")}
         </tbody>
       </table>
-    </div>`
-    : `<div class="card" style="margin-top:0.85rem"><p class="hint">Select an agent row to see coaching details and monitoring count.</p></div>`;
+      <div class="btn-row" style="margin-top:0.65rem">
+        <button class="btn primary" type="button" data-view-coach="${c.id}">Open coaching plan</button>
+      </div>
+    </div>`;
+    })
+    .join("");
+
+  const chatRows = chats
+    .map(
+      (i) => `
+      <tr class="clickable" data-open-ix="${i.id}">
+        <td style="font-family:var(--mono);font-size:0.75rem">${i.short}</td>
+        <td>${i.date}</td>
+        <td>${i.queue}</td>
+        <td><span class="status ${statusClass(i.status)}">${i.status}</span></td>
+        <td>${i.score}</td>
+      </tr>`
+    )
+    .join("");
 
   return `
-    <div class="stat-row">
-      <div class="stat"><div class="label">Agent opportunities</div><div class="value">${list.length}</div></div>
-      <div class="stat"><div class="label">High priority</div><div class="value">${list.filter((c) => c.severity === "high").length}</div></div>
-      <div class="stat"><div class="label">Monitoring total</div><div class="value">${list.reduce((s, c) => s + (c.monitoring || c.audits), 0)}</div></div>
-      <div class="stat"><div class="label">Defect hits</div><div class="value">${list.reduce((s, c) => s + c.fails, 0)}</div></div>
-    </div>
-    <div class="card">
-      <h3>Agent-level coaching</h3>
-      <p class="hint">Per-agent opportunities from AutoQRA monitoring (moved from Overall). Filter, select a row, or open the coaching pane.</p>
-      <div class="filters-inline" style="margin-bottom:0.75rem">
-        <div class="field"><label>Agent</label>
-          <select data-coach-filter="agents" multiple size="3" style="min-height:64px">
-            ${agents.map((s) => `<option value="${s}" ${coachFilters.agents.includes(s) ? "selected" : ""}>${s}</option>`).join("")}
-          </select>
+    <div class="card" style="margin-bottom:0.85rem">
+      <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-end">
+        <div>
+          <h3 style="margin:0">Agent coaching · ${selectedAgentView}</h3>
+          <p class="hint" style="margin:0.3rem 0 0">Self-serve view. This agent sees only plans assigned to them, by the LLM or by a person, plus their own conversations.</p>
         </div>
-        <div class="field"><label>Theme</label>
-          <select data-coach-filter="themes" multiple size="3" style="min-height:64px">
-            ${themes.map((s) => `<option value="${s}" ${coachFilters.themes.includes(s) ? "selected" : ""}>${s}</option>`).join("")}
-          </select>
-        </div>
-        <div class="field"><label>Severity</label>
-          <select data-coach-filter="severity" multiple size="3" style="min-height:64px">
-            ${sevs.map((s) => `<option value="${s}" ${coachFilters.severity.includes(s) ? "selected" : ""}>${s}</option>`).join("")}
-          </select>
-        </div>
-        <div class="filter-actions">
-          <button class="btn primary" type="button" data-coach-apply>Apply filters</button>
-          <button class="btn" type="button" data-coach-clear>Clear</button>
+        <div style="display:flex;gap:0.55rem;flex-wrap:wrap">
+          <div class="field" style="margin:0;min-width:180px">
+            <label>Agent</label>
+            <select data-agent-view>
+              ${agents.map((name) => `<option ${name === selectedAgentView ? "selected" : ""}>${name}</option>`).join("")}
+            </select>
+          </div>
+          <div class="field" style="margin:0;min-width:160px">
+            <label>Period</label>
+            <select data-agent-period>
+              <option ${agentPeriod === "MTD" ? "selected" : ""}>MTD</option>
+              <option ${agentPeriod === "Last 7 days" ? "selected" : ""}>Last 7 days</option>
+              <option ${agentPeriod === "Last 30 days" ? "selected" : ""}>Last 30 days</option>
+              <option ${agentPeriod === "Quarter" ? "selected" : ""}>Quarter</option>
+            </select>
+          </div>
         </div>
       </div>
-      <p class="hint" style="margin:0 0 0.45rem">${list.length} agent coaching plans.</p>
-      <div class="ix-table-wrap" style="border:none">
-        <table class="table">
-          <thead>
-            <tr><th>Priority</th><th>Agent</th><th>LOB</th><th>Queue</th><th>Theme</th><th>Monitoring</th><th>Fails</th><th>Opportunity</th><th></th></tr>
-          </thead>
-          <tbody>${rows || `<tr><td colspan="9" style="text-align:center;color:var(--muted)">No agents match filters.</td></tr>`}</tbody>
-        </table>
+      <div class="stat-row" style="margin:0.75rem 0 0">
+        <div class="stat"><div class="label">Assigned plans</div><div class="value">${plans.length}</div></div>
+        <div class="stat"><div class="label">High priority</div><div class="value">${high}</div></div>
+        <div class="stat"><div class="label">Conversations</div><div class="value">${chats.length}</div></div>
+        <div class="stat"><div class="label">Audience</div><div class="value" style="font-size:0.95rem">${selectedAgentView}</div></div>
       </div>
     </div>
-    ${detail}`;
+    ${
+      cards
+        ? `<div class="grid-2" style="gap:0.85rem">${cards}</div>`
+        : `<div class="card"><p class="hint" style="margin:0">No coaching plan is assigned to ${selectedAgentView}.</p></div>`
+    }
+    <div class="card" style="margin-top:0.85rem">
+      <h3>My conversations</h3>
+      <p class="hint">Conversations for ${selectedAgentView}. Open a row to review it in Interactions.</p>
+      <table class="table">
+        <thead><tr><th>Conversation</th><th>Date</th><th>Queue</th><th>Status</th><th>Score</th></tr></thead>
+        <tbody>${chatRows || `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:1rem">No conversations for this agent in the current sample.</td></tr>`}</tbody>
+      </table>
+    </div>`;
 }
 
 function renderCoaching() {
@@ -1855,28 +2087,35 @@ function renderCoaching() {
 
   return `
     <h1 class="page-title">Coaching*</h1>
-    <p class="page-sub">Not available now (marked with *). Overall = period themes for all agents · Team = team/queue · Agent = per-agent plans.</p>
+    <p class="page-sub">Not available now (marked with *). Overall = period themes for all agents · Team = team/queue · Agent = that agent's own plans and conversations.</p>
     <div class="callout">Coaching* is unavailable in this release.</div>
     ${tenantRow()}
     <div class="tabs">
       <button class="tab ${coachingTab === "overall" ? "active" : ""}" type="button" data-coach-tab="overall">Overall Coaching</button>
       <button class="tab ${coachingTab === "team" ? "active" : ""}" type="button" data-coach-tab="team">Team</button>
-      <button class="tab ${coachingTab === "agent" ? "active" : ""}" type="button" data-coach-tab="agent">Agent level coaching</button>
+      <button class="tab ${coachingTab === "agent" ? "active" : ""}" type="button" data-coach-tab="agent">Agent coaching</button>
     </div>
     <div class="unavailable-preview">${body}</div>`;
 }
 
+const REPORT_SECTIONS = ["Soft skills", "Compliance", "Disclosures", "Resolution"];
+
+const SECTION_AGENTS = [
+  { agent: "S. Okonkwo", lob: "Test_Lob", audits: 22, sections: { "Soft skills": 96.2, Compliance: 94.1, Disclosures: 90.4, Resolution: 93.0 } },
+  { agent: "T. Morales", lob: "Retail", audits: 25, sections: { "Soft skills": 94.0, Compliance: 91.2, Disclosures: 88.6, Resolution: 92.4 } },
+  { agent: "M. Chen", lob: "Retail", audits: 36, sections: { "Soft skills": 91.5, Compliance: 89.0, Disclosures: 86.2, Resolution: 90.1 } },
+  { agent: "H. Cho", lob: "Commercial Pharmacy", audits: 38, sections: { "Soft skills": 90.2, Compliance: 88.4, Disclosures: 84.0, Resolution: 87.5 } },
+  { agent: "K. Singh", lob: "Commercial Pharmacy", audits: 27, sections: { "Soft skills": 88.7, Compliance: 86.1, Disclosures: 82.4, Resolution: 85.0 } },
+  { agent: "L. Ramirez", lob: "Retail", audits: 33, sections: { "Soft skills": 86.4, Compliance: 80.2, Disclosures: 83.1, Resolution: 84.6 } },
+  { agent: "J. Brooks", lob: "Medicaid Pharmacy", audits: 41, sections: { "Soft skills": 84.1, Compliance: 85.5, Disclosures: 79.8, Resolution: 76.2 } },
+  { agent: "R. Patel", lob: "Commercial Pharmacy", audits: 48, sections: { "Soft skills": 81.0, Compliance: 83.4, Disclosures: 71.5, Resolution: 78.8 } },
+  { agent: "A. Nguyen", lob: "Retail", audits: 29, sections: { "Soft skills": 79.6, Compliance: 82.0, Disclosures: 77.4, Resolution: 68.5 } },
+  { agent: "P. Ellis", lob: "Cards", audits: 19, sections: { "Soft skills": 77.2, Compliance: 74.8, Disclosures: 69.1, Resolution: 73.4 } },
+  { agent: "K. Lee", lob: "Retail", audits: 18, sections: { "Soft skills": 75.4, Compliance: 78.6, Disclosures: 80.2, Resolution: 81.0 } },
+  { agent: "QA Bot Handoff", lob: "Test_Lob", audits: 12, sections: { "Soft skills": 72.8, Compliance: 76.0, Disclosures: 74.4, Resolution: 70.1 } },
+];
+
 function renderReporting() {
-  const topAgents = [
-    { rank: 1, agent: "S. Okonkwo", lob: "Test_Lob", audits: 22, score: 94.2, pass: "96%" },
-    { rank: 2, agent: "T. Morales", lob: "Retail", audits: 25, score: 91.8, pass: "94%" },
-    { rank: 3, agent: "M. Chen", lob: "Retail", audits: 36, score: 89.1, pass: "91%" },
-    { rank: 4, agent: "H. Cho", lob: "Commercial Pharmacy", audits: 38, score: 88.4, pass: "90%" },
-    { rank: 5, agent: "K. Singh", lob: "Commercial Pharmacy", audits: 27, score: 87.0, pass: "88%" },
-    { rank: 6, agent: "L. Ramirez", lob: "Retail", audits: 33, score: 85.2, pass: "86%" },
-    { rank: 7, agent: "J. Brooks", lob: "Medicaid Pharmacy", audits: 41, score: 82.6, pass: "83%" },
-    { rank: 8, agent: "R. Patel", lob: "Commercial Pharmacy", audits: 48, score: 78.4, pass: "77%" },
-  ];
   const lobBoard = [
     { lob: "Pharmacy", score: 90.2, audits: 4200, agreement: "93%", trend: "+1.2" },
     { lob: "Retail", score: 88.1, audits: 6100, agreement: "92%", trend: "+0.4" },
@@ -1884,10 +2123,14 @@ function renderReporting() {
     { lob: "Cards", score: 81.4, audits: 5100, agreement: "89%", trend: "-1.8" },
   ];
 
-  const filteredAgents =
-    reportFilters.lob === "All"
-      ? topAgents
-      : topAgents.filter((a) => a.lob === reportFilters.lob || (reportFilters.lob === "Pharmacy" && a.lob.includes("Pharmacy")));
+  const section = REPORT_SECTIONS.includes(reportFilters.section) ? reportFilters.section : "Soft skills";
+  const bottom = reportFilters.rank === "Bottom 10";
+  const rankedAgents = SECTION_AGENTS
+    .filter((a) => reportFilters.lob === "All" || a.lob === reportFilters.lob || (reportFilters.lob === "Pharmacy" && a.lob.includes("Pharmacy")))
+    .map((a) => ({ ...a, score: a.sections[section] }))
+    .sort((a, b) => (bottom ? a.score - b.score : b.score - a.score))
+    .slice(0, 10)
+    .map((a, index) => ({ ...a, rank: index + 1 }));
 
   return `
     <h1 class="page-title">Reporting &amp; Insights*</h1>
@@ -1895,7 +2138,7 @@ function renderReporting() {
     <div class="callout">Reporting &amp; Insights* is unavailable in this release.</div>
     ${tenantRow()}
     <div class="card" style="padding:0.75rem 1rem;margin-bottom:0.85rem">
-      <div class="filters-inline">
+      <div class="grid-filters">
         <div class="field"><label>Period</label>
           <select data-report-filter="period">
             <option ${reportFilters.period === "MTD" ? "selected" : ""}>MTD</option>
@@ -1921,11 +2164,22 @@ function renderReporting() {
             <option ${reportFilters.queue === "UHC_Refill_Status" ? "selected" : ""}>UHC_Refill_Status</option>
           </select>
         </div>
+        <div class="field"><label>Section</label>
+          <select data-report-filter="section">
+            ${REPORT_SECTIONS.map((name) => `<option ${section === name ? "selected" : ""}>${name}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field"><label>Rank</label>
+          <select data-report-filter="rank">
+            <option ${reportFilters.rank !== "Bottom 10" ? "selected" : ""}>Top 10</option>
+            <option ${reportFilters.rank === "Bottom 10" ? "selected" : ""}>Bottom 10</option>
+          </select>
+        </div>
         <div class="filter-actions">
           <button class="btn primary" type="button" data-report-apply>Apply filters</button>
         </div>
       </div>
-      <p class="hint" style="margin:0.5rem 0 0">Active: <strong>${reportFilters.period}</strong> · LOB <strong>${reportFilters.lob}</strong> · Queue <strong>${reportFilters.queue}</strong></p>
+      <p class="hint" style="margin:0.5rem 0 0">Active: <strong>${reportFilters.period}</strong> · LOB <strong>${reportFilters.lob}</strong> · Queue <strong>${reportFilters.queue}</strong> · <strong>${bottom ? "Bottom 10" : "Top 10"}</strong> in <strong>${section}</strong></p>
     </div>
     <div class="embed-frame">
       <div class="embed-chrome">
@@ -1943,16 +2197,16 @@ function renderReporting() {
         </div>
         <div class="superset-mock">
           <div class="chart-box">
-            <h4>Top agents</h4>
+            <h4>${bottom ? "Bottom 10" : "Top 10"} agents · ${section}</h4>
             <table class="table">
-              <thead><tr><th>#</th><th>Agent</th><th>LOB</th><th>Audits</th><th>Avg score</th><th>Pass%</th></tr></thead>
+              <thead><tr><th>#</th><th>Agent</th><th>LOB</th><th>Audits</th><th>Section score</th></tr></thead>
               <tbody>
-                ${filteredAgents
+                ${rankedAgents
                   .map(
                     (a) =>
-                      `<tr><td>${a.rank}</td><td>${a.agent}</td><td>${a.lob}</td><td>${a.audits}</td><td><strong>${a.score}</strong></td><td>${a.pass}</td></tr>`
+                      `<tr><td>${a.rank}</td><td>${a.agent}</td><td>${a.lob}</td><td>${a.audits}</td><td><strong>${a.score.toFixed(1)}</strong></td></tr>`
                   )
-                  .join("")}
+                  .join("") || `<tr><td colspan="5" style="color:var(--muted)">No agents in this filter.</td></tr>`}
               </tbody>
             </table>
           </div>
@@ -2146,6 +2400,101 @@ function renderAdminAdvancedBody() {
     </div>`;
 }
 
+const SCHEDULED_PULLS = [
+  {
+    id: "sch-nightly",
+    name: "Nightly chat transcripts",
+    source: "Amazon S3",
+    path: "s3://247client1-autoqra-ingest/inbound/transcripts/",
+    frequency: "Daily",
+    time: "02:00 UTC",
+    enabled: true,
+    last: "2026-09-10 02:04 UTC",
+    next: "2026-09-11 02:00 UTC",
+  },
+  {
+    id: "sch-pharmacy",
+    name: "Pharmacy SFTP drop",
+    source: "SFTP",
+    path: "sftp.247client1.com:/outbound/transcripts/",
+    frequency: "Hourly",
+    time: "Every hour at :15",
+    enabled: true,
+    last: "2026-09-10 11:15 UTC",
+    next: "2026-09-10 12:15 UTC",
+  },
+  {
+    id: "sch-azure",
+    name: "Azure weekly archive",
+    source: "Azure Blob",
+    path: "autoqra-container/transcripts/",
+    frequency: "Weekly",
+    time: "Mon 06:00 UTC",
+    enabled: false,
+    last: "2026-09-01 06:02 UTC",
+    next: "Paused",
+  },
+];
+
+const SCHEDULE_SOURCES = ["SFTP", "Amazon S3", "Azure Blob", "Google Cloud Storage", "API"];
+let scheduleName = "Daily transcript pull";
+let scheduleSource = "SFTP";
+let schedulePath = "/outbound/transcripts/";
+let scheduleFrequency = "Daily";
+let scheduleTime = "02:00";
+
+function renderScheduledPull() {
+  const rows = SCHEDULED_PULLS.map(
+    (s) => `
+    <tr>
+      <td><strong>${s.name}</strong></td>
+      <td>${s.source}</td>
+      <td style="font-family:var(--mono);font-size:0.75rem">${s.path}</td>
+      <td>${s.frequency}</td>
+      <td>${s.time}</td>
+      <td><span class="status ${s.enabled ? "ok" : "neutral"}">${s.enabled ? "Enabled" : "Paused"}</span></td>
+      <td>${s.last}</td>
+      <td>${s.next}</td>
+      <td><button class="btn" type="button" data-schedule-toggle="${s.id}">${s.enabled ? "Pause" : "Enable"}</button></td>
+    </tr>`
+  ).join("");
+
+  return `
+    <p class="page-sub" style="margin-top:0">Automated pull of transcripts from client locations. Each schedule uses a connected SFTP, cloud, or API source.</p>
+    <div class="card">
+      <h3>New scheduled pull</h3>
+      <p class="hint">Save a schedule to pull transcripts without a manual ingest. Credentials stay on the Cloud connections and SFTP settings.</p>
+      <div class="grid-filters">
+        <div class="field"><label>Name</label><input data-schedule-name value="${scheduleName}" /></div>
+        <div class="field"><label>Source</label>
+          <select data-schedule-source>
+            ${SCHEDULE_SOURCES.map((src) => `<option ${scheduleSource === src ? "selected" : ""}>${src}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field"><label>Client path</label><input data-schedule-path value="${schedulePath}" /></div>
+        <div class="field"><label>Frequency</label>
+          <select data-schedule-frequency>
+            ${["Hourly", "Daily", "Weekly"].map((f) => `<option ${scheduleFrequency === f ? "selected" : ""}>${f}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field"><label>Time (UTC)</label><input data-schedule-time value="${scheduleTime}" /></div>
+      </div>
+      <div class="footer-actions">
+        <p class="hint">Each run appears under Ingest as an ingest job. QA Direct status is unchanged by a pull.</p>
+        <button class="btn primary" type="button" data-schedule-save>Save schedule</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Saved schedules</h3>
+      <div style="overflow-x:auto">
+      <table class="table">
+        <thead><tr><th>Name</th><th>Source</th><th>Path</th><th>Frequency</th><th>Time</th><th>State</th><th>Last run</th><th>Next run</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      </div>
+    </div>`;
+}
+
 function renderAdmin() {
   const body =
     settingsTab === "calibration"
@@ -2259,6 +2608,36 @@ if (collapseBtn) {
   });
 }
 
+function readJobForm() {
+  const name = workspace.querySelector("[data-job-name]");
+  if (!name) return;
+  jobName = name.value;
+  const type = workspace.querySelector("[data-job-type]");
+  if (type) jobType = type.value;
+  const from = workspace.querySelector("[data-job-from]");
+  if (from && from.value) jobDateFrom = from.value;
+  const to = workspace.querySelector("[data-job-to]");
+  if (to && !jobOpenEnded) jobDateTo = to.value;
+  const form = workspace.querySelector("[data-job-form]");
+  if (form) jobFormVersion = form.value;
+  const count = workspace.querySelector("[data-job-count]");
+  if (count) jobRequested = count.value;
+}
+
+function readScheduleForm() {
+  const name = workspace.querySelector("[data-schedule-name]");
+  if (!name) return;
+  scheduleName = name.value;
+  const source = workspace.querySelector("[data-schedule-source]");
+  if (source) scheduleSource = source.value;
+  const path = workspace.querySelector("[data-schedule-path]");
+  if (path) schedulePath = path.value;
+  const frequency = workspace.querySelector("[data-schedule-frequency]");
+  if (frequency) scheduleFrequency = frequency.value;
+  const time = workspace.querySelector("[data-schedule-time]");
+  if (time) scheduleTime = time.value;
+}
+
 workspace.addEventListener("click", (e) => {
   const goto = e.target.closest("[data-goto]");
   if (goto) {
@@ -2294,6 +2673,20 @@ workspace.addEventListener("click", (e) => {
   if (e.target.closest("[data-ix-insights-toggle]")) {
     ixInsightsOpen = !ixInsightsOpen;
     render("interactions");
+    return;
+  }
+
+  if (e.target.closest("[data-qa-direct-submit]")) {
+    const ix = INTERACTIONS.find((i) => i.id === selectedIx);
+    if (ix && ix.status === "Not Audited") {
+      const formSel = workspace.querySelector("[data-ix-form]");
+      ix.formVersion = formSel ? formSel.value : activeFormId(ix);
+      ix.status = "QA Direct";
+      ix.auditMode = "qa-direct";
+      ix.llmExcluded = true;
+      ix.score = isPartialForm(ix.formVersion) ? "90" : "86";
+      render("interactions");
+    }
     return;
   }
 
@@ -2366,6 +2759,7 @@ workspace.addEventListener("click", (e) => {
 
   const dTab = e.target.closest("[data-data-tab]");
   if (dTab) {
+    if (dataTab === "schedule") readScheduleForm();
     dataTab = dTab.dataset.dataTab;
     render("data-import");
     return;
@@ -2381,7 +2775,40 @@ workspace.addEventListener("click", (e) => {
 
   const sTab = e.target.closest("[data-samp-tab]");
   if (sTab) {
+    if (samplingTab === "new") readJobForm();
     samplingTab = sTab.dataset.sampTab;
+    render("sampling");
+    return;
+  }
+
+  const rubric = e.target.closest("[data-job-rubric]");
+  if (rubric) {
+    readJobForm();
+    const area = rubric.dataset.jobRubric;
+    jobRubrics = jobRubrics.includes(area) ? jobRubrics.filter((item) => item !== area) : [...jobRubrics, area];
+    render("sampling");
+    return;
+  }
+
+  if (e.target.closest("[data-start-job]")) {
+    readJobForm();
+    const requested = Number(jobRequested) || 0;
+    const stamp = new Date().toISOString().slice(0, 16).replace("T", " ");
+    SCORING_JOBS.unshift({
+      id: `qaj_${Math.random().toString(16).slice(2, 8)}`,
+      purpose: jobName || "New AutoQRA job",
+      scope: jobType,
+      from: jobDateFrom,
+      to: jobOpenEnded ? "" : jobDateTo,
+      openEnded: jobOpenEnded,
+      form: jobFormVersion,
+      rubrics: jobFormVersion === "custom" ? (jobRubrics.length ? [...jobRubrics] : ["Soft skills"]) : [],
+      requested,
+      status: "QUEUED",
+      scored: `0 / ${requested}`,
+      updated: stamp,
+    });
+    samplingTab = "jobs";
     render("sampling");
     return;
   }
@@ -2390,6 +2817,37 @@ workspace.addEventListener("click", (e) => {
   if (settingsTabBtn) {
     settingsTab = settingsTabBtn.dataset.settingsTab;
     render("admin");
+    return;
+  }
+
+  const scheduleToggle = e.target.closest("[data-schedule-toggle]");
+  if (scheduleToggle) {
+    const row = SCHEDULED_PULLS.find((item) => item.id === scheduleToggle.dataset.scheduleToggle);
+    if (row) {
+      row.enabled = !row.enabled;
+      row.next = row.enabled ? "Next window" : "Paused";
+    }
+    dataTab = "schedule";
+    render("data-import");
+    return;
+  }
+
+  if (e.target.closest("[data-schedule-save]")) {
+    readScheduleForm();
+    const when = scheduleTime.includes("UTC") ? scheduleTime : `${scheduleTime} UTC`;
+    SCHEDULED_PULLS.unshift({
+      id: `sch-${Math.random().toString(16).slice(2, 6)}`,
+      name: scheduleName || "Scheduled pull",
+      source: scheduleSource,
+      path: schedulePath,
+      frequency: scheduleFrequency,
+      time: when,
+      enabled: true,
+      last: "Not run yet",
+      next: "On next window",
+    });
+    dataTab = "schedule";
+    render("data-import");
     return;
   }
 
@@ -2497,6 +2955,43 @@ workspace.addEventListener("change", (e) => {
   if (overallPeriodSel) {
     overallPeriod = overallPeriodSel.value;
     render("coaching");
+    return;
+  }
+
+  const agentView = e.target.closest("[data-agent-view]");
+  if (agentView) {
+    selectedAgentView = agentView.value;
+    render("coaching");
+    return;
+  }
+
+  const agentPeriodSel = e.target.closest("[data-agent-period]");
+  if (agentPeriodSel) {
+    agentPeriod = agentPeriodSel.value;
+    render("coaching");
+    return;
+  }
+
+  const ixForm = e.target.closest("[data-ix-form]");
+  if (ixForm) {
+    const ix = INTERACTIONS.find((item) => item.id === selectedIx);
+    if (ix && !["QA Direct", "QA Reviewed", "Complete"].includes(ix.status)) ix.formVersion = ixForm.value;
+    render("interactions");
+    return;
+  }
+
+  if (e.target.closest("[data-job-open-ended]")) {
+    readJobForm();
+    jobOpenEnded = e.target.checked;
+    if (jobOpenEnded) jobDateTo = "";
+    else if (!jobDateTo) jobDateTo = jobDateFrom;
+    render("sampling");
+    return;
+  }
+
+  if (e.target.closest("[data-job-form], [data-job-type]")) {
+    readJobForm();
+    render("sampling");
     return;
   }
   const dateInput = e.target.closest("[data-ix-date]");

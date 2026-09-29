@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AutoQRA — Conversation Insights Wireframe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="top-header">
+      <div class="logo">
+        <span class="logo-mark">[24]7</span>
+        <span class="logo-name">CONVERSATION INSIGHTS</span>
+        <span class="logo-badge">AutoQRA Wireframe</span>
+      </div>
+      <div class="header-right">
+        <div class="quota" id="quotaBox" hidden>
+          <span class="quota-label">DAILY QUOTA</span>
+          <strong>1700 / 1700</strong>
+          <span class="quota-date">2026-09-10 UTC</span>
+        </div>
+        <button class="icon-btn" type="button" title="Help">?</button>
+        <button class="user-chip" type="button">User</button>
+      </div>
+    </header>
+
+    <div class="body-row">
+      <aside class="side-nav" id="sideNav">
+        <div class="nav-brand">CONVERSATION INSIGHTS</div>
+        <nav aria-label="Primary">
+          <button class="side-item active" data-view="interactions" type="button">
+            <span class="ico">💬</span> Interactions
+          </button>
+          <button class="side-item" data-view="data-import" type="button">
+            <span class="ico">⇅</span> Import and export
+          </button>
+          <button class="side-item" data-view="sampling" type="button">
+            <span class="ico">▶</span> Jobs
+          </button>
+          <button class="side-item unavailable" data-view="coaching" type="button" title="Not available now">
+            <span class="ico">◎</span> Coaching*
+          </button>
+          <button class="side-item unavailable" data-view="reporting" type="button" title="Not available now">
+            <span class="ico">▥</span> Reporting &amp; Insights*
+          </button>
+          <button class="side-item unavailable" data-view="admin" type="button" title="Not available now">
+            <span class="ico">⚙</span> Settings*
+          </button>
+        </nav>
+        <button class="collapse-btn" id="collapseNav" type="button">Collapse navbar</button>
+      </aside>
+
+      <main class="workspace" id="workspace"></main>
+    </div>
+  </div>
+
+  <div class="slide-pane" id="crmPane" hidden>
+    <div class="slide-pane-backdrop" data-close-pane></div>
+    <aside class="slide-pane-panel" role="dialog" aria-labelledby="crmPaneTitle">
+      <div class="slide-pane-head">
+        <div>
+          <h2 id="crmPaneTitle">CRM &amp; Knowledge Base</h2>
+          <p>Configure known CRM systems and KB sources for AutoQRA context.</p>
+        </div>
+        <button class="btn" type="button" data-close-pane aria-label="Close">×</button>
+      </div>
+      <div class="slide-pane-body" id="crmPaneBody"></div>
+    </aside>
+  </div>
+
+  <div class="slide-pane" id="coachPane" hidden>
+    <div class="slide-pane-backdrop" data-close-coach-pane></div>
+    <aside class="slide-pane-panel coach-pane-wide" role="dialog" aria-labelledby="coachPaneTitle">
+      <div class="slide-pane-head">
+        <div>
+          <h2 id="coachPaneTitle">Coaching plan</h2>
+          <p id="coachPaneSub">Opportunity detail and example audits</p>
+        </div>
+        <button class="btn" type="button" data-close-coach-pane aria-label="Close">×</button>
+      </div>
+      <div class="slide-pane-body" id="coachPaneBody"></div>
+    </aside>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

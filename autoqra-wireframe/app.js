@@ -62,8 +62,8 @@ const INTERACTIONS = [
   {
     id: "na-001-4e6d-4d1f-a8a8-8ca18a4601aa",
     short: "na-001…01aa",
-    agent: "k.lee",
-    agentName: "K. Lee",
+    agent: "r.patel",
+    agentName: "R. Patel",
     duration: "4m 05s",
     queue: "247client1_Web_Chat",
     lob: "Retail",
@@ -735,6 +735,8 @@ const coachPane = document.getElementById("coachPane");
 const coachPaneBody = document.getElementById("coachPaneBody");
 const coachPaneTitle = document.getElementById("coachPaneTitle");
 const coachPaneSub = document.getElementById("coachPaneSub");
+const userChip = document.getElementById("userChip");
+const roleButtons = [...document.querySelectorAll("[data-role]")];
 
 if (!workspace) {
   document.body.innerHTML =
@@ -745,7 +747,8 @@ if (!workspace) {
 let currentView = "interactions";
 let selectedIx = null; // null = list view
 let ixSideTab = "audit";
-let ixInsightsOpen = true;
+let currentRole = "qa";
+const AGENT_NAME = "R. Patel";
 let dataTab = "ingest";
 let selectedCloud = "aws-s3";
 let samplingTab = "jobs";
@@ -852,6 +855,14 @@ function failedBar() {
     </div>`;
 }
 
+function futureCallout(message) {
+  return `
+    <div class="future-callout">
+      <span class="future-badge">Future development · Post-MVP</span>
+      <span>${message}</span>
+    </div>`;
+}
+
 function renderOverview() {
   // Kept for compatibility; Feature Map lives under Settings → About
   return renderAboutBody();
@@ -941,6 +952,107 @@ function renderInteractionsList() {
         </table>
       </div>
       <p class="hint" style="margin-top:0.65rem;color:var(--muted);font-size:0.85rem">${rowsData.length} of ${INTERACTIONS.length} interactions · multi-select filters · click a row to open detail</p>
+    </div>`;
+}
+
+function renderAgentInteractionsList() {
+  const rowsData = INTERACTIONS.filter((i) => i.agentName === AGENT_NAME);
+  const reviewed = rowsData.filter((i) => i.status !== "Not Audited").length;
+  const pending = rowsData.filter((i) => ["LLM Audited", "QA Direct", "QA Reviewed"].includes(i.status)).length;
+  const disputes = rowsData.filter((i) => i.status === "Pending Dispute").length;
+  const rows = rowsData
+    .map(
+      (i) => `
+    <tr class="clickable" data-open-ix="${i.id}">
+      <td>${i.short}</td>
+      <td>${i.date}</td>
+      <td>${i.queue}</td>
+      <td>${i.intent}</td>
+      <td><span class="status ${statusClass(i.status)}">${i.status}</span></td>
+      <td>${i.score}</td>
+      <td>${i.duration}</td>
+    </tr>`
+    )
+    .join("");
+
+  return `
+    <div class="ix-list-page agent-interactions">
+      <h1 class="page-title">My interactions</h1>
+      <p class="page-sub">Welcome, ${AGENT_NAME}. Review your conversations and respond to completed QA feedback.</p>
+      <div class="stat-row">
+        <div class="stat"><div class="label">My conversations</div><div class="value">${rowsData.length}</div></div>
+        <div class="stat"><div class="label">Reviewed</div><div class="value">${reviewed}</div></div>
+        <div class="stat"><div class="label">Awaiting my response</div><div class="value">${pending}</div></div>
+        <div class="stat"><div class="label">Open disputes</div><div class="value">${disputes}</div></div>
+      </div>
+      <div class="callout">This agent view includes every conversation assigned to you, including conversations that have not yet been audited.</div>
+      <div class="ix-table-wrap">
+        <table class="table">
+          <thead>
+            <tr><th>Conversation</th><th>Date</th><th>Queue</th><th>Intent</th><th>Status</th><th>Score</th><th>Duration</th></tr>
+          </thead>
+          <tbody>${rows || `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:1.25rem">No conversations are assigned to this agent.</td></tr>`}</tbody>
+        </table>
+      </div>
+      <p class="hint" style="margin-top:0.65rem;color:var(--muted);font-size:0.85rem">Select a conversation to view its transcript, audit, details, and history.</p>
+    </div>`;
+}
+
+function renderAgentAudit(ix) {
+  const isNotAudited = ix.status === "Not Audited";
+  const isComplete = ix.status === "Complete";
+  const isDispute = ix.status === "Pending Dispute";
+  const formId = activeFormId(ix);
+  const questions = questionsForForm(formId);
+
+  if (isNotAudited) {
+    return `
+      <div class="audit-form">
+        <h3>QA review</h3>
+        <div class="callout">This conversation has not been audited yet. A score and monitoring form will appear here after QA completes its review.</div>
+      </div>`;
+  }
+
+  const questionCards = questions
+    .map(
+      (q) => `
+      <div class="q-card">
+        <div class="q-title">${q.q}</div>
+        <div class="ai-note">${(q.ai || "Reviewed by QA.").replace(/^AI:\s*/, "")}</div>
+        <div class="choice-row">
+          <button class="choice ${q.choice === "Yes" ? "selected" : ""}" type="button" disabled>Yes (${q.points})</button>
+          <button class="choice ${q.choice !== "Yes" ? "selected" : ""}" type="button" disabled>No${q.choice !== "Yes" ? " ✓" : ""}</button>
+          <button class="choice" type="button" disabled>NA</button>
+        </div>
+      </div>`
+    )
+    .join("");
+
+  const response =
+    isComplete
+      ? `<div class="ack-box"><span class="status ok">Acknowledged</span><strong>Your response</strong><br/>You accepted this audit. Feedback is complete.</div>`
+      : isDispute
+        ? `<div class="ack-box" style="border-color:#e0b36a;background:var(--warn-bg)"><span class="status warn">Dispute open</span><strong>Your response</strong><br/>Your dispute was sent to QA for review.</div>`
+        : `<div class="callout">Review this read-only audit, then acknowledge the feedback or raise a dispute.</div>
+           <div class="btn-row">
+             <button class="btn primary" type="button" data-agent-accept>Accept &amp; acknowledge</button>
+             <button class="btn" type="button" data-agent-dispute>Dispute score</button>
+           </div>`;
+
+  return `
+    <div class="audit-form">
+      <h3>My QA feedback</h3>
+      <p class="hint" style="margin:0 0 0.55rem">Status: <strong>${ix.status}</strong> · <span class="chip">${formName(formId)}</span></p>
+      <div class="score-summary">
+        <div class="score-chip"><b>${ix.score}</b>Overall</div>
+        <div class="score-chip"><b>20/20</b>Soft skills</div>
+        <div class="score-chip"><b>Pass</b>Compliance</div>
+      </div>
+      <div class="section-block">
+        <div class="section-head"><span>${sectionTitleForForm(formId)}</span><span>Read only</span></div>
+        ${questionCards}
+      </div>
+      ${response}
     </div>`;
 }
 
@@ -1108,7 +1220,7 @@ function renderInteractionDetail(ix) {
       <dt>Status</dt><dd><span class="status ${statusClass(ix.status)}">${ix.status}</span></dd>
       <dt>Audit mode</dt><dd>${auditModeLabel(ix.auditMode)}</dd>
       <dt>Form</dt><dd>${ix.formVersion ? formName(ix.formVersion) : "Not selected"}</dd>
-      <dt>LLM review</dt><dd>${isQaDirect ? '<span class="status direct">Excluded</span>' : isNotAudited ? "Not run" : "Eligible"}</dd>
+      ${currentRole === "qa" ? `<dt>LLM review</dt><dd>${isQaDirect ? '<span class="status direct">Excluded</span>' : isNotAudited ? "Not run" : "Eligible"}</dd>` : ""}
       <dt>Channel</dt><dd>${ix.channel}</dd>
       <dt>Source</dt><dd>${ix.source}</dd>
       <dt>Escalation</dt><dd>${ix.escalated ? '<span class="status warn">Escalated</span>' : "None"}</dd>
@@ -1156,67 +1268,8 @@ function renderInteractionDetail(ix) {
       <tbody>${historyEvents}</tbody>
     </table>`;
 
-  const audit = renderAuditForm(ix);
+  const audit = currentRole === "agent" ? renderAgentAudit(ix) : renderAuditForm(ix);
   const sideBody = ixSideTab === "details" ? details : ixSideTab === "history" ? history : audit;
-
-  const showInsights = !isNotAudited && !isQaDirect;
-
-  const insightsBody = `
-    <div class="ix-insights-section">
-      <h4>Sentiment analysis</h4>
-      <div class="sentiment-row" style="margin:0.45rem 0">
-        <div class="sent-pill pos">Pos<br/><b>28%</b></div>
-        <div class="sent-pill neu">Neu<br/><b>54%</b></div>
-        <div class="sent-pill neg">Neg<br/><b>18%</b></div>
-      </div>
-      <p style="font-size:0.82rem;margin:0;color:var(--muted)">Customer tone: ${ix.sentiment}. Peak negative near unauthorized-charge mention.</p>
-    </div>
-    <div class="ix-insights-section">
-      <h4>Predictive analysis</h4>
-      <p style="font-size:0.86rem;line-height:1.4;margin:0 0 0.45rem">Similar fraud intents show <strong>+12%</strong> escalate risk when soft-skills score &lt; 18/20.</p>
-      <button class="btn" type="button" style="width:100%">Open risk signals</button>
-    </div>
-    <div class="ix-insights-section">
-      <h4>Intent analytics</h4>
-      <p><span class="chip">${ix.intent}</span></p>
-      <p style="font-size:0.82rem;margin:0.4rem 0 0;color:var(--muted)">Primary intent confidence 0.91 · related: account_security</p>
-    </div>
-    <div class="ix-insights-section">
-      <h4>Behavioral scoring</h4>
-      <table class="table">
-        <tbody>
-          <tr><td>Empathy</td><td>4.2</td></tr>
-          <tr><td>Ownership</td><td>4.5</td></tr>
-          <tr><td>Clarity</td><td>4.0</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="ix-insights-section">
-      <h4>Anomaly highlights</h4>
-      <ul class="opt-list">
-        <li>Escalation flag on this conversation</li>
-        <li>Sentiment shift mid-chat (neutral → concerned)</li>
-        <li>No disclosure anomaly on this interaction</li>
-      </ul>
-    </div>`;
-
-  const insightsPane = showInsights
-    ? `<aside class="ix-insights ${ixInsightsOpen ? "open" : "collapsed"}">
-          <button class="ix-insights-toggle" type="button" data-ix-insights-toggle aria-expanded="${ixInsightsOpen}">
-            <span class="ix-insights-toggle-label">Advanced Insights*</span>
-            <span class="ix-insights-chevron">${ixInsightsOpen ? "»" : "«"}</span>
-          </button>
-          <div class="ix-insights-body" ${ixInsightsOpen ? "" : "hidden"}>
-            ${insightsBody}
-          </div>
-        </aside>`
-    : "";
-
-  const layoutClass = showInsights
-    ? ixInsightsOpen
-      ? "insights-open"
-      : "insights-closed"
-    : "no-insights";
 
   return `
     <div class="ix-detail-page">
@@ -1224,7 +1277,7 @@ function renderInteractionDetail(ix) {
         <button class="btn" type="button" data-ix-back>← Back to list</button>
         <div class="ix-trans-meta">${ix.short} · ${ix.status} · ${ix.queue} · ${ix.agentName} · ${ix.duration}</div>
       </div>
-      <div class="ix-layout ${layoutClass}">
+      <div class="ix-layout">
         <section class="ix-transcript">
           <div class="ix-trans-head">
             <div>
@@ -1250,22 +1303,20 @@ function renderInteractionDetail(ix) {
           </div>
           <div class="ix-side-body">${sideBody}</div>
         </section>
-
-        ${insightsPane}
       </div>
     </div>`;
 }
 
 
 function renderInteractions() {
-  if (!selectedIx) return renderInteractionsList();
+  if (!selectedIx) return currentRole === "agent" ? renderAgentInteractionsList() : renderInteractionsList();
   const ix = INTERACTIONS.find((i) => i.id === selectedIx) || INTERACTIONS[0];
   return renderInteractionDetail(ix);
 }
 
 function renderDataImport() {
   const ingest = `
-    <p class="hint" style="margin:0 0 0.75rem">Upload CSV, pull from SFTP, or ingest from a connected cloud bucket for this techclient tenant.</p>
+    <p class="hint" style="margin:0 0 0.75rem">Upload CSV or ingest from a connected cloud bucket. SFTP pull is shown as a post-MVP preview.</p>
     <div class="grid-2">
       <div class="card" style="margin:0">
         <h3>Upload CSV</h3>
@@ -1276,18 +1327,18 @@ function renderDataImport() {
         </div>
         <div class="footer-actions"><span></span><button class="btn" type="button" disabled>Upload &amp; queue</button></div>
       </div>
-      <div class="card" style="margin:0">
-        <h3>SFTP pull (ingest)</h3>
-        <p class="hint">Pull files from a remote SFTP folder on a schedule or on demand.</p>
+      <div class="card future-card" style="margin:0">
+        <h3>SFTP pull (ingest) <span class="future-badge">Future development</span></h3>
+        <p class="hint">Post-MVP preview: pull files from a remote SFTP folder on a schedule or on demand.</p>
         <div class="grid-filters">
-          <div class="field"><label>Host</label><input value="sftp.247client1.com" /></div>
-          <div class="field"><label>Port</label><input value="22" /></div>
-          <div class="field"><label>Remote path</label><input value="/outbound/qra/" /></div>
-          <div class="field"><label>File pattern</label><input value="*.csv" /></div>
+          <div class="field"><label>Host</label><input value="sftp.247client1.com" disabled /></div>
+          <div class="field"><label>Port</label><input value="22" disabled /></div>
+          <div class="field"><label>Remote path</label><input value="/outbound/qra/" disabled /></div>
+          <div class="field"><label>File pattern</label><input value="*.csv" disabled /></div>
         </div>
         <div class="footer-actions">
-          <span class="hint">Auth: SSH key · last pull 2026-09-10 06:00 UTC</span>
-          <button class="btn primary" type="button">Run SFTP pull</button>
+          <span class="hint">Not included in MVP</span>
+          <button class="btn primary" type="button" disabled>Run SFTP pull</button>
         </div>
       </div>
     </div>
@@ -1406,29 +1457,30 @@ function renderDataImport() {
     </div>`;
 
   const sftpPush = `
-    <p class="hint" style="margin:0 0 0.75rem">Push AutoQRA export files to a remote SFTP server after scoring completes.</p>
+    ${futureCallout("SFTP Push is a future-development preview and is not included in the MVP.")}
+    <p class="hint" style="margin:0 0 0.75rem">Post-MVP: push AutoQRA export files to a remote SFTP server after scoring completes.</p>
     <div class="grid-2">
-      <div class="card" style="margin:0">
-        <h3>SFTP Push configuration</h3>
+      <div class="card future-card" style="margin:0">
+        <h3>SFTP Push configuration <span class="future-badge">Future development</span></h3>
         <div class="grid-filters">
-          <div class="field"><label>Host</label><input value="sftp.partner-bank.com" /></div>
-          <div class="field"><label>Port</label><input value="22" /></div>
-          <div class="field"><label>Username</label><input value="autoqra_push" /></div>
+          <div class="field"><label>Host</label><input value="sftp.partner-bank.com" disabled /></div>
+          <div class="field"><label>Port</label><input value="22" disabled /></div>
+          <div class="field"><label>Username</label><input value="autoqra_push" disabled /></div>
           <div class="field"><label>Auth</label>
-            <select><option>SSH private key</option><option>Password</option></select>
+            <select disabled><option>SSH private key</option><option>Password</option></select>
           </div>
-          <div class="field"><label>Remote path</label><input value="/inbound/autoqra/results/" /></div>
-          <div class="field"><label>File name pattern</label><input value="qra_output_{date}.csv" /></div>
+          <div class="field"><label>Remote path</label><input value="/inbound/autoqra/results/" disabled /></div>
+          <div class="field"><label>File name pattern</label><input value="qra_output_{date}.csv" disabled /></div>
           <div class="field"><label>Schedule</label>
-            <select><option>After each QA job completes</option><option>Daily 02:00 UTC</option><option>Manual only</option></select>
+            <select disabled><option>After each QA job completes</option><option>Daily 02:00 UTC</option><option>Manual only</option></select>
           </div>
           <div class="field"><label>Compression</label>
-            <select><option>None</option><option>gzip</option><option>zip</option></select>
+            <select disabled><option>None</option><option>gzip</option><option>zip</option></select>
           </div>
         </div>
         <div class="footer-actions">
-          <button class="btn" type="button">Test connection</button>
-          <button class="btn primary" type="button">Save &amp; enable push</button>
+          <button class="btn" type="button" disabled>Test connection</button>
+          <button class="btn primary" type="button" disabled>Save &amp; enable push</button>
         </div>
       </div>
       <div class="card" style="margin:0">
@@ -1442,7 +1494,7 @@ function renderDataImport() {
         </dl>
         <div class="footer-actions" style="margin-top:0.75rem">
           <span></span>
-          <button class="btn primary" type="button">Push now</button>
+          <button class="btn primary" type="button" disabled>Push now</button>
         </div>
       </div>
     </div>
@@ -1547,19 +1599,16 @@ function renderDataImport() {
         ? sftpPush
         : dataTab === "clouds"
           ? cloudsTab
-          : dataTab === "schedule"
-            ? renderScheduledPull()
-            : ingest;
+          : ingest;
 
   return `
     <h1 class="page-title">Import and export</h1>
-    <p class="page-sub">CSV ingest, scheduled transcript pull, SFTP pull / push, cloud connections (AWS · Azure · GCP), and AutoQRA export for this techclient tenant.</p>
+    <p class="page-sub">CSV and cloud ingest, AutoQRA export, and post-MVP previews for SFTP pull / push.</p>
     ${tenantRow()}
     <div class="tabs">
       <button class="tab ${dataTab === "ingest" ? "active" : ""}" type="button" data-data-tab="ingest">Ingest <span class="badge">4</span></button>
-      <button class="tab ${dataTab === "schedule" ? "active" : ""}" type="button" data-data-tab="schedule">Scheduled pull</button>
       <button class="tab ${dataTab === "export" ? "active" : ""}" type="button" data-data-tab="export">Export</button>
-      <button class="tab ${dataTab === "sftp-push" ? "active" : ""}" type="button" data-data-tab="sftp-push">SFTP Push</button>
+      <button class="tab ${dataTab === "sftp-push" ? "active" : ""}" type="button" data-data-tab="sftp-push">SFTP Push <span class="future-badge">Future</span></button>
       <button class="tab ${dataTab === "clouds" ? "active" : ""}" type="button" data-data-tab="clouds">Cloud connections</button>
     </div>
     ${body}`;
@@ -1648,8 +1697,8 @@ function renderSampling() {
       <td>${job.purpose}</td>
       <td>${job.scope}</td>
       <td>${jobDateScope(job)}</td>
-      <td>${formName(job.form)}</td>
-      <td>${job.form === "custom" && job.rubrics.length ? job.rubrics.join(", ") : "—"}</td>
+      <td>${formName(job.form)}${job.form !== "llm" ? ' <span class="future-badge">Future</span>' : ""}</td>
+      <td>${job.form === "custom" && job.rubrics.length ? `${job.rubrics.join(", ")} <span class="future-badge">Future</span>` : "—"}</td>
       <td>${job.requested}</td>
       <td><span class="status ${jobStatusClass(job.status)}">${job.status}</span></td>
       <td>${job.scored}</td>
@@ -1677,19 +1726,23 @@ function renderSampling() {
     (area) => `<button class="pill ${jobRubrics.includes(area) ? "active" : ""}" type="button" data-job-rubric="${area}">${area}</button>`
   ).join("");
   const formOptions = JOB_FORM_VERSIONS.map(
-    (f) => `<option value="${f.id}" ${jobFormVersion === f.id ? "selected" : ""}>${f.name}</option>`
+    (f) => `<option value="${f.id}" ${jobFormVersion === f.id ? "selected" : ""}>${f.name}${f.id === "llm" ? " · MVP" : " · Future development"}</option>`
   ).join("");
   const rubricField = jobFormVersion === "custom"
-    ? `<div class="field"><label>Rubric area</label>
+    ? `<div class="field future-card" style="padding:0.65rem;border:1px solid #e6cf92;border-radius:8px"><label>Rubric area <span class="future-badge">Future development</span></label>
           <div class="pill-filters" data-job-rubrics>${rubricPills}</div>
-          <p class="hint" style="margin:0.35rem 0 0">Use rubric areas for a deep dive after a concern is identified. ${jobRubrics.length ? jobRubrics.join(", ") : "None selected"}.</p>
+          <p class="hint" style="margin:0.35rem 0 0">Post-MVP: use rubric areas for a deep dive after a concern is identified. ${jobRubrics.length ? jobRubrics.join(", ") : "None selected"}.</p>
         </div>`
     : "";
+  const futureFormNotice = jobFormVersion === "llm"
+    ? ""
+    : futureCallout(`${formName(jobFormVersion)} is shown as a clickable preview. It is not included in the MVP.`);
 
   const newJob = `
     <div class="card">
       <h3>New job</h3>
       <p class="hint">Define which ingested interactions to score. Leave the end date empty to include every interaction from the start date. QA Direct conversations are excluded and used as LLM feedback.</p>
+      ${futureFormNotice}
       <div class="grid-filters">
         <div class="field"><label>Job name</label><input data-job-name value="${jobName}" /></div>
         <div class="field"><label>Job type</label>
@@ -1730,7 +1783,7 @@ function renderSampling() {
         <div class="field"><label>Requested count</label><input type="number" data-job-count value="${jobRequested}" /></div>
       </div>
       <div class="footer-actions">
-        <p class="hint">LLM form and Short form monitoring use a fixed form. Custom form adds rubric areas for a deep dive. QA Direct rows are not selected.</p>
+        <p class="hint">LLM form is included in MVP. Short form monitoring, Custom form, and custom rubric areas are future development. QA Direct rows are not selected.</p>
         <button class="btn primary" type="button" data-start-job>Start job</button>
       </div>
     </div>`;
@@ -2086,9 +2139,9 @@ function renderCoaching() {
         : renderCoachingOverall();
 
   return `
-    <h1 class="page-title">Coaching*</h1>
-    <p class="page-sub">Not available now (marked with *). Overall = period themes for all agents · Team = team/queue · Agent = that agent's own plans and conversations.</p>
-    <div class="callout">Coaching* is unavailable in this release.</div>
+    <h1 class="page-title">Coaching <span class="future-badge">Future development · Post-MVP</span></h1>
+    <p class="page-sub">Clickable preview of planned overall, team, and agent coaching experiences.</p>
+    ${futureCallout("Coaching is not part of the MVP. This screen is retained only as a future-development preview.")}
     ${tenantRow()}
     <div class="tabs">
       <button class="tab ${coachingTab === "overall" ? "active" : ""}" type="button" data-coach-tab="overall">Overall Coaching</button>
@@ -2133,9 +2186,9 @@ function renderReporting() {
     .map((a, index) => ({ ...a, rank: index + 1 }));
 
   return `
-    <h1 class="page-title">Reporting &amp; Insights*</h1>
-    <p class="page-sub">Not available now (marked with *). Preview of planned Superset-backed insights.</p>
-    <div class="callout">Reporting &amp; Insights* is unavailable in this release.</div>
+    <h1 class="page-title">Reporting &amp; Insights <span class="future-badge">Future development · Post-MVP</span></h1>
+    <p class="page-sub">Clickable preview of planned Superset-backed reporting.</p>
+    ${futureCallout("Reporting & Insights is not part of the MVP. This dashboard is retained only as a future-development preview.")}
     ${tenantRow()}
     <div class="card" style="padding:0.75rem 1rem;margin-bottom:0.85rem">
       <div class="grid-filters">
@@ -2460,6 +2513,7 @@ function renderScheduledPull() {
   ).join("");
 
   return `
+    ${futureCallout("Scheduled transcript pulls are planned for a post-MVP Settings release.")}
     <p class="page-sub" style="margin-top:0">Automated pull of transcripts from client locations. Each schedule uses a connected SFTP, cloud, or API source.</p>
     <div class="card">
       <h3>New scheduled pull</h3>
@@ -2499,19 +2553,22 @@ function renderAdmin() {
   const body =
     settingsTab === "calibration"
       ? renderAdminCalibrationBody()
+      : settingsTab === "schedule"
+        ? renderScheduledPull()
       : settingsTab === "advanced"
-        ? renderAdminAdvancedBody()
-        : settingsTab === "about"
-          ? renderAboutBody()
-          : renderAdminTenantBody();
+          ? renderAdminAdvancedBody()
+          : settingsTab === "about"
+            ? renderAboutBody()
+            : renderAdminTenantBody();
 
   return `
-    <h1 class="page-title">Settings*</h1>
-    <p class="page-sub">Not available now (marked with *). Admin / Calibration / Advanced Settings / About.</p>
-    <div class="callout">Settings* is unavailable in this release.</div>
+    <h1 class="page-title">Settings <span class="future-badge">Future development · Post-MVP</span></h1>
+    <p class="page-sub">Clickable preview of planned administration, scheduled pull, calibration, and advanced settings.</p>
+    ${futureCallout("Settings is not part of the MVP. All controls on this screen are future-development previews.")}
     ${tenantRow()}
     <div class="tabs">
       <button class="tab ${settingsTab === "admin" ? "active" : ""}" type="button" data-settings-tab="admin">Admin</button>
+      <button class="tab ${settingsTab === "schedule" ? "active" : ""}" type="button" data-settings-tab="schedule">Scheduled pull</button>
       <button class="tab ${settingsTab === "calibration" ? "active" : ""}" type="button" data-settings-tab="calibration">Calibration &amp; AI Opt</button>
       <button class="tab ${settingsTab === "advanced" ? "active" : ""}" type="button" data-settings-tab="advanced">Advanced Settings</button>
       <button class="tab ${settingsTab === "about" ? "active" : ""}" type="button" data-settings-tab="about">About</button>
@@ -2569,12 +2626,16 @@ const RENDERERS = {
 
 function setNav(view) {
   document.querySelectorAll(".side-item").forEach((btn) => {
+    btn.hidden = currentRole === "agent" && btn.hasAttribute("data-qa-only");
     btn.classList.toggle("active", btn.dataset.view === view);
   });
-  quotaBox.hidden = !(view === "sampling" || view === "data-import");
+  quotaBox.hidden = currentRole === "agent" || !(view === "sampling" || view === "data-import");
+  roleButtons.forEach((btn) => btn.classList.toggle("active", btn.dataset.role === currentRole));
+  if (userChip) userChip.textContent = currentRole === "agent" ? AGENT_NAME : "QA User";
 }
 
 function render(view) {
+  if (currentRole === "agent" && view !== "interactions") view = "interactions";
   // Feature Map removed from nav — open Settings → About instead
   if (view === "overview") {
     settingsTab = "about";
@@ -2607,6 +2668,16 @@ if (collapseBtn) {
     sideNav.classList.toggle("collapsed");
   });
 }
+
+roleButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    currentRole = btn.dataset.role;
+    selectedIx = null;
+    ixSideTab = "audit";
+    openMsKey = null;
+    render("interactions");
+  });
+});
 
 function readJobForm() {
   const name = workspace.querySelector("[data-job-name]");
@@ -2670,12 +2741,6 @@ workspace.addEventListener("click", (e) => {
     return;
   }
 
-  if (e.target.closest("[data-ix-insights-toggle]")) {
-    ixInsightsOpen = !ixInsightsOpen;
-    render("interactions");
-    return;
-  }
-
   if (e.target.closest("[data-qa-direct-submit]")) {
     const ix = INTERACTIONS.find((i) => i.id === selectedIx);
     if (ix && ix.status === "Not Audited") {
@@ -2685,6 +2750,26 @@ workspace.addEventListener("click", (e) => {
       ix.auditMode = "qa-direct";
       ix.llmExcluded = true;
       ix.score = isPartialForm(ix.formVersion) ? "90" : "86";
+      render("interactions");
+    }
+    return;
+  }
+
+  if (e.target.closest("[data-agent-accept]")) {
+    const ix = INTERACTIONS.find((i) => i.id === selectedIx && i.agentName === AGENT_NAME);
+    if (ix && ix.status !== "Not Audited") {
+      ix.status = "Complete";
+      ix.agentDecision = "accepted";
+      render("interactions");
+    }
+    return;
+  }
+
+  if (e.target.closest("[data-agent-dispute]")) {
+    const ix = INTERACTIONS.find((i) => i.id === selectedIx && i.agentName === AGENT_NAME);
+    if (ix && ix.status !== "Not Audited") {
+      ix.status = "Pending Dispute";
+      ix.agentDecision = "disputed";
       render("interactions");
     }
     return;
@@ -2759,7 +2844,6 @@ workspace.addEventListener("click", (e) => {
 
   const dTab = e.target.closest("[data-data-tab]");
   if (dTab) {
-    if (dataTab === "schedule") readScheduleForm();
     dataTab = dTab.dataset.dataTab;
     render("data-import");
     return;
@@ -2815,6 +2899,7 @@ workspace.addEventListener("click", (e) => {
 
   const settingsTabBtn = e.target.closest("[data-settings-tab]");
   if (settingsTabBtn) {
+    if (settingsTab === "schedule") readScheduleForm();
     settingsTab = settingsTabBtn.dataset.settingsTab;
     render("admin");
     return;
@@ -2827,8 +2912,8 @@ workspace.addEventListener("click", (e) => {
       row.enabled = !row.enabled;
       row.next = row.enabled ? "Next window" : "Paused";
     }
-    dataTab = "schedule";
-    render("data-import");
+    settingsTab = "schedule";
+    render("admin");
     return;
   }
 
@@ -2846,8 +2931,8 @@ workspace.addEventListener("click", (e) => {
       last: "Not run yet",
       next: "On next window",
     });
-    dataTab = "schedule";
-    render("data-import");
+    settingsTab = "schedule";
+    render("admin");
     return;
   }
 

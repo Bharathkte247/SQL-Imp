@@ -18,13 +18,17 @@
         <span class="logo-badge">AutoQRA Wireframe</span>
       </div>
       <div class="header-right">
+        <div class="role-switch" aria-label="Preview role">
+          <button class="role-option active" type="button" data-role="qa">QA view</button>
+          <button class="role-option" type="button" data-role="agent">Agent view</button>
+        </div>
         <div class="quota" id="quotaBox" hidden>
           <span class="quota-label">DAILY QUOTA</span>
           <strong>1700 / 1700</strong>
           <span class="quota-date">2026-09-10 UTC</span>
         </div>
         <button class="icon-btn" type="button" title="Help">?</button>
-        <button class="user-chip" type="button">User</button>
+        <button class="user-chip" id="userChip" type="button">QA User</button>
       </div>
     </header>
 
@@ -35,20 +39,20 @@
           <button class="side-item active" data-view="interactions" type="button">
             <span class="ico">💬</span> Interactions
           </button>
-          <button class="side-item" data-view="data-import" type="button">
+          <button class="side-item" data-view="data-import" data-qa-only type="button">
             <span class="ico">⇅</span> Import and export
           </button>
-          <button class="side-item" data-view="sampling" type="button">
+          <button class="side-item" data-view="sampling" data-qa-only type="button">
             <span class="ico">▶</span> Jobs
           </button>
-          <button class="side-item unavailable" data-view="coaching" type="button" title="Not available now">
-            <span class="ico">◎</span> Coaching*
+          <button class="side-item unavailable" data-view="coaching" data-qa-only type="button" title="Future development — Post-MVP preview">
+            <span class="ico">◎</span> Coaching <span class="nav-future">Future</span>
           </button>
-          <button class="side-item unavailable" data-view="reporting" type="button" title="Not available now">
-            <span class="ico">▥</span> Reporting &amp; Insights*
+          <button class="side-item unavailable" data-view="reporting" data-qa-only type="button" title="Future development — Post-MVP preview">
+            <span class="ico">▥</span> Reporting &amp; Insights <span class="nav-future">Future</span>
           </button>
-          <button class="side-item unavailable" data-view="admin" type="button" title="Not available now">
-            <span class="ico">⚙</span> Settings*
+          <button class="side-item unavailable" data-view="admin" data-qa-only type="button" title="Future development — Post-MVP preview">
+            <span class="ico">⚙</span> Settings <span class="nav-future">Future</span>
           </button>
         </nav>
         <button class="collapse-btn" id="collapseNav" type="button">Collapse navbar</button>

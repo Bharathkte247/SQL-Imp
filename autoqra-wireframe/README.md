@@ -4,19 +4,26 @@
 
 | Nav | Description |
 | --- | --- |
-| **Interactions** | Status filter: Not Audited · LLM Audited · QA Direct · QA Reviewed · Pending Dispute · Complete → detail modes |
-| **Import and export** | CSV ingest · Scheduled transcript pull · SFTP pull/push · Cloud connections (AWS S3 · Azure Blob · GCS) · AutoQRA CSV export |
-| **Jobs** | Jobs & results first, then New job. Optional end date. Form is LLM, Short form monitoring, or Custom. Rubric areas appear only for Custom. QA Direct rows are skipped. |
-| **Coaching\*** | Not available now · **Overall** = period themes for all agents · **Team** = team/queue · **Agent** = one agent's assigned plans and conversations |
-| **Reporting & Insights\*** | Not available now (preview) · section Top 10 / Bottom 10 |
-| **Settings\*** | Not available now · Admin / Calibration / Advanced Settings / **About** |
+| **Interactions** | MVP · QA and Agent role previews · two-column transcript with Details, Audit, and History |
+| **Import and export** | MVP CSV/cloud ingest and export · SFTP pull/push clearly marked Future Development |
+| **Jobs** | MVP LLM-form jobs · Short form monitoring, Custom form, and custom rubrics marked Future Development |
+| **Coaching** | Future Development · Post-MVP clickable preview |
+| **Reporting & Insights** | Future Development · Post-MVP clickable preview |
+| **Settings** | Future Development · Post-MVP clickable preview · includes Scheduled pull |
+
+## Role previews
+
+- **QA view** shows the full Interactions filters and QA audit controls, plus Import and export and Jobs.
+- **Agent view** is scoped to R. Patel and shows all of that agent's conversations, including Not Audited.
+- Agent audits are read-only. Reviewed conversations can be accepted/acknowledged or disputed.
+- QA-only administration modules are hidden while Agent view is active.
 
 ## Interaction status modes
 
 | Status | Detail behavior |
 | --- | --- |
 | **Not Audited** | Empty monitoring form · QA picks LLM, QRA, short call, or supervisor form and can submit **QA Direct** |
-| **LLM Audited** | AI-scored form, not submitted · human override · **Advanced Insights\*** pane |
+| **LLM Audited** | AI-scored form, not submitted · human override |
 | **QA Direct** | Human scored with no LLM review · excluded from later scoring jobs · ratings feed the LLM improvement loop |
 | **QA Reviewed** | Review after an LLM audit · Manual or Hybrid · human override greyed out |
 | **Pending Dispute** | Manual or Hybrid · human override enabled |

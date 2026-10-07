@@ -1840,8 +1840,12 @@ function coachingPlanHtml(c) {
     </table>
     <div class="btn-row" style="margin-top:0.85rem">
       <button class="btn primary" type="button">Open coaching plan</button>
-      <button class="btn" type="button">Assign to coach</button>
-      <button class="btn" type="button">Schedule session</button>
+      ${
+        c.level === "agent"
+          ? `<button class="btn" type="button">Need help from Supervisor</button>`
+          : `<button class="btn" type="button">Assign to coach</button>
+             <button class="btn" type="button">Schedule session</button>`
+      }
     </div>`;
 }
 

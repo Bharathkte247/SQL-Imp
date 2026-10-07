@@ -56,10 +56,16 @@ a { color: var(--accent); }
   border: 1px solid rgba(255,255,255,0.22); background: rgba(255,255,255,0.08);
 }
 .role-option {
+  display: inline-flex; align-items: center; gap: 0.35rem;
   border: none; border-radius: 999px; background: transparent; color: rgba(255,255,255,0.72);
   padding: 0.25rem 0.65rem; font-size: 0.76rem; font-weight: 600;
 }
 .role-option.active { background: #fff; color: var(--header); }
+.role-future {
+  padding: 0.08rem 0.3rem; border-radius: 4px;
+  background: var(--warn-bg); color: var(--warn); font-size: 0.56rem;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
 .quota {
   display: flex; align-items: baseline; gap: 0.4rem;
   background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);

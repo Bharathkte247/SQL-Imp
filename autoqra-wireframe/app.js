@@ -977,24 +977,27 @@ function renderAgentInteractionsList() {
 
   return `
     <div class="ix-list-page agent-interactions">
-      <h1 class="page-title">My interactions</h1>
+      <h1 class="page-title">My interactions <span class="future-badge">Future development · Post-MVP</span></h1>
       <p class="page-sub">Welcome, ${AGENT_NAME}. Review your conversations and respond to completed QA feedback.</p>
-      <div class="stat-row">
-        <div class="stat"><div class="label">My conversations</div><div class="value">${rowsData.length}</div></div>
-        <div class="stat"><div class="label">Reviewed</div><div class="value">${reviewed}</div></div>
-        <div class="stat"><div class="label">Awaiting my response</div><div class="value">${pending}</div></div>
-        <div class="stat"><div class="label">Open disputes</div><div class="value">${disputes}</div></div>
+      ${futureCallout("Agent view is a future-development preview and is not included in the MVP.")}
+      <div class="unavailable-preview">
+        <div class="stat-row">
+          <div class="stat"><div class="label">My conversations</div><div class="value">${rowsData.length}</div></div>
+          <div class="stat"><div class="label">Reviewed</div><div class="value">${reviewed}</div></div>
+          <div class="stat"><div class="label">Awaiting my response</div><div class="value">${pending}</div></div>
+          <div class="stat"><div class="label">Open disputes</div><div class="value">${disputes}</div></div>
+        </div>
+        <div class="callout">This agent view includes every conversation assigned to you, including conversations that have not yet been audited.</div>
+        <div class="ix-table-wrap">
+          <table class="table">
+            <thead>
+              <tr><th>Conversation</th><th>Date</th><th>Queue</th><th>Intent</th><th>Status</th><th>Score</th><th>Duration</th></tr>
+            </thead>
+            <tbody>${rows || `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:1.25rem">No conversations are assigned to this agent.</td></tr>`}</tbody>
+          </table>
+        </div>
+        <p class="hint" style="margin-top:0.65rem;color:var(--muted);font-size:0.85rem">Select a conversation to view its transcript, audit, details, and history.</p>
       </div>
-      <div class="callout">This agent view includes every conversation assigned to you, including conversations that have not yet been audited.</div>
-      <div class="ix-table-wrap">
-        <table class="table">
-          <thead>
-            <tr><th>Conversation</th><th>Date</th><th>Queue</th><th>Intent</th><th>Status</th><th>Score</th><th>Duration</th></tr>
-          </thead>
-          <tbody>${rows || `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:1.25rem">No conversations are assigned to this agent.</td></tr>`}</tbody>
-        </table>
-      </div>
-      <p class="hint" style="margin-top:0.65rem;color:var(--muted);font-size:0.85rem">Select a conversation to view its transcript, audit, details, and history.</p>
     </div>`;
 }
 
@@ -1270,9 +1273,12 @@ function renderInteractionDetail(ix) {
 
   const audit = currentRole === "agent" ? renderAgentAudit(ix) : renderAuditForm(ix);
   const sideBody = ixSideTab === "details" ? details : ixSideTab === "history" ? history : audit;
+  const agentPreview = currentRole === "agent";
 
   return `
     <div class="ix-detail-page">
+      ${agentPreview ? `<h1 class="page-title">Interaction <span class="future-badge">Future development · Post-MVP</span></h1>${futureCallout("Agent view is a future-development preview and is not included in the MVP.")}` : ""}
+      <div class="${agentPreview ? "unavailable-preview" : ""}">
       <div class="ix-detail-toolbar">
         <button class="btn" type="button" data-ix-back>← Back to list</button>
         <div class="ix-trans-meta">${ix.short} · ${ix.status} · ${ix.queue} · ${ix.agentName} · ${ix.duration}</div>
@@ -1303,6 +1309,7 @@ function renderInteractionDetail(ix) {
           </div>
           <div class="ix-side-body">${sideBody}</div>
         </section>
+      </div>
       </div>
     </div>`;
 }
@@ -2023,6 +2030,7 @@ function renderCoachingTeam() {
 
 function renderCoachingAgent() {
   const agents = [...new Set(COACHING.filter((c) => c.level === "agent").map((c) => c.agent))].sort();
+  if (currentRole === "agent") selectedAgentView = AGENT_NAME;
   if (!agents.includes(selectedAgentView)) selectedAgentView = agents[0] || "";
   const plans = COACHING.filter((c) => c.level === "agent" && c.agent === selectedAgentView);
   const chats = INTERACTIONS.filter((i) => i.agentName === selectedAgentView);
@@ -2091,12 +2099,12 @@ function renderCoachingAgent() {
           <p class="hint" style="margin:0.3rem 0 0">Self-serve view. This agent sees only plans assigned to them, by the LLM or by a person, plus their own conversations.</p>
         </div>
         <div style="display:flex;gap:0.55rem;flex-wrap:wrap">
-          <div class="field" style="margin:0;min-width:180px">
+          ${currentRole === "agent" ? "" : `<div class="field" style="margin:0;min-width:180px">
             <label>Agent</label>
             <select data-agent-view>
               ${agents.map((name) => `<option ${name === selectedAgentView ? "selected" : ""}>${name}</option>`).join("")}
             </select>
-          </div>
+          </div>`}
           <div class="field" style="margin:0;min-width:160px">
             <label>Period</label>
             <select data-agent-period>
@@ -2131,6 +2139,17 @@ function renderCoachingAgent() {
 }
 
 function renderCoaching() {
+  if (currentRole === "agent") {
+    selectedAgentView = AGENT_NAME;
+    coachingTab = "agent";
+    return `
+      <h1 class="page-title">Agent coaching <span class="future-badge">Future development · Post-MVP</span></h1>
+      <p class="page-sub">Clickable preview of coaching assigned to ${AGENT_NAME}.</p>
+      ${futureCallout("Coaching is not part of the MVP. This screen is retained only as a future-development preview.")}
+      ${tenantRow()}
+      <div class="unavailable-preview">${renderCoachingAgent()}</div>`;
+  }
+
   const body =
     coachingTab === "team"
       ? renderCoachingTeam()
@@ -2626,8 +2645,10 @@ const RENDERERS = {
 
 function setNav(view) {
   document.querySelectorAll(".side-item").forEach((btn) => {
-    btn.hidden = currentRole === "agent" && btn.hasAttribute("data-qa-only");
-    btn.classList.toggle("active", btn.dataset.view === view);
+    const qaOnly = btn.hasAttribute("data-qa-only");
+    const agentOnly = btn.hasAttribute("data-agent-only");
+    btn.hidden = (currentRole === "agent" && qaOnly) || (currentRole !== "agent" && agentOnly);
+    btn.classList.toggle("active", btn.dataset.view === view && !btn.hidden);
   });
   quotaBox.hidden = currentRole === "agent" || !(view === "sampling" || view === "data-import");
   roleButtons.forEach((btn) => btn.classList.toggle("active", btn.dataset.role === currentRole));
@@ -2635,7 +2656,11 @@ function setNav(view) {
 }
 
 function render(view) {
-  if (currentRole === "agent" && view !== "interactions") view = "interactions";
+  if (currentRole === "agent" && view !== "interactions" && view !== "coaching") view = "interactions";
+  if (currentRole === "agent" && view === "coaching") {
+    coachingTab = "agent";
+    selectedAgentView = AGENT_NAME;
+  }
   // Feature Map removed from nav — open Settings → About instead
   if (view === "overview") {
     settingsTab = "about";

@@ -4,19 +4,19 @@
 
 | Nav | Description |
 | --- | --- |
-| **Interactions** | MVP · QA and Agent role previews · two-column transcript with Details, Audit, and History |
+| **Interactions** | MVP in QA view · Agent view is a future-development preview · two-column transcript with Details, Audit, and History |
 | **Import and export** | MVP CSV/cloud ingest and export · SFTP pull/push clearly marked Future Development |
 | **Jobs** | MVP LLM-form jobs · Short form monitoring, Custom form, and custom rubrics marked Future Development |
-| **Coaching** | Future Development · Post-MVP clickable preview |
+| **Coaching** | Future Development · Post-MVP clickable preview · QA sees overall, team, and agent coaching · Agent view sees only Agent coaching |
 | **Reporting & Insights** | Future Development · Post-MVP clickable preview |
 | **Settings** | Future Development · Post-MVP clickable preview · includes Scheduled pull |
 
 ## Role previews
 
-- **QA view** shows the full Interactions filters and QA audit controls, plus Import and export and Jobs.
-- **Agent view** is scoped to R. Patel and shows all of that agent's conversations, including Not Audited.
+- **QA view** shows the full Interactions filters and QA audit controls, plus Import and export, Jobs, and the full Coaching preview.
+- **Agent view** is a future-development preview. It is scoped to R. Patel and shows all of that agent's conversations, including Not Audited, plus Agent coaching assigned to R. Patel.
 - Agent audits are read-only. Reviewed conversations can be accepted/acknowledged or disputed.
-- QA-only administration modules are hidden while Agent view is active.
+- QA-only administration modules stay hidden while Agent view is active. Agent coaching omits the agent picker and the overall and team tabs.
 
 ## Interaction status modes
 

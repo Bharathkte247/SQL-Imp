@@ -20,7 +20,7 @@
       <div class="header-right">
         <div class="role-switch" aria-label="Preview role">
           <button class="role-option active" type="button" data-role="qa">QA view</button>
-          <button class="role-option" type="button" data-role="agent">Agent view</button>
+          <button class="role-option" type="button" data-role="agent" title="Future development — Post-MVP preview">Agent view <span class="role-future">Future</span></button>
         </div>
         <div class="quota" id="quotaBox" hidden>
           <span class="quota-label">DAILY QUOTA</span>
@@ -38,6 +38,9 @@
         <nav aria-label="Primary">
           <button class="side-item active" data-view="interactions" type="button">
             <span class="ico">💬</span> Interactions
+          </button>
+          <button class="side-item unavailable" data-view="coaching" data-agent-only type="button" title="Future development — Post-MVP preview" hidden>
+            <span class="ico">◎</span> Agent coaching <span class="nav-future">Future</span>
           </button>
           <button class="side-item" data-view="data-import" data-qa-only type="button">
             <span class="ico">⇅</span> Import and export

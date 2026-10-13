@@ -4,19 +4,21 @@
 
 | Nav | Description |
 | --- | --- |
-| **Interactions** | MVP in QA view · Agent view is a future-development preview · two-column transcript with Details, Audit, and History |
-| **Import and export** | MVP CSV/cloud ingest and export · SFTP pull/push clearly marked Future Development |
-| **Jobs** | MVP LLM-form jobs · Short form monitoring, Custom form, and custom rubrics marked Future Development |
-| **Coaching** | Future Development · Post-MVP clickable preview · QA sees overall, team, and agent coaching · Agent view sees only Agent coaching |
-| **Reporting & Insights** | Future Development · Post-MVP clickable preview |
-| **Settings** | Future Development · Post-MVP clickable preview · includes Scheduled pull |
+| **Transaction Review** | MVP in QA view · Agent view is a future-development preview · intent-aware Bot, Visitor, and human-agent transcript with Details, Audit, and History |
+| **Import and export** | MVP CSV/cloud ingest, export, and scoring jobs · SFTP pull marked Future Development · Short form monitoring, Custom form, and custom rubrics marked Future Development |
+| **Coaching** | Future Development · QA-only preview of overall, team, and agent coaching |
+| **Agent Coaching** | Future Development · Agent-only overall and eight rubric-area percentage trends from a consistent monitored sample · read-only training status and supervisor help requests |
+| **Team Insights** | Future Development · Post-MVP clickable preview · team scores plus training requests and completions |
+| **Settings** | Future Development · Post-MVP clickable preview · includes Scheduled pull, SFTP Push, and Cloud connections |
 
 ## Role previews
 
-- **QA view** shows the full Interactions filters and QA audit controls, plus Import and export, Jobs, and the full Coaching preview.
-- **Agent view** is a future-development preview. It is scoped to R. Patel and shows all of that agent's conversations, including Not Audited, plus Agent coaching assigned to R. Patel.
+- **QA view** shows the full Transaction Review filters and QA audit controls, plus Import and export, Coaching, and Team Insights. Jobs live under Import and export.
+- **Agent view** is a future-development preview. It is scoped to R. Patel and shows Transaction Review and Agent Coaching.
+- Agent Coaching tracks the overall score and eight rubric-area percentages across four weeks. Every week uses the same monitored count. Training module status is read-only. Each module can record a supervisor help request.
 - Agent audits are read-only. Reviewed conversations can be accepted/acknowledged or disputed.
-- QA-only administration modules stay hidden while Agent view is active. Agent coaching omits the agent picker and the overall and team tabs.
+- QA-only administration modules stay hidden while Agent view is active. Team Insights lists the same R. Patel modules, including supervisor help requests.
+- Interaction transcripts show bot intake and handoff separately from the named human agent's verification, empathy, action, disclosure, and resolution turns. Audit rationale cites the human-agent dialogue.
 
 ## Interaction status modes
 

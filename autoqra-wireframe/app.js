@@ -56,27 +56,18 @@ const JOB_FORM_VERSIONS = [
   { id: "custom", name: "Custom form" },
 ];
 
-const RUBRIC_AREAS = ["Soft skills", "Compliance", "Disclosures", "Resolution", "Empathy"];
+const RUBRIC_AREAS = [
+  "Soft skills",
+  "Compliance",
+  "Disclosures",
+  "Resolution",
+  "Empathy",
+  "Product knowledge - Client defined",
+  "CRM usage",
+  "Custom area of coaching",
+];
 
 const INTERACTIONS = [
-  {
-    id: "na-001-4e6d-4d1f-a8a8-8ca18a4601aa",
-    short: "na-001…01aa",
-    agent: "r.patel",
-    agentName: "R. Patel",
-    duration: "4m 05s",
-    queue: "247client1_Web_Chat",
-    lob: "Retail",
-    channel: "ude",
-    source: "api_pull",
-    intent: "balance_inquiry",
-    sentiment: "neutral",
-    escalated: false,
-    status: "Not Audited",
-    auditMode: "none",
-    score: "—",
-    date: "2026-09-10",
-  },
   {
     id: "na-002-91b2-4a11-9c44-77f0aa0011bb",
     short: "na-002…11bb",
@@ -172,24 +163,6 @@ const INTERACTIONS = [
     date: "2026-09-09",
   },
   {
-    id: "9f33d4aa-2201-4e55-bb19-55aa99112233",
-    short: "9f33d4aa…2233",
-    agent: "r.patel",
-    agentName: "R. Patel",
-    duration: "2m 05s",
-    queue: "UHC_Rx_Refill_Chat",
-    lob: "Commercial Pharmacy",
-    channel: "ude",
-    source: "api_pull",
-    intent: "rx_refill_request",
-    sentiment: "neutral",
-    escalated: false,
-    status: "QA Reviewed",
-    auditMode: "hybrid",
-    score: "84",
-    date: "2026-09-10",
-  },
-  {
     id: "c7e21b90-aa12-4f01-88cc-001122334455",
     short: "c7e21b90…4455",
     agent: "a.nguyen",
@@ -241,24 +214,6 @@ const INTERACTIONS = [
     status: "Pending Dispute",
     auditMode: "manual",
     score: "74",
-    date: "2026-09-07",
-  },
-  {
-    id: "dd0f11e-3344-4aa0-9b12-aabbccddeeff",
-    short: "dd0f11e…eeff",
-    agent: "r.patel",
-    agentName: "R. Patel",
-    duration: "4m 18s",
-    queue: "UHC_Refill_Status",
-    lob: "Medicaid Pharmacy",
-    channel: "ude",
-    source: "csv",
-    intent: "rx_refill_request",
-    sentiment: "positive",
-    escalated: false,
-    status: "Complete",
-    auditMode: "hybrid",
-    score: "95",
     date: "2026-09-07",
   },
   {
@@ -354,22 +309,6 @@ INTERACTIONS.forEach((i) => {
 });
 
 const COACHING = [
-  {
-    id: "c1",
-    agent: "R. Patel",
-    lob: "Commercial Pharmacy",
-    queue: "UHC_Rx_Refill_Chat",
-    audits: 48,
-    fails: 11,
-    severity: "high",
-    opportunity: "Disclosure completeness failing on 23% of audited chats. Focus coaching on promo / refill disclosure script.",
-    theme: "Disclosures",
-    sampleAudits: [
-      { id: "AUD-8821", score: 62, defect: "Missing refill disclosure", date: "2026-09-09" },
-      { id: "AUD-8790", score: 68, defect: "Incomplete promo wording", date: "2026-09-08" },
-      { id: "AUD-8702", score: 71, defect: "Disclosure late in chat", date: "2026-09-06" },
-    ],
-  },
   {
     id: "c2",
     agent: "M. Chen",
@@ -749,6 +688,74 @@ let selectedIx = null; // null = list view
 let ixSideTab = "audit";
 let currentRole = "qa";
 const AGENT_NAME = "R. Patel";
+const AGENT_PERFORMANCE_TARGET = 85;
+const AGENT_PERFORMANCE_WEEKS = [
+  { week: "Aug 17–23", monitored: 11, scores: { "Soft skills": 78, Compliance: 84, Disclosures: 63, Resolution: 76, Empathy: 79, "Product knowledge - Client defined": 70, "CRM usage": 74, "Custom area of coaching": 68 } },
+  { week: "Aug 24–30", monitored: 11, scores: { "Soft skills": 80, Compliance: 85, Disclosures: 68, Resolution: 78, Empathy: 81, "Product knowledge - Client defined": 73, "CRM usage": 76, "Custom area of coaching": 71 } },
+  { week: "Aug 31–Sep 6", monitored: 11, scores: { "Soft skills": 82, Compliance: 87, Disclosures: 74, Resolution: 80, Empathy: 83, "Product knowledge - Client defined": 76, "CRM usage": 79, "Custom area of coaching": 74 } },
+  { week: "Sep 7–13", monitored: 11, scores: { "Soft skills": 84, Compliance: 89, Disclosures: 78, Resolution: 82, Empathy: 86, "Product knowledge - Client defined": 80, "CRM usage": 83, "Custom area of coaching": 77 } },
+];
+const PATEL_MONITORING_SCORES = [
+  { "Soft skills": 82, Compliance: 88, Disclosures: 74, Resolution: 80, Empathy: 84, "Product knowledge - Client defined": 78, "CRM usage": 81, "Custom area of coaching": 74 },
+  { "Soft skills": 83, Compliance: 89, Disclosures: 76, Resolution: 81, Empathy: 85, "Product knowledge - Client defined": 79, "CRM usage": 82, "Custom area of coaching": 75 },
+  { "Soft skills": 84, Compliance: 90, Disclosures: 78, Resolution: 82, Empathy: 86, "Product knowledge - Client defined": 80, "CRM usage": 83, "Custom area of coaching": 77 },
+  { "Soft skills": 85, Compliance: 91, Disclosures: 80, Resolution: 83, Empathy: 87, "Product knowledge - Client defined": 81, "CRM usage": 84, "Custom area of coaching": 78 },
+  { "Soft skills": 84, Compliance: 89, Disclosures: 77, Resolution: 82, Empathy: 86, "Product knowledge - Client defined": 80, "CRM usage": 83, "Custom area of coaching": 76 },
+  { "Soft skills": 86, Compliance: 92, Disclosures: 81, Resolution: 84, Empathy: 88, "Product knowledge - Client defined": 82, "CRM usage": 85, "Custom area of coaching": 79 },
+  { "Soft skills": 83, Compliance: 88, Disclosures: 75, Resolution: 81, Empathy: 85, "Product knowledge - Client defined": 79, "CRM usage": 82, "Custom area of coaching": 75 },
+  { "Soft skills": 85, Compliance: 90, Disclosures: 79, Resolution: 83, Empathy: 87, "Product knowledge - Client defined": 81, "CRM usage": 84, "Custom area of coaching": 77 },
+  { "Soft skills": 84, Compliance: 89, Disclosures: 78, Resolution: 82, Empathy: 86, "Product knowledge - Client defined": 80, "CRM usage": 83, "Custom area of coaching": 77 },
+  { "Soft skills": 84, Compliance: 87, Disclosures: 76, Resolution: 80, Empathy: 85, "Product knowledge - Client defined": 80, "CRM usage": 83, "Custom area of coaching": 76 },
+  { "Soft skills": 84, Compliance: 86, Disclosures: 84, Resolution: 84, Empathy: 87, "Product knowledge - Client defined": 80, "CRM usage": 83, "Custom area of coaching": 83 },
+];
+const PATEL_MONITORING_DATES = ["2026-09-07", "2026-09-07", "2026-09-08", "2026-09-08", "2026-09-08", "2026-09-09", "2026-09-09", "2026-09-09", "2026-09-10", "2026-09-10", "2026-09-10"];
+const PATEL_MONITORING_QUEUES = [
+  ["UHC_Rx_Refill_Chat", "Commercial Pharmacy", "rx_refill_request"],
+  ["UHC_Refill_Status", "Commercial Pharmacy", "rx_refill_request"],
+  ["247client1_Web_Chat", "Retail", "balance_inquiry"],
+];
+
+function seedPatelInteractions() {
+  PATEL_MONITORING_SCORES.forEach((scores, index) => {
+    const [queue, lob, intent] = PATEL_MONITORING_QUEUES[index % PATEL_MONITORING_QUEUES.length];
+    const overall = Math.round(RUBRIC_AREAS.reduce((sum, area) => sum + scores[area], 0) / RUBRIC_AREAS.length);
+    const awaiting = index < 8;
+    INTERACTIONS.push({
+      id: `patel-mon-${String(index + 1).padStart(2, "0")}`,
+      short: `mon-${String(index + 1).padStart(2, "0")}`,
+      agent: "r.patel",
+      agentName: AGENT_NAME,
+      duration: `${2 + (index % 4)}m ${String(10 + index * 3).padStart(2, "0")}s`,
+      queue,
+      lob,
+      channel: "ude",
+      source: index % 2 ? "csv" : "api_pull",
+      intent,
+      sentiment: scores.Disclosures < 78 ? "neutral" : "positive",
+      escalated: false,
+      status: awaiting ? "QA Reviewed" : "Complete",
+      auditMode: "hybrid",
+      formVersion: "llm",
+      score: String(overall),
+      rubricScores: scores,
+      date: PATEL_MONITORING_DATES[index],
+      agentDecision: awaiting ? null : "accepted",
+    });
+  });
+}
+seedPatelInteractions();
+const AGENT_TRAINING_MODULES = [
+  { id: "tm1", name: "Disclosure script essentials", rubric: "Disclosures", assignedBy: "Supervisor", status: "Completed", helpRequested: false },
+  { id: "tm2", name: "Empathy during escalation", rubric: "Empathy", assignedBy: "LLM", status: "Completed", helpRequested: false },
+  { id: "tm3", name: "Closing the resolution loop", rubric: "Resolution", assignedBy: "Supervisor", status: "Assigned", helpRequested: false },
+  { id: "tm4", name: "Clear and confident communication", rubric: "Soft skills", assignedBy: "LLM", status: "Assigned", helpRequested: false },
+];
+const TEAM_TRAINING_MODULES = [
+  { agent: "M. Chen", name: "Empathy opener practice", rubric: "Soft skills", status: "Completed", helpRequested: false },
+  { agent: "A. Nguyen", name: "Payment close checklist", rubric: "Resolution", status: "Assigned", helpRequested: true },
+  { agent: "J. Brooks", name: "Verification refresher", rubric: "Compliance", status: "Completed", helpRequested: false },
+  { agent: "P. Ellis", name: "Client-defined product scenarios", rubric: "Product knowledge - Client defined", status: "Assigned", helpRequested: false },
+];
 let dataTab = "ingest";
 let selectedCloud = "aws-s3";
 let samplingTab = "jobs";
@@ -811,6 +818,30 @@ function filteredInteractions() {
   return INTERACTIONS.filter(matchesFilters);
 }
 
+let openTeamMsKey = null;
+
+function teamMsField(label, key, options) {
+  const selected = teamFilters[key] || [];
+  const chips = selected.length
+    ? selected.map((value) => `<span class="chip">${value} <button type="button" data-team-ms-remove="${key}|${value}">×</button></span>`).join("")
+    : `<span class="placeholder">All</span>`;
+  const opts = options
+    .map(
+      (option) => `
+      <label class="ms-option">
+        <input type="checkbox" data-team-ms-toggle="${key}|${option}" ${selected.includes(option) ? "checked" : ""} />
+        <span>${option}</span>
+      </label>`
+    )
+    .join("");
+  return `
+    <div class="field ms-wrap">
+      <label>${label}</label>
+      <button class="ms-trigger" type="button" data-team-ms-open="${key}">${chips}</button>
+      <div class="ms-dropdown" ${openTeamMsKey === key ? "" : "hidden"}>${opts}</div>
+    </div>`;
+}
+
 function msField(label, key, options) {
   const selected = ixFilters[key];
   const chips = selected.length
@@ -868,6 +899,52 @@ function renderOverview() {
   return renderAboutBody();
 }
 
+function displayScore(ix) {
+  if (!ix || ix.score === "—" || ix.score == null || ix.score === "") return "—";
+  return ix.rubricScores ? `${ix.score}%` : ix.score;
+}
+
+function rubricScoreChips(ix) {
+  if (!ix.rubricScores) return "";
+  return RUBRIC_AREAS.map((area) => `<div class="score-chip"><b>${ix.rubricScores[area]}%</b>${area}</div>`).join("");
+}
+
+function patelCoachingPlans() {
+  const current = AGENT_PERFORMANCE_WEEKS[AGENT_PERFORMANCE_WEEKS.length - 1];
+  const first = AGENT_PERFORMANCE_WEEKS[0];
+  return AGENT_TRAINING_MODULES.map((module) => {
+    const score = current.scores[module.rubric];
+    const severity = score < 80 ? "high" : score < 85 ? "med" : "low";
+    return {
+      id: module.id,
+      agent: AGENT_NAME,
+      team: "Team Pharmacy",
+      lob: "Commercial Pharmacy",
+      queue: "UHC_Rx_Refill_Chat",
+      level: "agent",
+      theme: module.name,
+      rubric: module.rubric,
+      audits: current.monitored,
+      monitoring: current.monitored,
+      fails: Math.round(((100 - score) / 100) * current.monitored),
+      severity,
+      defectRate: `${100 - score}%`,
+      assignedBy: module.assignedBy === "Supervisor" ? "human" : "llm",
+      moduleStatus: module.status,
+      opportunity: `${module.rubric} is ${score}% for ${current.week} across ${current.monitored} randomly monitored conversations, compared with ${first.scores[module.rubric]}% in ${first.week}.`,
+      actions: module.status === "Completed"
+        ? ["Module completed", "Scores update on the next monitoring week"]
+        : ["Complete the assigned training module", "Apply the behavior on the next monitored conversations"],
+      sampleAudits: AGENT_PERFORMANCE_WEEKS.map((week) => ({
+        id: week.week,
+        date: week.week,
+        score: `${week.scores[module.rubric]}%`,
+        defect: `${module.rubric} ${week.scores[module.rubric]}%`,
+      })),
+    };
+  });
+}
+
 function statusClass(status) {
   if (status === "Complete" || status === "QA Reviewed") return "ok";
   if (status === "Pending Dispute") return "bad";
@@ -896,6 +973,116 @@ function activeFormId(ix) {
   return interactionFormForJob(jobFormVersion);
 }
 
+const TRANSCRIPT_SCENARIOS = {
+  balance_inquiry: {
+    request: "I need to confirm my available balance before I make a payment.",
+    handoff: "I can help route your balance question. A specialist will join now.",
+    greeting: "Hi, I’m {agent}. I can check that for you. Before I access the account, please confirm your full name and the last four digits of your member number.",
+    verification: "It’s Jordan Lee, and the last four digits are 4912.",
+    action: "Thank you, Jordan. I know it is important to have the right figure before making a payment. Your available balance is $428.16, with no pending holds.",
+    confirmation: "Great, so $428.16 is available to use today?",
+    close: "That’s correct. The balance can change if a pending transaction arrives. Is there anything else I can clarify before we close the chat?",
+  },
+  password_reset: {
+    request: "I’m locked out and the password reset link is not working.",
+    handoff: "I’ll connect you with an account-access specialist.",
+    greeting: "Hi, I’m {agent}. I’m sorry you have been blocked from signing in. Before we reset access, please confirm your name and the last four digits of your member number.",
+    verification: "Sam Okonkwo, last four 3084.",
+    action: "Thanks, Sam. I verified the account and sent a new one-time reset link to the email ending in @example.com. It expires in 15 minutes.",
+    confirmation: "I received it and the new link opened.",
+    close: "Perfect. Please create a unique password and do not share the one-time link. You can sign in immediately after saving it. Is there anything else you need?",
+  },
+  rx_refill_request: {
+    request: "I need to refill my prescription and want to know when it will be ready.",
+    handoff: "I’ll bring in a refill specialist to review the request.",
+    greeting: "Hi, I’m {agent}. I’ll help with the refill. For privacy, please confirm your full name, date of birth, and the last four digits of your member number.",
+    verification: "Taylor Morgan, May 12, 1984, and 7721.",
+    action: "Thank you. I found the prescription and submitted the refill to your pharmacy. I understand you need it soon; the estimated ready time is tomorrow after 2 PM.",
+    confirmation: "Will the pharmacy message me when it is ready?",
+    close: "Yes. The pharmacy will send a pickup notification. Timing can change if the pharmacist needs prescriber approval, and they will contact you if that happens. Anything else I can help with?",
+  },
+  fee_waiver: {
+    request: "I was charged a late fee even though I paid as soon as I noticed the balance.",
+    handoff: "I’ll connect you with a billing specialist who can review the fee.",
+    greeting: "Hi, I’m {agent}. I’m sorry the fee was unexpected. Before I review billing details, please confirm your name and the last four digits of the account.",
+    verification: "Pat Ellis, account ending 6408.",
+    action: "Thank you, Pat. I reviewed the payment history and submitted a one-time $25 fee waiver. I understand why you wanted this checked.",
+    confirmation: "Does that mean the $25 comes off today?",
+    close: "The credit is approved and should appear within two business days. Future fees depend on payment timing under the account terms. Is there anything else I can review?",
+  },
+  "fraud-unauthorized-charges": {
+    request: "I see a charge I did not make on my account.",
+    handoff: "I’m connecting you with a fraud specialist. Please do not share a password or one-time code in chat.",
+    greeting: "Hi, I’m {agent}. I’m sorry you are dealing with an unfamiliar charge. To protect the account, please confirm your full name and the last four digits of your member number.",
+    verification: "Jordan Lee, and the last four digits are 4912.",
+    action: "Thank you, Jordan. I verified the account, restricted the card, and opened fraud case 88214 for the $74.20 charge. You will not be responsible while the review is active.",
+    confirmation: "Will I receive confirmation and a replacement card?",
+    close: "Yes. Confirmation will arrive by email today, and the replacement card should arrive in five to seven business days. Please review recent activity and contact us if you see another charge.",
+  },
+  address_update: {
+    request: "I moved and need to update the mailing address on my account.",
+    handoff: "I’ll connect you with an account-maintenance specialist.",
+    greeting: "Hi, I’m {agent}. I can update the address. For security, please confirm your full name and the last four digits of your member number.",
+    verification: "Morgan Chen, last four 2219.",
+    action: "Thank you, Morgan. I verified the account and updated the mailing address to the one you provided. I know receiving documents at the correct address is important.",
+    confirmation: "Will new statements go there immediately?",
+    close: "Yes, future statements will use the new address. A statement already in production may still go to the previous address. Is there anything else to update?",
+  },
+  payment_arrangement: {
+    request: "I cannot pay the full balance today and need to discuss a payment plan.",
+    handoff: "I’ll connect you with a payment-support specialist.",
+    greeting: "Hi, I’m {agent}. I understand this can be stressful, and I’ll review the available options. First, please confirm your name and the last four account digits.",
+    verification: "Alex Nguyen, account ending 8450.",
+    action: "Thank you, Alex. You qualify for two payments of $120, due September 15 and September 30. No additional arrangement fee applies.",
+    confirmation: "That works. What happens if a payment is late?",
+    close: "A missed installment may cancel the arrangement and standard fees could apply. I have scheduled both dates and sent written confirmation. Is there anything else you would like me to explain?",
+  },
+  product_inquiry: {
+    request: "Can you explain the difference between the standard and premium plans?",
+    handoff: "I’ll connect you with a product specialist.",
+    greeting: "Hi, I’m {agent}. I can compare those plans. Before viewing account-specific eligibility, please confirm your name and the last four digits of your member number.",
+    verification: "Taylor Morales, last four 9317.",
+    action: "Thank you. The standard plan covers core support, while premium adds priority support and expanded protection for $12 per month. Based on your account, both are available.",
+    confirmation: "Can I try premium and cancel later?",
+    close: "Yes. You may cancel before the next billing cycle, but charges already posted are not prorated. I can send the full terms before you decide. Anything else you want to compare?",
+  },
+};
+
+function transcriptTurns(ix) {
+  const scenario = TRANSCRIPT_SCENARIOS[ix.intent] || {
+    request: "I need help with an issue on my account.",
+    handoff: "I’ll connect you with a specialist who can review the request.",
+    greeting: "Hi, I’m {agent}. I’ll be glad to help. Before accessing the account, please confirm your name and the last four digits of your member number.",
+    verification: "Jordan Lee, last four 4912.",
+    action: "Thank you. I verified the account, reviewed the request, and completed the available next step. I understand why resolving this matters.",
+    confirmation: "Can you confirm what happens next?",
+    close: "The update is complete, and confirmation will arrive today. Standard account terms still apply. Is there anything else I can clarify?",
+  };
+  const withAgent = (text) => text.replace("{agent}", ix.agentName);
+  return [
+    { role: "bot", speaker: "Bot", time: "11:45 AM", text: "Welcome to 247client1 support. Briefly describe what you need help with today." },
+    { role: "visitor", speaker: "Visitor", time: "11:45 AM", text: scenario.request },
+    { role: "bot", speaker: "Bot", time: "11:46 AM", text: scenario.handoff },
+    { role: "agent", speaker: `${ix.agentName} · Agent`, time: "11:47 AM", text: withAgent(scenario.greeting) },
+    { role: "visitor", speaker: "Visitor", time: "11:48 AM", text: scenario.verification },
+    { role: "agent", speaker: `${ix.agentName} · Agent`, time: "11:49 AM", text: withAgent(scenario.action) },
+    { role: "visitor", speaker: "Visitor", time: "11:50 AM", text: scenario.confirmation },
+    { role: "agent", speaker: `${ix.agentName} · Agent`, time: "11:51 AM", text: withAgent(scenario.close) },
+  ];
+}
+
+function renderTranscript(ix) {
+  return transcriptTurns(ix)
+    .map(
+      (turn) => `
+        <div class="bubble ${turn.role}">
+          <div class="who">${turn.speaker} · ${turn.time}</div>
+          ${turn.text}
+        </div>`
+    )
+    .join("");
+}
+
 function renderInteractionsList() {
   const rowsData = filteredInteractions();
   const rows = rowsData
@@ -909,7 +1096,7 @@ function renderInteractionsList() {
       <td>${i.agentName}</td>
       <td>${i.intent}</td>
       <td><span class="status ${statusClass(i.status)}">${i.status}</span></td>
-      <td>${i.score}</td>
+      <td>${displayScore(i)}</td>
       <td>${i.duration}</td>
     </tr>`
     )
@@ -917,11 +1104,11 @@ function renderInteractionsList() {
 
   const empty = rowsData.length
     ? ""
-    : `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:1.25rem">No interactions match the selected filters.</td></tr>`;
+    : `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:1.25rem">No transaction reviews match the selected filters.</td></tr>`;
 
   return `
     <div class="ix-list-page">
-      <h1 class="page-title">Interactions</h1>
+      <h1 class="page-title">Transaction Review</h1>
       <p class="page-sub">Filter by audit status (Not Audited · LLM Audited · QA Direct · QA Reviewed · Pending Dispute · Complete). QA Direct is scored by a person with no LLM review.</p>
       ${tenantRow()}
       <div class="list-toolbar">
@@ -951,13 +1138,22 @@ function renderInteractionsList() {
           <tbody>${rows || empty}</tbody>
         </table>
       </div>
-      <p class="hint" style="margin-top:0.65rem;color:var(--muted);font-size:0.85rem">${rowsData.length} of ${INTERACTIONS.length} interactions · multi-select filters · click a row to open detail</p>
+      <p class="hint" style="margin-top:0.65rem;color:var(--muted);font-size:0.85rem">${rowsData.length} of ${INTERACTIONS.length} transaction reviews · multi-select filters · click a row to open detail</p>
     </div>`;
+}
+
+function sampleAverages(rows) {
+  const scored = rows.filter((i) => i.rubricScores);
+  const scores = {};
+  RUBRIC_AREAS.forEach((area) => {
+    scores[area] = scored.length ? Math.round(scored.reduce((sum, i) => sum + i.rubricScores[area], 0) / scored.length) : 0;
+  });
+  return { count: scored.length, scores, overall: scored.length ? weeklyOverall({ scores }) : 0 };
 }
 
 function renderAgentInteractionsList() {
   const rowsData = INTERACTIONS.filter((i) => i.agentName === AGENT_NAME);
-  const reviewed = rowsData.filter((i) => i.status !== "Not Audited").length;
+  const sample = sampleAverages(rowsData);
   const pending = rowsData.filter((i) => ["LLM Audited", "QA Direct", "QA Reviewed"].includes(i.status)).length;
   const disputes = rowsData.filter((i) => i.status === "Pending Dispute").length;
   const rows = rowsData
@@ -969,7 +1165,7 @@ function renderAgentInteractionsList() {
       <td>${i.queue}</td>
       <td>${i.intent}</td>
       <td><span class="status ${statusClass(i.status)}">${i.status}</span></td>
-      <td>${i.score}</td>
+      <td>${displayScore(i)}</td>
       <td>${i.duration}</td>
     </tr>`
     )
@@ -977,17 +1173,18 @@ function renderAgentInteractionsList() {
 
   return `
     <div class="ix-list-page agent-interactions">
-      <h1 class="page-title">My interactions <span class="future-badge">Future development · Post-MVP</span></h1>
+      <h1 class="page-title">Transaction Review <span class="future-badge">Future development · Post-MVP</span></h1>
       <p class="page-sub">Welcome, ${AGENT_NAME}. Review your conversations and respond to completed QA feedback.</p>
       ${futureCallout("Agent view is a future-development preview and is not included in the MVP.")}
       <div class="unavailable-preview">
         <div class="stat-row">
           <div class="stat"><div class="label">My conversations</div><div class="value">${rowsData.length}</div></div>
-          <div class="stat"><div class="label">Reviewed</div><div class="value">${reviewed}</div></div>
+          <div class="stat"><div class="label">Monitored this week</div><div class="value">${sample.count}</div></div>
+          <div class="stat"><div class="label">Overall score</div><div class="value">${sample.overall}%</div></div>
           <div class="stat"><div class="label">Awaiting my response</div><div class="value">${pending}</div></div>
           <div class="stat"><div class="label">Open disputes</div><div class="value">${disputes}</div></div>
         </div>
-        <div class="callout">This agent view includes every conversation assigned to you, including conversations that have not yet been audited.</div>
+        <div class="callout">This week’s random monitoring sample is ${sample.count} conversations. Overall ${sample.overall}% · ${RUBRIC_AREAS.map((area) => `${area} ${sample.scores[area]}%`).join(" · ")}.</div>
         <div class="ix-table-wrap">
           <table class="table">
             <thead>
@@ -999,6 +1196,26 @@ function renderAgentInteractionsList() {
         <p class="hint" style="margin-top:0.65rem;color:var(--muted);font-size:0.85rem">Select a conversation to view its transcript, audit, details, and history.</p>
       </div>
     </div>`;
+}
+
+function agentAuditEvidence(ix, questionIndex) {
+  const agentTurns = transcriptTurns(ix).filter((turn) => turn.role === "agent");
+  const greeting = agentTurns[0]?.text || "";
+  const action = agentTurns[1]?.text || "";
+  const close = agentTurns[2]?.text || "";
+  const evidence = [
+    `${ix.agentName} greeted the visitor and completed the required verification before accessing account details: “${greeting}”`,
+    `${ix.agentName} used a proportionate empathy statement and did not repeat apologies unnecessarily.`,
+    `${ix.agentName} acknowledged the visitor’s concern and paired empathy with a concrete action: “${action}”`,
+    `${ix.agentName} explained the outcome, set expectations, and offered further assistance: “${close}”`,
+    `${ix.agentName} maintained a calm, clear tone through verification, action, and resolution.`,
+  ];
+  return evidence[questionIndex] || evidence[3];
+}
+
+function interactionSummary(ix) {
+  const agentTurns = transcriptTurns(ix).filter((turn) => turn.role === "agent");
+  return `The bot collected the intent and handed the conversation to ${ix.agentName}. The agent verified the visitor, responded with empathy, completed the requested action, explained relevant conditions, and confirmed the next step. Closing evidence: “${agentTurns[2]?.text || ""}”`;
 }
 
 function renderAgentAudit(ix) {
@@ -1018,10 +1235,10 @@ function renderAgentAudit(ix) {
 
   const questionCards = questions
     .map(
-      (q) => `
+      (q, index) => `
       <div class="q-card">
         <div class="q-title">${q.q}</div>
-        <div class="ai-note">${(q.ai || "Reviewed by QA.").replace(/^AI:\s*/, "")}</div>
+        <div class="ai-note">${agentAuditEvidence(ix, index)}</div>
         <div class="choice-row">
           <button class="choice ${q.choice === "Yes" ? "selected" : ""}" type="button" disabled>Yes (${q.points})</button>
           <button class="choice ${q.choice !== "Yes" ? "selected" : ""}" type="button" disabled>No${q.choice !== "Yes" ? " ✓" : ""}</button>
@@ -1047,9 +1264,11 @@ function renderAgentAudit(ix) {
       <h3>My QA feedback</h3>
       <p class="hint" style="margin:0 0 0.55rem">Status: <strong>${ix.status}</strong> · <span class="chip">${formName(formId)}</span></p>
       <div class="score-summary">
-        <div class="score-chip"><b>${ix.score}</b>Overall</div>
-        <div class="score-chip"><b>20/20</b>Soft skills</div>
-        <div class="score-chip"><b>Pass</b>Compliance</div>
+        ${ix.rubricScores
+          ? `<div class="score-chip"><b>${displayScore(ix)}</b>Overall</div>${rubricScoreChips(ix)}`
+          : `<div class="score-chip"><b>${ix.score}</b>Overall</div>
+             <div class="score-chip"><b>20/20</b>Soft skills</div>
+             <div class="score-chip"><b>Pass</b>Compliance</div>`}
       </div>
       <div class="section-block">
         <div class="section-head"><span>${sectionTitleForForm(formId)}</span><span>Read only</span></div>
@@ -1076,12 +1295,13 @@ function renderAuditForm(ix) {
   const showAck = isComplete;
   const showScores = !isNotAudited;
 
-  const questionCards = questions.map((q) => {
+  const questionCards = questions.map((q, index) => {
     const selected = isNotAudited ? "" : q.choice || "No";
-    const note = showAi && q.ai
-      ? `<div class="ai-note">${q.ai}</div>`
+    const evidence = agentAuditEvidence(ix, index);
+    const note = showAi
+      ? `<div class="ai-note">AI: ${evidence}</div>`
       : `<div class="ai-note" style="color:var(--muted)">${isQaDirect ? "Human rationale — no LLM review on this conversation" : "No AI rationale — manual scoring"}</div>`;
-    const rationale = isNotAudited ? "" : (q.ai || "Scored directly by QA.").replace(/^AI:\s*/, "");
+    const rationale = isNotAudited ? "" : evidence;
     return `
     <div class="q-card">
       <span class="priority">${partial ? "partial" : "high"}</span>
@@ -1125,7 +1345,7 @@ function renderAuditForm(ix) {
         showAi
           ? `<div class="genai-box">
         <strong>GenAI summary</strong>
-        Member reported an unauthorized charge. Bot verified identity, apologized, and escalated to fraud review with confirmation of next steps. Soft-skills section scored 20/20; no disclosure defects on this interaction.
+        ${interactionSummary(ix)} ${ix.rubricScores ? `This monitored conversation scored ${displayScore(ix)} overall, with Disclosures at ${ix.rubricScores.Disclosures}%.` : "The scoring evidence comes from the human-agent turns, not the bot handoff."}
       </div>`
           : isQaDirect
             ? `<div class="ack-box">
@@ -1140,10 +1360,12 @@ function renderAuditForm(ix) {
       }
 
       <div class="score-summary">
-        <div class="score-chip"><b>${showScores && ix.score !== "—" ? ix.score : "—"}</b>Overall</div>
-        <div class="score-chip"><b>${sectionScore}</b>${partial ? "Items" : "Soft skills"}</div>
-        <div class="score-chip"><b>${showScores ? "Pass" : "—"}</b>Compliance</div>
-        <div class="score-chip"><b>${formName(formId)}</b>Form</div>
+        ${ix.rubricScores && showScores
+          ? `<div class="score-chip"><b>${displayScore(ix)}</b>Overall</div>${rubricScoreChips(ix)}`
+          : `<div class="score-chip"><b>${showScores && ix.score !== "—" ? ix.score : "—"}</b>Overall</div>
+             <div class="score-chip"><b>${sectionScore}</b>${partial ? "Items" : "Soft skills"}</div>
+             <div class="score-chip"><b>${showScores ? "Pass" : "—"}</b>Compliance</div>
+             <div class="score-chip"><b>${formName(formId)}</b>Form</div>`}
       </div>
 
       <div class="audit-meta">
@@ -1280,7 +1502,7 @@ function renderInteractionDetail(ix) {
       ${agentPreview ? `<h1 class="page-title">Interaction <span class="future-badge">Future development · Post-MVP</span></h1>${futureCallout("Agent view is a future-development preview and is not included in the MVP.")}` : ""}
       <div class="${agentPreview ? "unavailable-preview" : ""}">
       <div class="ix-detail-toolbar">
-        <button class="btn" type="button" data-ix-back>← Back to list</button>
+        <button class="btn" type="button" data-ix-back>← Back to Transaction Review</button>
         <div class="ix-trans-meta">${ix.short} · ${ix.status} · ${ix.queue} · ${ix.agentName} · ${ix.duration}</div>
       </div>
       <div class="ix-layout">
@@ -1292,13 +1514,7 @@ function renderInteractionDetail(ix) {
             </div>
           </div>
           <div class="search-row"><input placeholder="Search transcript..." /></div>
-          <div class="transcript-body">
-            <div class="bubble bot"><div class="who">Bot · 11:45 AM</div>Welcome to 247client1 support. I can help with unauthorized charges.</div>
-            <div class="bubble visitor"><div class="who">Visitor · 11:45 AM</div>I see a charge I didn't make on my account.</div>
-            <div class="bubble bot"><div class="who">Bot · 11:46 AM</div>I'm sorry about that. Let's verify your identity, then I'll connect you to a specialist.</div>
-            <div class="bubble visitor"><div class="who">Visitor · 11:47 AM</div>OK — last four of member number is 4912.</div>
-            <div class="bubble bot"><div class="who">Bot · 11:48 AM</div>Verified. Escalating to fraud review now. You'll get a confirmation shortly.</div>
-          </div>
+          <div class="transcript-body">${renderTranscript(ix)}</div>
         </section>
 
         <section class="ix-side">
@@ -1351,7 +1567,7 @@ function renderDataImport() {
     </div>
     <div class="card" style="margin-top:0.85rem">
       <h3 style="margin:0 0 0.45rem">Cloud bucket ingest</h3>
-      <p class="hint" style="margin:0 0 0.65rem">Ingest from a connected cloud. Manage connections under the Cloud connections tab.</p>
+      <p class="hint" style="margin:0 0 0.65rem">Ingest from a connected cloud. Manage connections under Settings → Cloud connections.</p>
       <div class="grid-filters">
         <div class="field"><label>Cloud</label>
           <select>
@@ -1363,7 +1579,7 @@ function renderDataImport() {
         <div class="field"><label>Path prefix</label><input value="inbound/qra/" /></div>
         <div class="field"><label>Pattern</label><input value="*.csv" /></div>
       </div>
-      <div class="footer-actions"><span class="hint">Uses Cloud connections credentials</span><button class="btn primary" type="button">Run cloud ingest</button></div>
+      <div class="footer-actions"><span class="hint">Uses credentials from Settings → Cloud connections</span><button class="btn primary" type="button">Run cloud ingest</button></div>
     </div>
     <div class="card" style="margin-top:0.85rem">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap">
@@ -1424,7 +1640,7 @@ function renderDataImport() {
     </div>`;
 
   const exportTab = `
-    <p class="hint" style="margin:0 0 0.75rem">Export completed AutoQRA as QRA-Output CSV, or push results via SFTP / cloud (see SFTP Push and Cloud connections).</p>
+    <p class="hint" style="margin:0 0 0.75rem">Export completed AutoQRA as QRA-Output CSV. SFTP push and cloud destinations are configured under Settings.</p>
     <div class="grid-2">
       <div class="card" style="margin:0">
         <h3>Export AutoQRA (download)</h3>
@@ -1463,7 +1679,27 @@ function renderDataImport() {
       </table>
     </div>`;
 
-  const sftpPush = `
+  const body =
+    dataTab === "export"
+      ? exportTab
+      : dataTab === "jobs"
+        ? renderJobsPanel()
+        : ingest;
+
+  return `
+    <h1 class="page-title">Import and export</h1>
+    <p class="page-sub">CSV and cloud ingest, AutoQRA export, scoring jobs, and a post-MVP preview for SFTP pull.</p>
+    ${tenantRow()}
+    <div class="tabs">
+      <button class="tab ${dataTab === "ingest" ? "active" : ""}" type="button" data-data-tab="ingest">Ingest <span class="badge">4</span></button>
+      <button class="tab ${dataTab === "export" ? "active" : ""}" type="button" data-data-tab="export">Export</button>
+      <button class="tab ${dataTab === "jobs" ? "active" : ""}" type="button" data-data-tab="jobs">Jobs</button>
+    </div>
+    ${body}`;
+}
+
+function renderSftpPush() {
+  return `
     ${futureCallout("SFTP Push is a future-development preview and is not included in the MVP.")}
     <p class="hint" style="margin:0 0 0.75rem">Post-MVP: push AutoQRA export files to a remote SFTP server after scoring completes.</p>
     <div class="grid-2">
@@ -1537,7 +1773,9 @@ function renderDataImport() {
         </tbody>
       </table>
     </div>`;
+}
 
+function renderCloudConnections() {
   const cloud = CLOUD_CONNECTIONS.find((c) => c.id === selectedCloud) || CLOUD_CONNECTIONS[0];
   const cloudCards = CLOUD_CONNECTIONS.map(
     (c) => `
@@ -1587,7 +1825,7 @@ function renderDataImport() {
           <select><option>SSE (provider managed)</option><option>Customer managed key (CMK)</option><option>None</option></select>
         </div>
       </div>
-      <p class="hint" style="margin:0.75rem 0 0">Wireframe only — credentials are not stored. Use Cloud connections here, then pick the destination under Ingest or SFTP Push / Export jobs.</p>
+      <p class="hint" style="margin:0.75rem 0 0">Wireframe only — credentials are not stored. Use Cloud connections here, then pick the destination under Import and export.</p>
     </div>
     <div class="card" style="margin-top:0.85rem">
       <h3 style="margin:0 0 0.45rem">Add another cloud</h3>
@@ -1598,27 +1836,7 @@ function renderDataImport() {
         <button class="btn" type="button">+ Other (S3-compatible)</button>
       </div>
     </div>`;
-
-  const body =
-    dataTab === "export"
-      ? exportTab
-      : dataTab === "sftp-push"
-        ? sftpPush
-        : dataTab === "clouds"
-          ? cloudsTab
-          : ingest;
-
-  return `
-    <h1 class="page-title">Import and export</h1>
-    <p class="page-sub">CSV and cloud ingest, AutoQRA export, and post-MVP previews for SFTP pull / push.</p>
-    ${tenantRow()}
-    <div class="tabs">
-      <button class="tab ${dataTab === "ingest" ? "active" : ""}" type="button" data-data-tab="ingest">Ingest <span class="badge">4</span></button>
-      <button class="tab ${dataTab === "export" ? "active" : ""}" type="button" data-data-tab="export">Export</button>
-      <button class="tab ${dataTab === "sftp-push" ? "active" : ""}" type="button" data-data-tab="sftp-push">SFTP Push <span class="future-badge">Future</span></button>
-      <button class="tab ${dataTab === "clouds" ? "active" : ""}" type="button" data-data-tab="clouds">Cloud connections</button>
-    </div>
-    ${body}`;
+  return cloudsTab;
 }
 
 function renderDataImportTitle() {
@@ -1696,7 +1914,7 @@ function jobDateScope(job) {
   return job.openEnded || !job.to ? `${job.from} → ongoing` : `${job.from} → ${job.to}`;
 }
 
-function renderSampling() {
+function renderJobsPanel() {
   const rows = SCORING_JOBS.map(
     (job) => `
     <tr>
@@ -1796,9 +2014,6 @@ function renderSampling() {
     </div>`;
 
   return `
-    <h1 class="page-title">Jobs</h1>
-    <p class="page-sub">Create and monitor AutoQRA scoring jobs. Select interactions, run QA at scale, then review results.</p>
-    ${tenantRow()}
     ${failedBar()}
     <div class="tabs">
       <button class="tab ${samplingTab === "jobs" ? "active" : ""}" type="button" data-samp-tab="jobs">Jobs &amp; results</button>
@@ -1833,11 +2048,15 @@ function coachingPlanHtml(c) {
       <dt>Level</dt><dd>${c.level}</dd>
     </dl>
     <p style="font-size:0.9rem;line-height:1.45;margin:0 0 0.85rem">${c.opportunity}</p>
-    <h3 style="margin:0 0 0.45rem;font-size:0.95rem">Example audits leading to this plan</h3>
+    ${
+      c.level === "agent"
+        ? ""
+        : `<h3 style="margin:0 0 0.45rem;font-size:0.95rem">Example audits leading to this plan</h3>
     <table class="table">
       <thead><tr><th>Audit</th><th>Date</th><th>Score</th><th>Defect</th><th></th></tr></thead>
       <tbody>${audits || `<tr><td colspan="5" style="color:var(--muted)">No sample audits</td></tr>`}</tbody>
-    </table>
+    </table>`
+    }
     <div class="btn-row" style="margin-top:0.85rem">
       <button class="btn primary" type="button">Open coaching plan</button>
       ${
@@ -1850,7 +2069,7 @@ function coachingPlanHtml(c) {
 }
 
 function openCoachPane(id) {
-  const c = COACHING.find((x) => x.id === id);
+  const c = COACHING.find((x) => x.id === id) || patelCoachingPlans().find((x) => x.id === id);
   if (!c || !coachPane) return;
   selectedCoach = id;
   coachPaneTitle.textContent = `Coaching plan · ${c.agent}`;
@@ -1877,7 +2096,6 @@ function filteredTeams() {
     if (teamFilters.teams.length && !teamFilters.teams.includes(c.team)) return false;
     if (teamFilters.lobs.length && !teamFilters.lobs.includes(c.lob)) return false;
     if (teamFilters.queues.length && !teamFilters.queues.includes(c.queue)) return false;
-    if (teamFilters.themes.length && !teamFilters.themes.includes(c.theme)) return false;
     if (teamFilters.severity.length && !teamFilters.severity.includes(c.severity)) return false;
     return true;
   });
@@ -1910,25 +2128,12 @@ function renderCoachingOverall() {
       <div class="stat-row" style="margin:0.65rem 0">
         <div class="stat"><div class="label">Audited (period)</div><div class="value">${t.audited}</div></div>
         <div class="stat"><div class="label">Defect rate</div><div class="value">${t.defectRate}</div></div>
-        <div class="stat"><div class="label">Sample audits</div><div class="value">${t.sampleAudits.length}</div></div>
       </div>
       <p style="font-size:0.9rem;line-height:1.45;margin:0 0 0.55rem">${t.coaching}</p>
       <h4 style="margin:0 0 0.35rem;font-size:0.85rem">Recommended actions (all agents)</h4>
-      <ul class="opt-list" style="margin-bottom:0.65rem">
+      <ul class="opt-list" style="margin-bottom:0">
         ${t.actions.map((a) => `<li>${a}</li>`).join("")}
       </ul>
-      <h4 style="margin:0 0 0.35rem;font-size:0.85rem">Audited conversations illustrating this theme</h4>
-      <table class="table">
-        <thead><tr><th>Audit</th><th>Queue</th><th>Date</th><th>Score</th><th>Defect</th></tr></thead>
-        <tbody>
-          ${t.sampleAudits
-            .map(
-              (a) =>
-                `<tr><td style="font-family:var(--mono);font-size:0.75rem">${a.id}</td><td>${a.queue}</td><td>${a.date}</td><td>${a.score}</td><td>${a.defect}</td></tr>`
-            )
-            .join("")}
-        </tbody>
-      </table>
     </div>`
     )
     .join("");
@@ -1965,7 +2170,6 @@ function renderCoachingTeam() {
   const teamNames = [...new Set(COACHING.filter((c) => c.level === "team").map((c) => c.team))];
   const lobs = [...new Set(COACHING.filter((c) => c.level === "team").map((c) => c.lob))];
   const queues = [...new Set(COACHING.filter((c) => c.level === "team").map((c) => c.queue))];
-  const themes = [...new Set(COACHING.filter((c) => c.level === "team").map((c) => c.theme))];
   const sevs = [...new Set(COACHING.filter((c) => c.level === "team").map((c) => c.severity))];
 
   const rows = teams
@@ -1980,7 +2184,6 @@ function renderCoachingTeam() {
       <td>${c.monitoring ?? c.audits}</td>
       <td>${c.fails}</td>
       <td style="max-width:220px;font-size:0.82rem">${c.opportunity}</td>
-      <td><button class="btn primary" type="button" data-view-coach="${c.id}">View coaching</button></td>
     </tr>`
     )
     .join("");
@@ -1988,35 +2191,14 @@ function renderCoachingTeam() {
   return `
     <div class="card">
       <h3>Team / Queue coaching</h3>
-      <p class="hint">Coaching specific to a team or queue — not org-wide. Filter by team, LOB, or queue, then open the coaching pane.</p>
-      <div class="filters-inline" style="margin-bottom:0.75rem">
-        <div class="field"><label>Team</label>
-          <select data-team-filter="teams" multiple size="3" style="min-height:64px">
-            ${teamNames.map((s) => `<option value="${s}" ${teamFilters.teams.includes(s) ? "selected" : ""}>${s}</option>`).join("")}
-          </select>
-        </div>
-        <div class="field"><label>Queue</label>
-          <select data-team-filter="queues" multiple size="3" style="min-height:64px">
-            ${queues.map((s) => `<option value="${s}" ${teamFilters.queues.includes(s) ? "selected" : ""}>${s}</option>`).join("")}
-          </select>
-        </div>
-        <div class="field"><label>LOB</label>
-          <select data-team-filter="lobs" multiple size="3" style="min-height:64px">
-            ${lobs.map((s) => `<option value="${s}" ${teamFilters.lobs.includes(s) ? "selected" : ""}>${s}</option>`).join("")}
-          </select>
-        </div>
-        <div class="field"><label>Theme</label>
-          <select data-team-filter="themes" multiple size="3" style="min-height:64px">
-            ${themes.map((s) => `<option value="${s}" ${teamFilters.themes.includes(s) ? "selected" : ""}>${s}</option>`).join("")}
-          </select>
-        </div>
-        <div class="field"><label>Severity</label>
-          <select data-team-filter="severity" multiple size="3" style="min-height:64px">
-            ${sevs.map((s) => `<option value="${s}" ${teamFilters.severity.includes(s) ? "selected" : ""}>${s}</option>`).join("")}
-          </select>
-        </div>
+      <p class="hint">Coaching specific to a team or queue — not org-wide. Filter by team, queue, LOB, or severity.</p>
+      <div class="team-filters">
+        ${teamMsField("Team", "teams", teamNames)}
+        ${teamMsField("Queue", "queues", queues)}
+        ${teamMsField("LOB", "lobs", lobs)}
+        ${teamMsField("Severity", "severity", sevs)}
         <div class="filter-actions">
-          <button class="btn primary" type="button" data-team-apply>Apply filters</button>
+          <button class="btn primary" type="button" data-team-apply>Apply</button>
           <button class="btn" type="button" data-team-clear>Clear</button>
         </div>
       </div>
@@ -2024,122 +2206,33 @@ function renderCoachingTeam() {
       <div class="ix-table-wrap" style="border:none">
         <table class="table">
           <thead>
-            <tr><th>Priority</th><th>Team</th><th>LOB</th><th>Queue</th><th>Theme</th><th>Monitoring</th><th>Fails</th><th>Opportunity</th><th></th></tr>
+            <tr><th>Priority</th><th>Team</th><th>LOB</th><th>Queue</th><th>Theme</th><th>Monitoring</th><th>Fails</th><th>Opportunity</th></tr>
           </thead>
-          <tbody>${rows || `<tr><td colspan="9" style="text-align:center;color:var(--muted)">No teams / queues match filters.</td></tr>`}</tbody>
+          <tbody>${rows || `<tr><td colspan="8" style="text-align:center;color:var(--muted)">No teams / queues match filters.</td></tr>`}</tbody>
         </table>
       </div>
     </div>`;
 }
 
 function renderCoachingAgent() {
-  const agents = [...new Set(COACHING.filter((c) => c.level === "agent").map((c) => c.agent))].sort();
+  const agents = [...new Set([...SECTION_AGENTS.map((agent) => agent.agent), AGENT_NAME])].filter((name) => name !== "QA Bot Handoff").sort();
   if (currentRole === "agent") selectedAgentView = AGENT_NAME;
-  if (!agents.includes(selectedAgentView)) selectedAgentView = agents[0] || "";
-  const plans = COACHING.filter((c) => c.level === "agent" && c.agent === selectedAgentView);
-  const chats = INTERACTIONS.filter((i) => i.agentName === selectedAgentView);
-  const high = plans.filter((c) => c.severity === "high").length;
-
-  const cards = plans
-    .map((c) => {
-      const source = c.assignedBy === "human" ? "Human assigned" : "LLM assigned";
-      return `
-    <div class="card" style="margin:0">
-      <div style="display:flex;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;align-items:flex-start">
-        <div>
-          <h3 style="margin:0">${c.theme}</h3>
-          <p class="hint" style="margin:0.3rem 0 0">${source} · ${c.agent} · Period ${agentPeriod}</p>
-        </div>
-        <span class="severity ${c.severity}">${c.severity.toUpperCase()}</span>
-      </div>
-      <div class="stat-row" style="margin:0.65rem 0">
-        <div class="stat"><div class="label">Monitoring</div><div class="value">${c.monitoring ?? c.audits}</div></div>
-        <div class="stat"><div class="label">Defect rate</div><div class="value">${c.defectRate || "—"}</div></div>
-        <div class="stat"><div class="label">Sample audits</div><div class="value">${(c.sampleAudits || []).length}</div></div>
-      </div>
-      <p style="font-size:0.9rem;line-height:1.45;margin:0 0 0.55rem">${c.opportunity}</p>
-      <p style="margin:0 0 0.55rem"><span class="chip">${source}</span></p>
-      <h4 style="margin:0 0 0.35rem;font-size:0.85rem">Recommended actions</h4>
-      <ul class="opt-list" style="margin-bottom:0.65rem">
-        ${(c.actions || []).map((a) => `<li>${a}</li>`).join("")}
-      </ul>
-      <h4 style="margin:0 0 0.35rem;font-size:0.85rem">Audited conversations illustrating this theme</h4>
-      <table class="table">
-        <thead><tr><th>Audit</th><th>Date</th><th>Score</th><th>Defect</th></tr></thead>
-        <tbody>
-          ${(c.sampleAudits || [])
-            .map(
-              (a) =>
-                `<tr><td style="font-family:var(--mono);font-size:0.75rem">${a.id}</td><td>${a.date}</td><td>${a.score}</td><td>${a.defect}</td></tr>`
-            )
-            .join("")}
-        </tbody>
-      </table>
-      <div class="btn-row" style="margin-top:0.65rem">
-        <button class="btn primary" type="button" data-view-coach="${c.id}">Open coaching plan</button>
-      </div>
-    </div>`;
-    })
-    .join("");
-
-  const chatRows = chats
-    .map(
-      (i) => `
-      <tr class="clickable" data-open-ix="${i.id}">
-        <td style="font-family:var(--mono);font-size:0.75rem">${i.short}</td>
-        <td>${i.date}</td>
-        <td>${i.queue}</td>
-        <td><span class="status ${statusClass(i.status)}">${i.status}</span></td>
-        <td>${i.score}</td>
-      </tr>`
-    )
-    .join("");
+  else if (!agents.includes(selectedAgentView)) selectedAgentView = AGENT_NAME;
 
   return `
-    <div class="card" style="margin-bottom:0.85rem">
-      <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-end">
-        <div>
-          <h3 style="margin:0">Agent coaching · ${selectedAgentView}</h3>
-          <p class="hint" style="margin:0.3rem 0 0">Self-serve view. This agent sees only plans assigned to them, by the LLM or by a person, plus their own conversations.</p>
-        </div>
-        <div style="display:flex;gap:0.55rem;flex-wrap:wrap">
-          ${currentRole === "agent" ? "" : `<div class="field" style="margin:0;min-width:180px">
-            <label>Agent</label>
-            <select data-agent-view>
-              ${agents.map((name) => `<option ${name === selectedAgentView ? "selected" : ""}>${name}</option>`).join("")}
-            </select>
-          </div>`}
-          <div class="field" style="margin:0;min-width:160px">
-            <label>Period</label>
-            <select data-agent-period>
-              <option ${agentPeriod === "MTD" ? "selected" : ""}>MTD</option>
-              <option ${agentPeriod === "Last 7 days" ? "selected" : ""}>Last 7 days</option>
-              <option ${agentPeriod === "Last 30 days" ? "selected" : ""}>Last 30 days</option>
-              <option ${agentPeriod === "Quarter" ? "selected" : ""}>Quarter</option>
-            </select>
-          </div>
-        </div>
+    <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:0.85rem">
+      <div>
+        <h3 style="margin:0">Agent Coaching · ${selectedAgentView}</h3>
+        <p class="hint" style="margin:0.3rem 0 0">Overall score, rubric performance, four-week trend, and training modules.</p>
       </div>
-      <div class="stat-row" style="margin:0.75rem 0 0">
-        <div class="stat"><div class="label">Assigned plans</div><div class="value">${plans.length}</div></div>
-        <div class="stat"><div class="label">High priority</div><div class="value">${high}</div></div>
-        <div class="stat"><div class="label">Conversations</div><div class="value">${chats.length}</div></div>
-        <div class="stat"><div class="label">Audience</div><div class="value" style="font-size:0.95rem">${selectedAgentView}</div></div>
-      </div>
+      ${currentRole === "agent" ? "" : `<div class="field" style="margin:0;min-width:180px">
+        <label>Agent</label>
+        <select data-agent-view>
+          ${agents.map((name) => `<option ${name === selectedAgentView ? "selected" : ""}>${name}</option>`).join("")}
+        </select>
+      </div>`}
     </div>
-    ${
-      cards
-        ? `<div class="grid-2" style="gap:0.85rem">${cards}</div>`
-        : `<div class="card"><p class="hint" style="margin:0">No coaching plan is assigned to ${selectedAgentView}.</p></div>`
-    }
-    <div class="card" style="margin-top:0.85rem">
-      <h3>My conversations</h3>
-      <p class="hint">Conversations for ${selectedAgentView}. Open a row to review it in Interactions.</p>
-      <table class="table">
-        <thead><tr><th>Conversation</th><th>Date</th><th>Queue</th><th>Status</th><th>Score</th></tr></thead>
-        <tbody>${chatRows || `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:1rem">No conversations for this agent in the current sample.</td></tr>`}</tbody>
-      </table>
-    </div>`;
+    ${agentCoachingBody(selectedAgentView)}`;
 }
 
 function renderCoaching() {
@@ -2169,12 +2262,143 @@ function renderCoaching() {
     <div class="tabs">
       <button class="tab ${coachingTab === "overall" ? "active" : ""}" type="button" data-coach-tab="overall">Overall Coaching</button>
       <button class="tab ${coachingTab === "team" ? "active" : ""}" type="button" data-coach-tab="team">Team</button>
-      <button class="tab ${coachingTab === "agent" ? "active" : ""}" type="button" data-coach-tab="agent">Agent coaching</button>
+      <button class="tab ${coachingTab === "agent" ? "active" : ""}" type="button" data-coach-tab="agent">Agent Coaching</button>
     </div>
     <div class="unavailable-preview">${body}</div>`;
 }
 
-const REPORT_SECTIONS = ["Soft skills", "Compliance", "Disclosures", "Resolution"];
+function weeklyOverall(week) {
+  const values = RUBRIC_AREAS.map((area) => week.scores[area]);
+  return Math.round(values.reduce((sum, score) => sum + score, 0) / values.length);
+}
+
+function performanceWeeksFor(agentName) {
+  if (agentName === AGENT_NAME) return AGENT_PERFORMANCE_WEEKS;
+  const row = SECTION_AGENTS.find((agent) => agent.agent === agentName);
+  if (!row) return [];
+  const offsets = [12, 8, 4, 0];
+  return AGENT_PERFORMANCE_WEEKS.map((week, index) => ({
+    week: week.week,
+    monitored: 11,
+    scores: Object.fromEntries(
+      RUBRIC_AREAS.map((area) => [area, Math.max(50, Math.round((row.sections[area] ?? 80) - offsets[index]))])
+    ),
+  }));
+}
+
+function trainingModulesFor(agentName) {
+  if (agentName === AGENT_NAME) return AGENT_TRAINING_MODULES;
+  return TEAM_TRAINING_MODULES.filter((module) => module.agent === agentName);
+}
+
+function agentCoachingBody(agentName) {
+  const weeks = performanceWeeksFor(agentName);
+  const modules = trainingModulesFor(agentName);
+  const currentWeek = weeks[weeks.length - 1];
+  const firstWeek = weeks[0];
+  if (!currentWeek) {
+    return `<div class="card"><p class="hint" style="margin:0">No weekly monitoring sample is available for ${agentName}.</p></div>`;
+  }
+  const overall = weeklyOverall(currentWeek);
+  const completed = modules.filter((module) => module.status === "Completed").length;
+  const improvementAreas = RUBRIC_AREAS.filter((area) => currentWeek.scores[area] < 80);
+  const weeklyRows = weeks.map(
+    (week, index) => `
+      <tr>
+        <td><strong>${week.week}</strong>${index === weeks.length - 1 ? ' <span class="chip">Current</span>' : ""}</td>
+        <td>${week.monitored}</td>
+        <td><strong>${weeklyOverall(week)}%</strong></td>
+        ${RUBRIC_AREAS.map((area) => `<td>${week.scores[area]}%</td>`).join("")}
+      </tr>`
+  ).join("");
+  const rubricCards = RUBRIC_AREAS.map((area) => {
+    const score = currentWeek.scores[area];
+    const change = score - firstWeek.scores[area];
+    return `
+      <div class="stat">
+        <div class="label">${area}</div>
+        <div class="value">${score}%</div>
+        <div class="hint">${change >= 0 ? "+" : ""}${change} pts over four weeks${score < 80 ? " · Improvement area" : ""}</div>
+      </div>`;
+  }).join("");
+  const moduleRows = modules.map(
+    (module) => `
+      <tr>
+        <td><strong>${module.name}</strong></td>
+        <td>${module.rubric}</td>
+        <td><span class="status ${module.status === "Completed" ? "ok" : "warn"}">${module.status}</span></td>
+        <td>${
+          module.helpRequested
+            ? '<span class="status warn">Help requested</span>'
+            : module.id
+              ? `<button class="btn" type="button" data-request-help="${module.id}">Request help from supervisor</button>`
+              : "—"
+        }</td>
+      </tr>`
+  ).join("");
+
+  return `
+      <div class="callout">Scores use a random sample of monitored conversations, not every conversation. Target overall score: ${AGENT_PERFORMANCE_TARGET}%.</div>
+      <div class="stat-row">
+        <div class="stat"><div class="label">Overall score</div><div class="value">${overall}%</div><div class="hint">${overall < AGENT_PERFORMANCE_TARGET ? `${AGENT_PERFORMANCE_TARGET - overall} ${AGENT_PERFORMANCE_TARGET - overall === 1 ? "point" : "points"} below target` : "On target"}</div></div>
+        <div class="stat"><div class="label">Monitored this week</div><div class="value">${currentWeek.monitored}</div><div class="hint">Randomly selected</div></div>
+        <div class="stat"><div class="label">Modules assigned</div><div class="value">${modules.length}</div><div class="hint">All training modules</div></div>
+        <div class="stat"><div class="label">Modules completed</div><div class="value">${completed}</div><div class="hint">${completed} of ${modules.length}</div></div>
+      </div>
+
+      <div class="card" style="margin-top:0.85rem">
+        <h3>Current rubric performance</h3>
+        <p class="hint">Percentages for ${currentWeek.week}. Areas below 80% are highlighted as improvement opportunities.</p>
+        <div class="stat-row">${rubricCards}</div>
+        <div class="callout" style="margin-bottom:0">
+          <strong>Improvement focus:</strong>
+          ${improvementAreas.length ? improvementAreas.join(", ") : "No rubric area is below 80% this week."}
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:0.85rem">
+        <h3>Four-week score trend</h3>
+        <p class="hint">Overall is calculated from all rubric-area percentages for each week. Each week uses the same monitored sample size.</p>
+        <div class="ix-table-wrap" style="border:none">
+          <table class="table">
+            <thead><tr><th>Week</th><th>Monitored</th><th>Overall</th>${RUBRIC_AREAS.map((area) => `<th>${area}</th>`).join("")}</tr></thead>
+            <tbody>${weeklyRows}</tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:0.85rem">
+        <h3>Training modules</h3>
+        <p class="hint">Training is assigned to improvement areas. Score impact appears in the next weekly monitoring sample.</p>
+        <div class="ix-table-wrap" style="border:none">
+          <table class="table">
+            <thead><tr><th>Module</th><th>Rubric area</th><th>Status</th><th>Supervisor help</th></tr></thead>
+            <tbody>${moduleRows || `<tr><td colspan="4" style="text-align:center;color:var(--muted)">No training modules assigned.</td></tr>`}</tbody>
+          </table>
+        </div>
+      </div>`;
+}
+
+function renderAgentPerformance() {
+  return `
+    <h1 class="page-title">Agent Coaching <span class="future-badge">Future development · Post-MVP</span></h1>
+    <p class="page-sub">${AGENT_NAME} · Overall and rubric-area performance from randomly monitored conversations.</p>
+    ${futureCallout("Agent Coaching is a future-development preview and is not included in the MVP.")}
+    <div class="unavailable-preview">
+      ${agentCoachingBody(AGENT_NAME)}
+    </div>`;
+}
+
+const REPORT_SECTIONS = [
+  "Soft skills",
+  "Compliance",
+  "Disclosures",
+  "Resolution",
+  "Empathy",
+  "Product knowledge - Client defined",
+  "CRM usage",
+  "Custom area of coaching",
+];
 
 const SECTION_AGENTS = [
   { agent: "S. Okonkwo", lob: "Test_Lob", audits: 22, sections: { "Soft skills": 96.2, Compliance: 94.1, Disclosures: 90.4, Resolution: 93.0 } },
@@ -2184,12 +2408,28 @@ const SECTION_AGENTS = [
   { agent: "K. Singh", lob: "Commercial Pharmacy", audits: 27, sections: { "Soft skills": 88.7, Compliance: 86.1, Disclosures: 82.4, Resolution: 85.0 } },
   { agent: "L. Ramirez", lob: "Retail", audits: 33, sections: { "Soft skills": 86.4, Compliance: 80.2, Disclosures: 83.1, Resolution: 84.6 } },
   { agent: "J. Brooks", lob: "Medicaid Pharmacy", audits: 41, sections: { "Soft skills": 84.1, Compliance: 85.5, Disclosures: 79.8, Resolution: 76.2 } },
-  { agent: "R. Patel", lob: "Commercial Pharmacy", audits: 48, sections: { "Soft skills": 81.0, Compliance: 83.4, Disclosures: 71.5, Resolution: 78.8 } },
+  { agent: "R. Patel", lob: "Commercial Pharmacy", audits: 11, sections: { "Soft skills": 84, Compliance: 89, Disclosures: 78, Resolution: 82 } },
   { agent: "A. Nguyen", lob: "Retail", audits: 29, sections: { "Soft skills": 79.6, Compliance: 82.0, Disclosures: 77.4, Resolution: 68.5 } },
   { agent: "P. Ellis", lob: "Cards", audits: 19, sections: { "Soft skills": 77.2, Compliance: 74.8, Disclosures: 69.1, Resolution: 73.4 } },
   { agent: "K. Lee", lob: "Retail", audits: 18, sections: { "Soft skills": 75.4, Compliance: 78.6, Disclosures: 80.2, Resolution: 81.0 } },
   { agent: "QA Bot Handoff", lob: "Test_Lob", audits: 12, sections: { "Soft skills": 72.8, Compliance: 76.0, Disclosures: 74.4, Resolution: 70.1 } },
 ];
+
+const EXTRA_SECTION_SCORES = {
+  "S. Okonkwo": { "Product knowledge - Client defined": 94.0, "CRM usage": 91.2, "Custom area of coaching": 88.4, Empathy: 93.1 },
+  "T. Morales": { "Product knowledge - Client defined": 90.2, "CRM usage": 88.5, "Custom area of coaching": 86.0, Empathy: 91.4 },
+  "M. Chen": { "Product knowledge - Client defined": 87.6, "CRM usage": 85.2, "Custom area of coaching": 83.8, Empathy: 88.0 },
+  "H. Cho": { "Product knowledge - Client defined": 86.1, "CRM usage": 84.4, "Custom area of coaching": 82.0, Empathy: 86.8 },
+  "K. Singh": { "Product knowledge - Client defined": 84.2, "CRM usage": 81.6, "Custom area of coaching": 79.4, Empathy: 83.5 },
+  "L. Ramirez": { "Product knowledge - Client defined": 82.8, "CRM usage": 80.1, "Custom area of coaching": 77.6, Empathy: 81.9 },
+  "J. Brooks": { "Product knowledge - Client defined": 80.4, "CRM usage": 78.2, "Custom area of coaching": 74.8, Empathy: 79.1 },
+  "R. Patel": { "Product knowledge - Client defined": 80, "CRM usage": 83, "Custom area of coaching": 77, Empathy: 86 },
+  "A. Nguyen": { "Product knowledge - Client defined": 76.5, "CRM usage": 74.2, "Custom area of coaching": 71.8, Empathy: 75.4 },
+  "P. Ellis": { "Product knowledge - Client defined": 73.6, "CRM usage": 71.0, "Custom area of coaching": 69.4, Empathy: 72.8 },
+  "K. Lee": { "Product knowledge - Client defined": 78.1, "CRM usage": 76.4, "Custom area of coaching": 74.0, Empathy: 77.2 },
+  "QA Bot Handoff": { "Product knowledge - Client defined": 71.5, "CRM usage": 69.8, "Custom area of coaching": 68.2, Empathy: 70.4 },
+};
+SECTION_AGENTS.forEach((agent) => Object.assign(agent.sections, EXTRA_SECTION_SCORES[agent.agent] || {}));
 
 function renderReporting() {
   const lobBoard = [
@@ -2208,10 +2448,26 @@ function renderReporting() {
     .slice(0, 10)
     .map((a, index) => ({ ...a, rank: index + 1 }));
 
+  const trainingRows = [
+    ...AGENT_TRAINING_MODULES.map((module) => ({ agent: AGENT_NAME, ...module })),
+    ...TEAM_TRAINING_MODULES,
+  ]
+    .map(
+      (module) => `
+        <tr>
+          <td>${module.agent}</td>
+          <td><strong>${module.name}</strong></td>
+          <td>${module.rubric}</td>
+          <td><span class="status ${module.status === "Completed" ? "ok" : "warn"}">${module.status}</span></td>
+          <td>${module.helpRequested ? '<span class="status warn">Help requested</span>' : "—"}</td>
+        </tr>`
+    )
+    .join("");
+
   return `
-    <h1 class="page-title">Reporting &amp; Insights <span class="future-badge">Future development · Post-MVP</span></h1>
-    <p class="page-sub">Clickable preview of planned Superset-backed reporting.</p>
-    ${futureCallout("Reporting & Insights is not part of the MVP. This dashboard is retained only as a future-development preview.")}
+    <h1 class="page-title">Team Insights <span class="future-badge">Future development · Post-MVP</span></h1>
+    <p class="page-sub">Clickable preview of planned team reporting and training follow-up.</p>
+    ${futureCallout("Team Insights is not part of the MVP. This dashboard is retained only as a future-development preview.")}
     ${tenantRow()}
     <div class="card" style="padding:0.75rem 1rem;margin-bottom:0.85rem">
       <div class="grid-filters">
@@ -2320,6 +2576,16 @@ function renderReporting() {
           </div>
         </div>
       </div>
+    </div>
+    <div class="card" style="margin-top:0.85rem">
+      <h3>Training modules</h3>
+      <p class="hint">Requests and completions across the team. R. Patel’s modules match Agent Coaching, including supervisor help requests.</p>
+      <div class="ix-table-wrap" style="border:none">
+        <table class="table">
+          <thead><tr><th>Agent</th><th>Module</th><th>Rubric area</th><th>Status</th><th>Supervisor help</th></tr></thead>
+          <tbody>${trainingRows}</tbody>
+        </table>
+      </div>
     </div>`;
 }
 
@@ -2393,48 +2659,6 @@ function renderAdminTenantBody() {
           <button class="btn" type="button">Map queue</button>
         </div>
       </div>
-    </div>`;
-}
-
-function renderAdminCalibrationBody() {
-  return `
-    <p class="page-sub" style="margin-top:0">Align human and AI scoring, tune thresholds, and optimize prompts / models from disagreement patterns.</p>
-    <div class="calib-grid">
-      <div class="card">
-        <h3>Calibration sessions</h3>
-        <p class="hint">Compare AI vs lead reviewer on sampled audits.</p>
-        <table class="table">
-          <thead><tr><th>Session</th><th>Audits</th><th>Agreement</th><th>Status</th></tr></thead>
-          <tbody>
-            <tr><td>Weekly Cards · Soft skills</td><td>12</td><td>90%</td><td><span class="status warn">Scheduled</span></td></tr>
-            <tr><td>Pharmacy disclosures</td><td>20</td><td>93%</td><td><span class="status ok">Complete</span></td></tr>
-            <tr><td>Fraud intent pack</td><td>15</td><td>—</td><td><span class="status neutral">Draft</span></td></tr>
-          </tbody>
-        </table>
-        <div class="btn-row" style="margin-top:0.65rem">
-          <button class="btn primary" type="button">Start session</button>
-          <button class="btn" type="button">Export pack</button>
-        </div>
-      </div>
-      <div class="card">
-        <h3>AI Optimization</h3>
-        <ul class="opt-list">
-          <li><strong>Prompt v14 drift</strong> — Soft skills agreement dipped 3pts. Recommend A/B vs v13.</li>
-          <li><strong>Routing threshold</strong> — Cards chat human-route share 24% (target 17%).</li>
-          <li><strong>Hallucination watch</strong> — Unsupported rationale 2.1% (under 5% gate).</li>
-          <li><strong>Scorecard gap</strong> — New promo disclosure not in 247client1 form v3.</li>
-        </ul>
-        <div class="btn-row" style="margin-top:0.65rem">
-          <button class="btn primary" type="button">Open model ops</button>
-          <button class="btn" type="button">Reprocess sample</button>
-        </div>
-      </div>
-    </div>
-    <div class="stat-row">
-      <div class="stat"><div class="label">Human agreement</div><div class="value">92%</div></div>
-      <div class="stat"><div class="label">Override rate</div><div class="value">4.8%</div></div>
-      <div class="stat"><div class="label">Hallucination</div><div class="value">2.1%</div></div>
-      <div class="stat"><div class="label">Active prompt</div><div class="value">v14</div></div>
     </div>`;
 }
 
@@ -2574,25 +2798,28 @@ function renderScheduledPull() {
 
 function renderAdmin() {
   const body =
-    settingsTab === "calibration"
-      ? renderAdminCalibrationBody()
-      : settingsTab === "schedule"
-        ? renderScheduledPull()
-      : settingsTab === "advanced"
-          ? renderAdminAdvancedBody()
-          : settingsTab === "about"
-            ? renderAboutBody()
-            : renderAdminTenantBody();
+    settingsTab === "schedule"
+      ? renderScheduledPull()
+      : settingsTab === "sftp-push"
+        ? renderSftpPush()
+        : settingsTab === "clouds"
+          ? renderCloudConnections()
+          : settingsTab === "advanced"
+            ? renderAdminAdvancedBody()
+            : settingsTab === "about"
+              ? renderAboutBody()
+              : renderAdminTenantBody();
 
   return `
     <h1 class="page-title">Settings <span class="future-badge">Future development · Post-MVP</span></h1>
-    <p class="page-sub">Clickable preview of planned administration, scheduled pull, calibration, and advanced settings.</p>
+    <p class="page-sub">Clickable preview of planned administration, scheduled pull, SFTP push, cloud connections, and advanced settings.</p>
     ${futureCallout("Settings is not part of the MVP. All controls on this screen are future-development previews.")}
     ${tenantRow()}
     <div class="tabs">
       <button class="tab ${settingsTab === "admin" ? "active" : ""}" type="button" data-settings-tab="admin">Admin</button>
       <button class="tab ${settingsTab === "schedule" ? "active" : ""}" type="button" data-settings-tab="schedule">Scheduled pull</button>
-      <button class="tab ${settingsTab === "calibration" ? "active" : ""}" type="button" data-settings-tab="calibration">Calibration &amp; AI Opt</button>
+      <button class="tab ${settingsTab === "sftp-push" ? "active" : ""}" type="button" data-settings-tab="sftp-push">SFTP Push <span class="future-badge">Future</span></button>
+      <button class="tab ${settingsTab === "clouds" ? "active" : ""}" type="button" data-settings-tab="clouds">Cloud connections</button>
       <button class="tab ${settingsTab === "advanced" ? "active" : ""}" type="button" data-settings-tab="advanced">Advanced Settings</button>
       <button class="tab ${settingsTab === "about" ? "active" : ""}" type="button" data-settings-tab="about">About</button>
     </div>
@@ -2641,8 +2868,8 @@ function closeCrmPane() {
 const RENDERERS = {
   interactions: renderInteractions,
   "data-import": renderDataImport,
-  sampling: renderSampling,
   coaching: renderCoaching,
+  performance: renderAgentPerformance,
   reporting: renderReporting,
   admin: renderAdmin,
 };
@@ -2654,21 +2881,22 @@ function setNav(view) {
     btn.hidden = (currentRole === "agent" && qaOnly) || (currentRole !== "agent" && agentOnly);
     btn.classList.toggle("active", btn.dataset.view === view && !btn.hidden);
   });
-  quotaBox.hidden = currentRole === "agent" || !(view === "sampling" || view === "data-import");
+  quotaBox.hidden = currentRole === "agent" || view !== "data-import";
   roleButtons.forEach((btn) => btn.classList.toggle("active", btn.dataset.role === currentRole));
   if (userChip) userChip.textContent = currentRole === "agent" ? AGENT_NAME : "QA User";
 }
 
 function render(view) {
-  if (currentRole === "agent" && view !== "interactions" && view !== "coaching") view = "interactions";
-  if (currentRole === "agent" && view === "coaching") {
-    coachingTab = "agent";
-    selectedAgentView = AGENT_NAME;
-  }
+  if (currentRole === "agent" && !["interactions", "performance"].includes(view)) view = "interactions";
+  if (currentRole !== "agent" && view === "performance") view = "interactions";
   // Feature Map removed from nav — open Settings → About instead
   if (view === "overview") {
     settingsTab = "about";
     view = "admin";
+  }
+  if (view === "sampling") {
+    dataTab = "jobs";
+    view = "data-import";
   }
   currentView = view;
   if (view !== "interactions") selectedIx = null;
@@ -2739,6 +2967,18 @@ function readScheduleForm() {
 }
 
 workspace.addEventListener("click", (e) => {
+  const help = e.target.closest("[data-request-help]");
+  if (help) {
+    const module = AGENT_TRAINING_MODULES.find((item) => item.id === help.dataset.requestHelp);
+    if (module) module.helpRequested = true;
+    if (currentRole === "agent") render("performance");
+    else {
+      coachingTab = "agent";
+      render("coaching");
+    }
+    return;
+  }
+
   const goto = e.target.closest("[data-goto]");
   if (goto) {
     selectedIx = null;
@@ -2864,6 +3104,38 @@ workspace.addEventListener("click", (e) => {
     return;
   }
 
+  const teamRemove = e.target.closest("[data-team-ms-remove]");
+  if (teamRemove) {
+    e.preventDefault();
+    e.stopPropagation();
+    const [key, value] = teamRemove.dataset.teamMsRemove.split("|");
+    const selected = teamFilters[key];
+    const idx = selected.indexOf(value);
+    if (idx >= 0) selected.splice(idx, 1);
+    openTeamMsKey = key;
+    coachingTab = "team";
+    render("coaching");
+    return;
+  }
+
+  const teamOpen = e.target.closest("[data-team-ms-open]");
+  if (teamOpen) {
+    e.preventDefault();
+    e.stopPropagation();
+    const key = teamOpen.dataset.teamMsOpen;
+    openTeamMsKey = openTeamMsKey === key ? null : key;
+    coachingTab = "team";
+    render("coaching");
+    return;
+  }
+
+  if (openTeamMsKey && !e.target.closest(".ms-wrap") && !e.target.closest("button, a, select")) {
+    openTeamMsKey = null;
+    coachingTab = "team";
+    render("coaching");
+    return;
+  }
+
   // Close any open multi-select when clicking elsewhere in workspace
   if (openMsKey && !e.target.closest(".ms-wrap")) {
     openMsKey = null;
@@ -2873,6 +3145,7 @@ workspace.addEventListener("click", (e) => {
 
   const dTab = e.target.closest("[data-data-tab]");
   if (dTab) {
+    if (dataTab === "jobs" && samplingTab === "new") readJobForm();
     dataTab = dTab.dataset.dataTab;
     render("data-import");
     return;
@@ -2881,8 +3154,8 @@ workspace.addEventListener("click", (e) => {
   const cloudSel = e.target.closest("[data-select-cloud]");
   if (cloudSel) {
     selectedCloud = cloudSel.dataset.selectCloud;
-    dataTab = "clouds";
-    render("data-import");
+    settingsTab = "clouds";
+    render("admin");
     return;
   }
 
@@ -2890,7 +3163,8 @@ workspace.addEventListener("click", (e) => {
   if (sTab) {
     if (samplingTab === "new") readJobForm();
     samplingTab = sTab.dataset.sampTab;
-    render("sampling");
+    dataTab = "jobs";
+    render("data-import");
     return;
   }
 
@@ -2899,7 +3173,8 @@ workspace.addEventListener("click", (e) => {
     readJobForm();
     const area = rubric.dataset.jobRubric;
     jobRubrics = jobRubrics.includes(area) ? jobRubrics.filter((item) => item !== area) : [...jobRubrics, area];
-    render("sampling");
+    dataTab = "jobs";
+    render("data-import");
     return;
   }
 
@@ -2922,7 +3197,8 @@ workspace.addEventListener("click", (e) => {
       updated: stamp,
     });
     samplingTab = "jobs";
-    render("sampling");
+    dataTab = "jobs";
+    render("data-import");
     return;
   }
 
@@ -2987,9 +3263,8 @@ workspace.addEventListener("click", (e) => {
   }
 
   if (e.target.closest("[data-team-apply]")) {
-    workspace.querySelectorAll("[data-team-filter]").forEach((sel) => {
-      teamFilters[sel.dataset.teamFilter] = [...sel.selectedOptions].map((o) => o.value);
-    });
+    openTeamMsKey = null;
+    coachingTab = "team";
     render("coaching");
     return;
   }
@@ -2998,8 +3273,9 @@ workspace.addEventListener("click", (e) => {
     teamFilters.teams = [];
     teamFilters.lobs = [];
     teamFilters.queues = [];
-    teamFilters.themes = [];
     teamFilters.severity = [];
+    openTeamMsKey = null;
+    coachingTab = "team";
     render("coaching");
     return;
   }
@@ -3099,13 +3375,15 @@ workspace.addEventListener("change", (e) => {
     jobOpenEnded = e.target.checked;
     if (jobOpenEnded) jobDateTo = "";
     else if (!jobDateTo) jobDateTo = jobDateFrom;
-    render("sampling");
+    dataTab = "jobs";
+    render("data-import");
     return;
   }
 
   if (e.target.closest("[data-job-form], [data-job-type]")) {
     readJobForm();
-    render("sampling");
+    dataTab = "jobs";
+    render("data-import");
     return;
   }
   const dateInput = e.target.closest("[data-ix-date]");
@@ -3113,6 +3391,19 @@ workspace.addEventListener("change", (e) => {
     ixFilters[dateInput.dataset.ixDate] = dateInput.value;
     return;
   }
+  const teamToggle = e.target.closest("[data-team-ms-toggle]");
+  if (teamToggle) {
+    const [key, value] = teamToggle.dataset.teamMsToggle.split("|");
+    const selected = teamFilters[key];
+    const idx = selected.indexOf(value);
+    if (teamToggle.checked && idx < 0) selected.push(value);
+    if (!teamToggle.checked && idx >= 0) selected.splice(idx, 1);
+    openTeamMsKey = key;
+    coachingTab = "team";
+    render("coaching");
+    return;
+  }
+
   const msToggle = e.target.closest("[data-ms-toggle]");
   if (msToggle) {
     const [key, value] = msToggle.dataset.msToggle.split("|");
